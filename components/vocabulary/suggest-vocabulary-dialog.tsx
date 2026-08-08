@@ -91,6 +91,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
   const [targetLanguage, setTargetLanguage] = useState("vi");
   const [bookId, setBookId] = useState(books[0]?.id ?? "");
   const [items, setItems] = useState<SelectableSuggestion[]>([]);
+  const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createdCount, setCreatedCount] = useState(0);
@@ -103,11 +104,13 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
     event.preventDefault();
 
     if (!topic.trim()) {
+      setMessage("Enter a topic first.");
       toast.error("Enter a topic first");
       return;
     }
 
     setIsGenerating(true);
+    setMessage("");
     setCreatedCount(0);
 
     try {
@@ -131,10 +134,13 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
       );
 
       if (!suggestions.length) {
+        setMessage("No vocabulary found for this topic.");
         toast.info("No vocabulary found for this topic");
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Unable to suggest vocabulary"));
+      const nextMessage = getErrorMessage(error, "Unable to suggest vocabulary");
+      setMessage(nextMessage);
+      toast.error(nextMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -248,7 +254,10 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                 className="h-10"
                 maxLength={100}
                 value={topic}
-                onChange={(event) => setTopic(event.target.value)}
+                onChange={(event) => {
+                  setTopic(event.target.value);
+                  setMessage("");
+                }}
                 placeholder="restaurant English"
               />
             </div>
@@ -298,7 +307,11 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="h-10 self-end rounded-2xl" disabled={isGenerating}>
+            <Button
+              type="submit"
+              className="h-10 self-end rounded-2xl"
+              disabled={isGenerating}
+            >
               {isGenerating ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -307,6 +320,9 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
               Generate
             </Button>
           </form>
+          {message ? (
+            <p className="mt-3 text-sm text-destructive">{message}</p>
+          ) : null}
 
           <div className="mt-5 grid gap-3">
             {items.length ? (
