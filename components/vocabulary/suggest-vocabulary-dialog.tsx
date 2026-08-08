@@ -35,6 +35,9 @@ type TopicVocabularySuggestion = {
   id?: string;
   word: string;
   normalizedWord?: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  exampleAudioUrl?: string;
   partOfSpeech?: string;
   definition?: string;
   translation?: string;
@@ -57,6 +60,17 @@ type SuggestTopicResponse = {
   level?: TopicLevel;
   targetLanguage: string;
   suggestions: TopicVocabularySuggestion[];
+};
+
+type WordSuggestion = {
+  word?: string;
+  pronunciation?: string;
+  partOfSpeech?: string;
+  definitions?: { text?: string; partOfSpeech?: string }[];
+  translation?: string;
+  examples?: { text?: string; translation?: string; audioUrl?: string }[];
+  audio?: { url?: string };
+  images?: { url?: string }[];
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -94,6 +108,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
   const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [enrichingId, setEnrichingId] = useState("");
   const [createdCount, setCreatedCount] = useState(0);
   const selectedCount = items.filter((item) => item.selected && !item.alreadyExists).length;
   const allSelected =
@@ -169,6 +184,9 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
           translation: item.translation,
           example: item.example,
           exampleTranslation: item.exampleTranslation,
+          audioUrl: item.audioUrl,
+          imageUrl: item.imageUrl,
+          exampleAudioUrl: item.exampleAudioUrl,
           bookId: bookId || undefined,
         });
         created += 1;
@@ -221,6 +239,52 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
         item.localId === localId ? { ...item, ...updates } : item
       )
     );
+  }
+
+  async function handleEnrichSuggestion(item: SelectableSuggestion) {
+    if (!item.word.trim()) {
+      toast.error("Enter a word first");
+      return;
+    }
+
+    setEnrichingId(item.localId);
+
+    try {
+      const response = await http.get<ApiEnvelope<WordSuggestion> | WordSuggestion>(
+        "/api/words/suggest",
+        {
+          query: {
+            word: item.word.trim(),
+            targetLanguage,
+            imageLimit: 4,
+          },
+        }
+      );
+      const suggestion = unwrapData(response);
+      const firstDefinition = suggestion?.definitions?.find((definition) => definition.text);
+      const firstExample = suggestion?.examples?.find((example) => example.text);
+      const firstImage = suggestion?.images?.find((image) => image.url);
+
+      updateItem(item.localId, {
+        word: suggestion?.word || item.word,
+        partOfSpeech:
+          suggestion?.partOfSpeech ||
+          firstDefinition?.partOfSpeech ||
+          item.partOfSpeech,
+        definition: firstDefinition?.text || item.definition,
+        translation: suggestion?.translation || item.translation,
+        example: firstExample?.text || item.example,
+        exampleTranslation: firstExample?.translation || item.exampleTranslation,
+        audioUrl: suggestion?.audio?.url || item.audioUrl,
+        imageUrl: firstImage?.url || item.imageUrl,
+        exampleAudioUrl: firstExample?.audioUrl || item.exampleAudioUrl,
+      });
+      toast.success("Suggestion updated");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to suggest details"));
+    } finally {
+      setEnrichingId("");
+    }
   }
 
   return (
@@ -365,6 +429,12 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      {item.imageUrl ? (
+                        <div
+                          className="h-16 w-16 shrink-0 rounded-xl bg-secondary bg-cover bg-center"
+                          style={{ backgroundImage: `url(${item.imageUrl})` }}
+                        />
+                      ) : null}
                       <Input
                         className="h-9 max-w-64 text-base font-semibold"
                         value={item.word}
@@ -378,6 +448,11 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                         </Badge>
                       ) : null}
                       <SuggestionStatus item={item} />
+                      {item.audioUrl ? (
+                        <Badge variant="outline" className="rounded-2xl">
+                          Audio
+                        </Badge>
+                      ) : null}
                     </div>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <Textarea
@@ -416,6 +491,21 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                       />
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-2xl"
+                    disabled={enrichingId === item.localId}
+                    onClick={() => handleEnrichSuggestion(item)}
+                  >
+                    {enrichingId === item.localId ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-3.5" />
+                    )}
+                    Suggest
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
