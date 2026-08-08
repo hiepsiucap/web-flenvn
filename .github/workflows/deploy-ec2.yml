@@ -1,0 +1,83 @@
+name: Deploy Web to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-ec2
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build Web
+        env:
+          API_BASE_URL: http://localhost:5000
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload build artifact
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_WEB_DIR: ${{ secrets.EC2_WEB_DIR }}
+        run: |
+          set -euo pipefail
+
+          tar -czf flenvn-web.tar.gz \
+            .next \
+            public \
+            package.json \
+            package-lock.json \
+            next.config.ts \
+            ecosystem.config.cjs
+
+          ssh -i ~/.ssh/ec2_key "$EC2_USER@$EC2_HOST" "mkdir -p '$EC2_WEB_DIR'"
+          scp -i ~/.ssh/ec2_key flenvn-web.tar.gz "$EC2_USER@$EC2_HOST:$EC2_WEB_DIR/flenvn-web.tar.gz"
+
+      - name: Restart Web on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_WEB_DIR: ${{ secrets.EC2_WEB_DIR }}
+        run: |
+          set -euo pipefail
+
+          ssh -i ~/.ssh/ec2_key "$EC2_USER@$EC2_HOST" << EOF
+            set -euo pipefail
+            cd "$EC2_WEB_DIR"
+            tar -xzf flenvn-web.tar.gz
+            npm ci --omit=dev --no-audit --no-fund
+            pm2 startOrReload ecosystem.config.cjs --env production
+            pm2 save
+          EOF

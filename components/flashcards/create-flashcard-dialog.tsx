@@ -77,7 +77,11 @@ function getErrorMessage(error: unknown) {
 }
 
 function getBackendBaseUrl() {
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return process.env.API_BASE_URL ?? "http://localhost:5000";
 }
 
 async function refreshClientToken() {
