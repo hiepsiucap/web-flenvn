@@ -1,0 +1,475 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { Check, Loader2, Plus, Sparkles, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { HttpError, http } from "@/lib/http";
+import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
+import type { Book } from "@/lib/dashboard-data";
+
+type TopicLevel = "beginner" | "intermediate" | "advanced";
+
+type TopicVocabularySuggestion = {
+  id?: string;
+  word: string;
+  normalizedWord?: string;
+  partOfSpeech?: string;
+  definition?: string;
+  translation?: string;
+  example?: string;
+  exampleTranslation?: string;
+  difficulty?: TopicLevel;
+  alreadyExists?: boolean;
+  duplicateOfFlashcardId?: string;
+  confidence?: number;
+};
+
+type SelectableSuggestion = TopicVocabularySuggestion & {
+  localId: string;
+  selected: boolean;
+  status?: "created" | "failed" | "duplicate";
+};
+
+type SuggestTopicResponse = {
+  topic: string;
+  level?: TopicLevel;
+  targetLanguage: string;
+  suggestions: TopicVocabularySuggestion[];
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof HttpError) {
+    const data = error.data as ApiErrorResponse | null;
+    const message = data?.message;
+    return Array.isArray(message) ? message.join(", ") : message || fallback;
+  }
+
+  return fallback;
+}
+
+function unwrapData<TData>(response: ApiEnvelope<TData> | TData) {
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    "success" in response
+  ) {
+    return (response as ApiEnvelope<TData>).data;
+  }
+
+  return response as TData;
+}
+
+export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [level, setLevel] = useState<TopicLevel>("beginner");
+  const [limit, setLimit] = useState("20");
+  const [targetLanguage, setTargetLanguage] = useState("vi");
+  const [bookId, setBookId] = useState(books[0]?.id ?? "");
+  const [items, setItems] = useState<SelectableSuggestion[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createdCount, setCreatedCount] = useState(0);
+  const selectedCount = items.filter((item) => item.selected && !item.alreadyExists).length;
+  const allSelected =
+    items.length > 0 &&
+    items.every((item) => item.selected || item.alreadyExists);
+
+  async function handleGenerate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!topic.trim()) {
+      toast.error("Enter a topic first");
+      return;
+    }
+
+    setIsGenerating(true);
+    setCreatedCount(0);
+
+    try {
+      const response = await http.post<
+        ApiEnvelope<SuggestTopicResponse> | SuggestTopicResponse
+      >("/api/words/suggest-topic", {
+        topic: topic.trim(),
+        level,
+        limit: Number(limit),
+        targetLanguage,
+      });
+      const data = unwrapData(response);
+      const suggestions = data?.suggestions ?? [];
+
+      setItems(
+        suggestions.map((suggestion, index) => ({
+          ...suggestion,
+          localId: suggestion.id ?? `${suggestion.word}-${index}`,
+          selected: !suggestion.alreadyExists,
+        }))
+      );
+
+      if (!suggestions.length) {
+        toast.info("No vocabulary found for this topic");
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to suggest vocabulary"));
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleCreateFlashcards() {
+    const selectedItems = items.filter((item) => item.selected && !item.alreadyExists);
+
+    if (!selectedItems.length) {
+      toast.error("Choose at least one word");
+      return;
+    }
+
+    setIsCreating(true);
+    setCreatedCount(0);
+
+    let created = 0;
+    let failed = 0;
+
+    for (const item of selectedItems) {
+      try {
+        await http.post("/api/flashcards", {
+          word: item.word,
+          partOfSpeech: item.partOfSpeech,
+          definition: item.definition,
+          translation: item.translation,
+          example: item.example,
+          exampleTranslation: item.exampleTranslation,
+          bookId: bookId || undefined,
+        });
+        created += 1;
+        setCreatedCount(created);
+        updateItemStatus(item.localId, "created");
+      } catch (error) {
+        failed += 1;
+        updateItemStatus(
+          item.localId,
+          getErrorMessage(error, "").toLowerCase().includes("exist")
+            ? "duplicate"
+            : "failed"
+        );
+      }
+    }
+
+    if (created) {
+      router.refresh();
+    }
+
+    toast.success(
+      failed ? `${created} created, ${failed} failed` : `${created} flashcards created`
+    );
+    setIsCreating(false);
+  }
+
+  function updateItemStatus(
+    localId: string,
+    status: SelectableSuggestion["status"]
+  ) {
+    setItems((current) =>
+      current.map((item) =>
+        item.localId === localId ? { ...item, selected: false, status } : item
+      )
+    );
+  }
+
+  function toggleAll(checked: boolean) {
+    setItems((current) =>
+      current.map((item) => ({
+        ...item,
+        selected: item.alreadyExists ? false : checked,
+      }))
+    );
+  }
+
+  function updateItem(localId: string, updates: Partial<SelectableSuggestion>) {
+    setItems((current) =>
+      current.map((item) =>
+        item.localId === localId ? { ...item, ...updates } : item
+      )
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            size="icon-lg"
+            className="fixed bottom-5 right-5 z-40 size-14 rounded-full shadow-lg shadow-brand-800/20"
+          >
+            <Sparkles className="size-5" />
+            <span className="sr-only">Suggest vocabulary</span>
+          </Button>
+        }
+      />
+      <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
+        <DialogHeader>
+          <DialogTitle>Suggest vocabulary</DialogTitle>
+          <DialogDescription>
+            Generate topic words, choose what you want, then create flashcards.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="min-h-0 overflow-y-auto pr-1">
+          <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={handleGenerate}>
+            <div className="grid gap-2 sm:col-span-2">
+              <Label htmlFor="topic-vocabulary-topic">Topic</Label>
+              <Input
+                id="topic-vocabulary-topic"
+                className="h-10"
+                maxLength={100}
+                value={topic}
+                onChange={(event) => setTopic(event.target.value)}
+                placeholder="restaurant English"
+              />
+            </div>
+            <SelectControl
+              label="Level"
+              value={level}
+              onValueChange={(value) => value && setLevel(value as TopicLevel)}
+              options={[
+                ["beginner", "Beginner"],
+                ["intermediate", "Intermediate"],
+                ["advanced", "Advanced"],
+              ]}
+            />
+            <SelectControl
+              label="Count"
+              value={limit}
+              onValueChange={(value) => value && setLimit(value)}
+              options={[
+                ["10", "10"],
+                ["20", "20"],
+                ["30", "30"],
+              ]}
+            />
+            <div className="grid gap-2">
+              <Label htmlFor="topic-vocabulary-language">Language</Label>
+              <Input
+                id="topic-vocabulary-language"
+                className="h-10"
+                value={targetLanguage}
+                onChange={(event) => setTargetLanguage(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2 sm:col-span-2 lg:col-span-4">
+              <Label>Destination book</Label>
+              <Select value={bookId} onValueChange={(value) => setBookId(value ?? "")}>
+                <SelectTrigger className="h-10 w-full">
+                  <span className="truncate text-left">
+                    {books.find((book) => book.id === bookId)?.title ?? "No book selected"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {books.map((book) => (
+                    <SelectItem key={book.id} value={book.id}>
+                      {book.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="h-10 self-end rounded-2xl" disabled={isGenerating}>
+              {isGenerating ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              Generate
+            </Button>
+          </form>
+
+          <div className="mt-5 grid gap-3">
+            {items.length ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) => toggleAll(Boolean(checked))}
+                  />
+                  Select all
+                </label>
+                <Button
+                  type="button"
+                  className="h-10 rounded-2xl"
+                  disabled={isCreating || selectedCount === 0}
+                  onClick={handleCreateFlashcards}
+                >
+                  {isCreating ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  {isCreating
+                    ? `Creating ${createdCount} of ${selectedCount}`
+                    : `Create ${selectedCount}`}
+                </Button>
+              </div>
+            ) : null}
+
+            {items.map((item) => (
+              <div key={item.localId} className="grid gap-3 rounded-2xl border border-border p-3">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={item.selected}
+                    disabled={item.alreadyExists || item.status === "created"}
+                    onCheckedChange={(checked) =>
+                      updateItem(item.localId, { selected: Boolean(checked) })
+                    }
+                    className="mt-1"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        className="h-9 max-w-64 text-base font-semibold"
+                        value={item.word}
+                        onChange={(event) =>
+                          updateItem(item.localId, { word: event.target.value })
+                        }
+                      />
+                      {item.partOfSpeech ? (
+                        <Badge variant="outline" className="rounded-2xl">
+                          {item.partOfSpeech}
+                        </Badge>
+                      ) : null}
+                      <SuggestionStatus item={item} />
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <Textarea
+                        value={item.definition ?? ""}
+                        placeholder="Definition"
+                        onChange={(event) =>
+                          updateItem(item.localId, { definition: event.target.value })
+                        }
+                      />
+                      <Textarea
+                        value={item.example ?? ""}
+                        placeholder="Example"
+                        onChange={(event) =>
+                          updateItem(item.localId, { example: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <Input
+                        className="h-9"
+                        value={item.translation ?? ""}
+                        placeholder="Translation"
+                        onChange={(event) =>
+                          updateItem(item.localId, { translation: event.target.value })
+                        }
+                      />
+                      <Input
+                        className="h-9"
+                        value={item.exampleTranslation ?? ""}
+                        placeholder="Example translation"
+                        onChange={(event) =>
+                          updateItem(item.localId, {
+                            exampleTranslation: event.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() =>
+                      setItems((current) =>
+                        current.filter((candidate) => candidate.localId !== item.localId)
+                      )
+                    }
+                  >
+                    <X className="size-4" />
+                    <span className="sr-only">Remove suggestion</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SelectControl({
+  label,
+  value,
+  options,
+  onValueChange,
+}: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onValueChange: (value: string | null) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="h-10 w-full">
+          <span>{options.find(([option]) => option === value)?.[1] ?? value}</span>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(([optionValue, optionLabel]) => (
+            <SelectItem key={optionValue} value={optionValue}>
+              {optionLabel}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function SuggestionStatus({ item }: { item: SelectableSuggestion }) {
+  if (item.alreadyExists || item.status === "duplicate") {
+    return <Badge variant="outline">Already added</Badge>;
+  }
+
+  if (item.status === "created") {
+    return (
+      <Badge variant="secondary">
+        <Check className="size-3.5" />
+        Created
+      </Badge>
+    );
+  }
+
+  if (item.status === "failed") {
+    return <Badge variant="destructive">Failed</Badge>;
+  }
+
+  return null;
+}

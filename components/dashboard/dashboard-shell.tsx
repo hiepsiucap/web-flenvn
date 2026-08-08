@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
+import { SuggestVocabularyDialog } from "@/components/vocabulary/suggest-vocabulary-dialog";
 import {
   SidebarNav,
   type SidebarNavItem,
 } from "@/components/dashboard/sidebar-nav";
 import logo from "@/app/logo.png";
-import { getDashboardShellData } from "@/lib/dashboard-data";
+import { getBooks, getDashboardShellData } from "@/lib/dashboard-data";
 
 const navItems: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
@@ -26,7 +27,7 @@ export async function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getDashboardShellData();
+  const [user, books] = await Promise.all([getDashboardShellData(), getBooks()]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -110,6 +111,7 @@ export async function DashboardShell({
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
+      <SuggestVocabularyDialog books={books} />
     </div>
   );
 }
