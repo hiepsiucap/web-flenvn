@@ -333,6 +333,7 @@ export function CreateFlashcardDialog({
       });
 
       toast.success("Flashcard created");
+      clearForm();
       setOpen(false);
       router.refresh();
     } catch (error) {
