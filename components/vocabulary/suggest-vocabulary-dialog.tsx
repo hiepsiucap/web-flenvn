@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Check, Loader2, Plus, Sparkles, X } from "lucide-react";
+import { Check, Loader2, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
@@ -241,6 +241,12 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
     );
   }
 
+  function clearSuggestions() {
+    setItems([]);
+    setMessage("");
+    setCreatedCount(0);
+  }
+
   async function handleEnrichSuggestion(item: SelectableSuggestion) {
     if (!item.word.trim()) {
       toast.error("Enter a word first");
@@ -398,21 +404,33 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                   />
                   Select all
                 </label>
-                <Button
-                  type="button"
-                  className="h-10 rounded-2xl"
-                  disabled={isCreating || selectedCount === 0}
-                  onClick={handleCreateFlashcards}
-                >
-                  {isCreating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Plus className="size-4" />
-                  )}
-                  {isCreating
-                    ? `Creating ${createdCount} of ${selectedCount}`
-                    : `Create ${selectedCount}`}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-2xl"
+                    disabled={isCreating}
+                    onClick={clearSuggestions}
+                  >
+                    <RotateCcw className="size-4" />
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-10 rounded-2xl"
+                    disabled={isCreating || selectedCount === 0}
+                    onClick={handleCreateFlashcards}
+                  >
+                    {isCreating ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Plus className="size-4" />
+                    )}
+                    {isCreating
+                      ? `Creating ${createdCount} of ${selectedCount}`
+                      : `Create ${selectedCount}`}
+                  </Button>
+                </div>
               </div>
             ) : null}
 
