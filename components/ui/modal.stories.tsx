@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Button } from "@/components/ui/button";
 import {
   Modal,
+  ModalActionButton,
   ModalBody,
   ModalCancelButton,
   ModalContent,
@@ -46,7 +47,7 @@ export const Default: Story = {
         </ModalBody>
         <ModalFooter>
           <ModalCancelButton />
-          <Button>Create set</Button>
+          <ModalActionButton>Create set</ModalActionButton>
         </ModalFooter>
       </ModalContent>
     </Modal>

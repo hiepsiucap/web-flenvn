@@ -16,7 +16,6 @@ import {
 import { toast } from "react-toastify";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -28,8 +27,11 @@ import {
 import { Icon } from "@/components/ui/icon";
 import {
   Modal,
+  ModalActionButton,
+  ModalBody,
   ModalContent,
   ModalDescription,
+  ModalFooter,
   ModalHeader,
   ModalTitle,
   ModalTrigger,
@@ -152,7 +154,7 @@ export function AuthModal({
       <ModalTrigger render={<span className="contents" />}>
         {children}
       </ModalTrigger>
-      <ModalContent className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[1.75rem] border border-brand-200 bg-white px-5 py-5 text-foreground opacity-100 shadow-2xl shadow-primary/30 sm:max-w-[480px] sm:px-7 sm:py-6 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:text-foreground">
+      <ModalContent className="rounded-[1.75rem] border border-brand-200 bg-white px-5 py-5 text-foreground opacity-100 shadow-2xl shadow-primary/30 sm:max-w-[480px] sm:px-7 sm:py-6 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:text-foreground">
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem]">
           <Icon
             icon={Sparkle}
@@ -176,26 +178,29 @@ export function AuthModal({
           />
         </div>
 
-        <div className="relative flex justify-center">
-          <Image
-            src={logo}
-            alt="FLENVN logo"
-            className="h-auto w-24 sm:w-30"
-            priority
-          />
+        <div className="relative grid gap-4">
+          <div className="flex justify-center">
+            <Image
+              src={logo}
+              alt="FLENVN logo"
+              className="h-auto w-24 sm:w-30"
+              priority
+            />
+          </div>
+
+          <ModalHeader className="items-center gap-1.5 pr-0 text-center">
+            <ModalTitle>
+              {mode === "login" ? "Welcome back" : "Create your account"}
+            </ModalTitle>
+            <ModalDescription className="max-w-sm text-foreground/70">
+              {mode === "login"
+                ? "Continue building your vocabulary habit."
+                : "Start saving words, reviewing cards, and learning with AI."}
+            </ModalDescription>
+          </ModalHeader>
         </div>
 
-        <ModalHeader className="relative items-center gap-1.5 pr-0 text-center">
-          <ModalTitle>
-            {mode === "login" ? "Welcome back" : "Create your account"}
-          </ModalTitle>
-          <ModalDescription className="max-w-sm text-foreground/70">
-            {mode === "login"
-              ? "Continue building your vocabulary habit."
-              : "Start saving words, reviewing cards, and learning with AI."}
-          </ModalDescription>
-        </ModalHeader>
-
+        <ModalBody className="relative">
         <Tabs
           value={mode}
           onValueChange={(value) => {
@@ -220,7 +225,7 @@ export function AuthModal({
           </TabsList>
 
           <TabsContent value={mode}>
-            <Form onSubmit={handleSubmit} className="gap-4">
+            <Form id="auth-form" onSubmit={handleSubmit} className="gap-4">
               {error ? (
                 <Alert variant="destructive">
                   <Icon icon={AlertCircle} />
@@ -286,13 +291,13 @@ export function AuthModal({
                   trailing={
                     <button
                       type="button"
-                      className="grid size-10 place-items-center rounded-full text-muted-foreground transition hover:bg-brand-50 hover:text-primary"
+                      className="grid size-8 place-items-center text-muted-foreground transition hover:text-primary"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       onClick={() => setShowPassword((current) => !current)}
                     >
                       <Icon
                         icon={showPassword ? EyeSlash : Eye}
-                        className="size-6"
+                        className="size-5"
                         weight="bold"
                       />
                     </button>
@@ -305,39 +310,41 @@ export function AuthModal({
                 ) : null}
               </FormField>
 
-              <Button
-                type="submit"
-                className="mt-1 h-12 w-full rounded-2xl bg-primary text-base font-extrabold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Icon icon={Loader2} className="animate-spin" />
-                ) : mode === "login" ? (
-                  <Icon icon={LockKeyhole} />
-                ) : (
-                  <Icon icon={Plus} />
-                )}
-                {mode === "login" ? "Continue studying" : "Create account"}
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                {mode === "login"
-                  ? "Need an account?"
-                  : "Already have an account?"}{" "}
-                <button
-                  type="button"
-                  className="font-extrabold text-primary hover:underline"
-                  onClick={() => {
-                    setMode(mode === "login" ? "register" : "login");
-                    resetErrors();
-                  }}
-                >
-                  {mode === "login" ? "Register" : "Login"}
-                </button>
-              </p>
             </Form>
           </TabsContent>
         </Tabs>
+        </ModalBody>
+
+        <ModalFooter className="relative grid gap-3 sm:grid sm:grid-cols-1">
+          <ModalActionButton
+            form="auth-form"
+            className="h-12 w-full rounded-2xl bg-primary text-base font-extrabold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <Icon icon={Loader2} className="animate-spin" />
+            ) : mode === "login" ? (
+              <Icon icon={LockKeyhole} />
+            ) : (
+              <Icon icon={Plus} />
+            )}
+            {mode === "login" ? "Continue studying" : "Create account"}
+          </ModalActionButton>
+
+          <p className="text-center text-sm text-muted-foreground">
+            {mode === "login" ? "Need an account?" : "Already have an account?"}{" "}
+            <button
+              type="button"
+              className="font-extrabold text-primary hover:underline"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                resetErrors();
+              }}
+            >
+              {mode === "login" ? "Register" : "Login"}
+            </button>
+          </p>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
@@ -359,12 +366,12 @@ function AuthField({
 }) {
   return (
     <FormControl>
-      <div className="pointer-events-none absolute left-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-brand-100 text-primary">
-        <Icon icon={icon} className="size-6" weight="bold" />
+      <div className="pointer-events-none absolute left-5 top-1/2 grid size-5 -translate-y-1/2 place-items-center text-primary">
+        <Icon icon={icon} className="size-5" weight="bold" />
       </div>
       <FormLabel
         htmlFor={id}
-        className="pointer-events-none absolute left-18 top-3.5 z-10 text-sm font-extrabold text-foreground"
+        className="pointer-events-none absolute left-14 top-3.5 z-10 text-sm font-extrabold text-foreground"
       >
         {label}
       </FormLabel>
@@ -372,7 +379,7 @@ function AuthField({
         id={id}
         aria-invalid={invalid}
         className={cn(
-          "h-16 rounded-2xl border-brand-200 bg-white pb-2.5 pl-18 pr-14 pt-8 text-sm text-foreground shadow-none placeholder:text-muted-foreground/75 focus-visible:border-primary focus-visible:ring-primary/20",
+          "h-16 rounded-2xl border-brand-200 bg-white pb-2.5 pl-14 pr-14 pt-8 text-sm text-foreground shadow-none placeholder:text-muted-foreground/75 focus-visible:border-primary focus-visible:ring-primary/20",
           invalid && "animate-error-shake",
           !trailing && "pr-5",
           className

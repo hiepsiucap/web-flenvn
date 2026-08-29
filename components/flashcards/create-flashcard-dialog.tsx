@@ -19,8 +19,11 @@ import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import {
   Modal,
+  ModalActionButton,
+  ModalBody,
   ModalContent,
   ModalDescription,
+  ModalFooter,
   ModalHeader,
   ModalTitle,
   ModalTrigger,
@@ -317,7 +320,7 @@ export function CreateFlashcardDialog({
           </Button>
         }
       />
-      <ModalContent className="grid h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden overscroll-contain sm:max-w-5xl">
+      <ModalContent className="h-[calc(100dvh-2rem)] sm:max-w-5xl">
         <Button
           type="button"
           variant="outline"
@@ -334,10 +337,11 @@ export function CreateFlashcardDialog({
           <ModalDescription>Add a new card to a book.</ModalDescription>
         </ModalHeader>
 
-        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <ModalBody>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <Form
             id="create-flashcard-form"
-            className="-mx-1 min-h-0 overflow-y-auto overscroll-contain px-1 pb-16 pt-1 pr-2"
+            className="min-h-0 pt-1"
             onSubmit={handleSubmit}
           >
             <div className="grid gap-4 pb-1">
@@ -534,7 +538,7 @@ export function CreateFlashcardDialog({
             </div>
           </Form>
 
-          <aside className="min-h-0 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-muted/30 p-3 pb-16">
+          <aside className="min-h-0 rounded-2xl border border-border bg-muted/30 p-3">
             {suggestion ? (
               <div className="grid gap-4">
                 <div className="flex items-center justify-between gap-3">
@@ -682,12 +686,12 @@ export function CreateFlashcardDialog({
               </div>
             )}
           </aside>
-        </div>
+          </div>
+        </ModalBody>
 
-        <div className="absolute bottom-4 right-4 z-10">
-          <Button
+        <ModalFooter className="shrink-0 pt-4">
+          <ModalActionButton
             form="create-flashcard-form"
-            type="submit"
             className="h-12 rounded-2xl px-5 text-base shadow-lg shadow-brand-800/15"
             disabled={isSubmitting || !bookId}
           >
@@ -697,8 +701,8 @@ export function CreateFlashcardDialog({
               <Icon icon={Plus} size="lg" />
             )}
             Save flashcard
-          </Button>
-        </div>
+          </ModalActionButton>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

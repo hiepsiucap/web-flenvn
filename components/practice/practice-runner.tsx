@@ -1,15 +1,20 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import NextImage from "next/image";
 import {
   Check,
   Clock as Clock3,
+  CaretLeft,
+  CaretRight,
   Headphones,
   Image as ImageIcon,
   Stack as Layers3,
   Spinner as Loader2,
   Play,
   Sparkle as Sparkles,
+  Student,
+  Target,
   Trophy,
   X,
 } from "@phosphor-icons/react";
@@ -23,9 +28,17 @@ import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
 import type { Flashcard, ReviewDueBook } from "@/lib/dashboard-data";
+import { cn } from "@/lib/utils";
+import penguinPlayGame from "@/img/penguin-playgame.png";
 import {
   blankWord,
   calculateQuality,
@@ -69,6 +82,17 @@ function getNow() {
   return performance.now();
 }
 
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable
+  );
+}
+
 export function PracticeRunner({
   books,
   flashcardPool,
@@ -80,7 +104,7 @@ export function PracticeRunner({
   const firstBook = books.find((book) => book.dueForReview > 0) ?? books[0];
   const [bookId, setBookId] = useState(getReviewBookId(firstBook) ?? "");
   const selectedBook = books.find((book) => getReviewBookId(book) === bookId);
-  const [limit, setLimit] = useState(Math.min(selectedBook?.dueForReview ?? 0, 5) || 1);
+  const [limit, setLimit] = useState(Math.min(selectedBook?.dueForReview ?? 0, 6) || 1);
   const [message, setMessage] = useState("");
   const [steps, setSteps] = useState<PracticeStep[]>([]);
   const [index, setIndex] = useState(0);
@@ -90,6 +114,10 @@ export function PracticeRunner({
   const [timeLeftMs, setTimeLeftMs] = useState(GAME_TIME_LIMIT_MS);
   const [results, setResults] = useState<Record<string, PracticeGameResult[]>>({});
   const [summary, setSummary] = useState<PracticeSummary | null>(null);
+  const [reviewCards, setReviewCards] = useState<Flashcard[]>([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewSteps, setReviewSteps] = useState<PracticeStep[]>([]);
+  const [isReviewFlipped, setIsReviewFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitAnswerRef = useRef<(value: string, skipped?: boolean) => void>(() => {});
@@ -99,6 +127,8 @@ export function PracticeRunner({
   const totalCorrect = completedGames.filter((item) => item.result === "correct").length;
   const liveScore = completedGames.reduce((total, item) => total + item.score, 0);
   const totalDue = books.reduce((total, book) => total + book.dueForReview, 0);
+  const totalCards = books.reduce((total, book) => total + book.totalCards, 0);
+  const countOptions = getPracticeCountOptions(selectedBook?.dueForReview ?? 0);
   const maxScore = Math.min(limit, selectedBook?.dueForReview ?? 0) * 40;
 
   useEffect(() => {
@@ -174,13 +204,17 @@ export function PracticeRunner({
       }
 
       preloadMedia(dueCards);
-      setSteps(nextSteps);
+      setReviewCards(dueCards);
+      setReviewSteps(nextSteps);
+      setReviewIndex(0);
+      setIsReviewFlipped(false);
+      setSteps([]);
       setIndex(0);
       setAnswer("");
       setResults({});
       setSummary(null);
-      setStartedAt(getNow());
-      setRunStartedAt(getNow());
+      setStartedAt(0);
+      setRunStartedAt(0);
       setTimeLeftMs(GAME_TIME_LIMIT_MS);
     } catch (error) {
       const nextMessage = getErrorMessage(error, "Unable to start practice");
@@ -191,38 +225,44 @@ export function PracticeRunner({
     }
   }
 
-  useEffect(() => {
-    submitAnswerRef.current = submitAnswer;
-  });
+  const startGameFromReview = useCallback(function startGameFromReview() {
+    if (!reviewSteps.length) return;
 
-  async function submitAnswer(value: string, skipped = false) {
-    if (!current) return;
-
-    const correct = !skipped && isCorrectAnswer(value, current.game.answer);
-    const responseTime = Math.round(getNow() - startedAt);
-    const result: PracticeGameResult = {
-      gameType: current.game.type,
-      result: skipped ? "skipped" : correct ? "correct" : "incorrect",
-      responseTime,
-      score: correct ? calculateGameScore(responseTime) : 0,
-    };
-    const nextResults = {
-      ...results,
-      [current.card.id]: [...(results[current.card.id] ?? []), result],
-    };
-
-    setResults(nextResults);
+    setSteps(reviewSteps);
+    setReviewCards([]);
+    setReviewSteps([]);
+    setReviewIndex(0);
+    setIsReviewFlipped(false);
+    setIndex(0);
     setAnswer("");
+    setResults({});
+    setSummary(null);
+    setStartedAt(getNow());
+    setRunStartedAt(getNow());
+    setTimeLeftMs(GAME_TIME_LIMIT_MS);
+  }, [reviewSteps]);
 
-    if (index + 1 >= steps.length) {
-      await finishPractice(nextResults);
+  const closeReviewPhase = useCallback(function closeReviewPhase() {
+    setReviewCards([]);
+    setReviewSteps([]);
+    setReviewIndex(0);
+    setIsReviewFlipped(false);
+  }, []);
+
+  const goToPreviousReviewCard = useCallback(function goToPreviousReviewCard() {
+    setReviewIndex((value) => Math.max(0, value - 1));
+    setIsReviewFlipped(false);
+  }, []);
+
+  const goToNextReviewCard = useCallback(function goToNextReviewCard() {
+    if (reviewIndex + 1 >= reviewCards.length) {
+      startGameFromReview();
       return;
     }
 
-    setIndex(index + 1);
-    setStartedAt(getNow());
-    setTimeLeftMs(GAME_TIME_LIMIT_MS);
-  }
+    setReviewIndex((value) => Math.min(reviewCards.length - 1, value + 1));
+    setIsReviewFlipped(false);
+  }, [reviewCards.length, reviewIndex, startGameFromReview]);
 
   async function finishPractice(nextResults: Record<string, PracticeGameResult[]>) {
     if (!selectedBook) return;
@@ -257,6 +297,102 @@ export function PracticeRunner({
     }
   }
 
+  async function submitAnswer(value: string, skipped = false) {
+    if (!current) return;
+
+    const correct = !skipped && isCorrectAnswer(value, current.game.answer);
+    const responseTime = Math.round(getNow() - startedAt);
+    const result: PracticeGameResult = {
+      gameType: current.game.type,
+      result: skipped ? "skipped" : correct ? "correct" : "incorrect",
+      responseTime,
+      score: correct ? calculateGameScore(responseTime) : 0,
+    };
+    const nextResults = {
+      ...results,
+      [current.card.id]: [...(results[current.card.id] ?? []), result],
+    };
+
+    setResults(nextResults);
+    setAnswer("");
+
+    if (index + 1 >= steps.length) {
+      await finishPractice(nextResults);
+      return;
+    }
+
+    setIndex(index + 1);
+    setStartedAt(getNow());
+    setTimeLeftMs(GAME_TIME_LIMIT_MS);
+  }
+
+  useEffect(() => {
+    submitAnswerRef.current = submitAnswer;
+  });
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isTypingTarget(event.target)) return;
+
+      if (reviewCards.length) {
+        if (event.key === "ArrowLeft" && reviewIndex > 0) {
+          event.preventDefault();
+          goToPreviousReviewCard();
+          return;
+        }
+
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          goToNextReviewCard();
+          return;
+        }
+
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          setIsReviewFlipped((value) => !value);
+          return;
+        }
+
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeReviewPhase();
+        }
+
+        return;
+      }
+
+      if (!current || isSubmitting) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        submitAnswerRef.current("", true);
+        return;
+      }
+
+      if (current.game.mechanism !== "quiz") return;
+
+      const keyNumber = Number(event.key);
+      const choices = current.game.choices ?? [];
+
+      if (Number.isInteger(keyNumber) && keyNumber >= 1 && keyNumber <= choices.length) {
+        event.preventDefault();
+        submitAnswerRef.current(choices[keyNumber - 1]);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    closeReviewPhase,
+    current,
+    goToNextReviewCard,
+    goToPreviousReviewCard,
+    isSubmitting,
+    reviewCards.length,
+    reviewIndex,
+  ]);
+
   if (summary) {
     return (
       <div className="grid max-w-4xl gap-5">
@@ -289,6 +425,125 @@ export function PracticeRunner({
             </div>
           </div>
         </section>
+      </div>
+    );
+  }
+
+  if (reviewCards.length) {
+    const reviewCard = reviewCards[reviewIndex];
+    const reviewProgress = Math.round(((reviewIndex + 1) / reviewCards.length) * 100);
+
+    return (
+      <div className="mx-auto grid w-full max-w-3xl gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Review first</p>
+            <h1 className="text-2xl font-semibold">{selectedBook?.title}</h1>
+          </div>
+          <Badge variant="outline" className="h-8 rounded-xl px-3 text-xs">
+            {reviewIndex + 1} / {reviewCards.length}
+          </Badge>
+        </div>
+
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Preview progress</span>
+            <span>{reviewProgress}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-primary transition-all" style={{ width: `${reviewProgress}%` }} />
+          </div>
+        </div>
+
+        <div className="grid items-center gap-3 sm:grid-cols-[auto_minmax(0,30rem)_auto] sm:justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-lg"
+            className="hidden rounded-full sm:inline-flex"
+            disabled={reviewIndex === 0}
+            aria-label="Previous flashcard"
+            onClick={goToPreviousReviewCard}
+          >
+            <Icon icon={CaretLeft} />
+          </Button>
+
+          <ReviewFlipCard
+            card={reviewCard}
+            flipped={isReviewFlipped}
+            onFlip={() => setIsReviewFlipped((value) => !value)}
+          />
+
+          {reviewIndex + 1 < reviewCards.length ? (
+            <Button
+              type="button"
+              size="icon-lg"
+              className="hidden rounded-full sm:inline-flex"
+              aria-label="Next flashcard"
+              onClick={goToNextReviewCard}
+            >
+              <Icon icon={CaretRight} />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="icon-lg"
+              className="hidden rounded-full sm:inline-flex"
+              aria-label="Start game"
+              onClick={startGameFromReview}
+            >
+              <Icon icon={Play} />
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={closeReviewPhase}
+          >
+            <Icon icon={X} />
+            Back
+          </Button>
+
+          <div className="flex items-center gap-2 sm:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              disabled={reviewIndex === 0}
+              onClick={goToPreviousReviewCard}
+            >
+              <Icon icon={CaretLeft} />
+              Previous
+            </Button>
+            {reviewIndex + 1 < reviewCards.length ? (
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-xl"
+                onClick={goToNextReviewCard}
+              >
+                Next
+                <Icon icon={CaretRight} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-xl"
+                onClick={startGameFromReview}
+              >
+                <Icon icon={Play} />
+                Start game
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -347,7 +602,7 @@ export function PracticeRunner({
             <PromptView card={current.card} game={current.game} prompt={prompt} />
             {current.game.mechanism === "quiz" ? (
               <div className="grid gap-2 sm:grid-cols-2">
-                {current.game.choices?.map((choice) => (
+                {current.game.choices?.map((choice, choiceIndex) => (
                   <Button
                     key={choice}
                     type="button"
@@ -356,6 +611,9 @@ export function PracticeRunner({
                     disabled={isSubmitting}
                     onClick={() => submitAnswer(choice)}
                   >
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+                      {choiceIndex + 1}
+                    </span>
                     {choice}
                   </Button>
                 ))}
@@ -401,115 +659,133 @@ export function PracticeRunner({
   }
 
   return (
-    <div className="grid max-w-5xl gap-5">
-      <section className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Review</p>
-        <h1 className="text-3xl font-semibold">Choose your mission</h1>
-        <p className="text-sm text-muted-foreground">
-          {totalDue} cards due. Each card can become translation, sentence, image, and audio rounds.
-        </p>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="mx-auto grid w-full max-w-4xl gap-4">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_210px] lg:items-end">
         <div className="grid gap-3">
-          {books.map((book) => {
-            const isSelected = bookId === getReviewBookId(book);
-
-            return (
-              <button
-                key={getReviewBookId(book)}
-                type="button"
-                className={[
-                  "grid gap-2 rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                  isSelected
-                    ? "border-primary shadow-md shadow-brand-800/10"
-                    : "border-border",
-                ].join(" ")}
-                onClick={() => {
-                  setBookId(getReviewBookId(book));
-                  setLimit(Math.min(book.dueForReview || 1, 5));
+          <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-sm shadow-brand-800/5">
+            <Icon icon={Layers3} className="text-primary" />
+            Review mode
+          </div>
+          <div className="grid gap-2">
+            <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+              Play game
+            </h1>
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
+              <span>Words to play</span>
+              <Select
+                value={String(limit)}
+                onValueChange={(value) => {
+                  setLimit(Number(value));
                   setMessage("");
                 }}
               >
-                <div className="flex items-start gap-3">
-                  {book.coverImage ? (
-                    <div
-                      className="h-20 w-16 shrink-0 rounded-xl bg-secondary bg-cover bg-center"
-                      style={{ backgroundImage: `url(${book.coverImage})` }}
-                    />
-                  ) : (
-                    <div className="grid h-20 w-16 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground">
-                      <Icon icon={Layers3} size="lg" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="truncate text-lg font-semibold">{book.title}</p>
-                      <Badge variant={book.dueForReview ? "secondary" : "outline"} className="shrink-0 rounded-2xl">
-                        {book.dueForReview} due
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {book.totalCards} cards in deck
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span>10s rounds</span>
-                      <span>Up to {Math.min(book.dueForReview || 0, 5) * 40} pts</span>
-                      <span>{book.dueForReview ? "Ready" : "Resting"}</span>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                <SelectTrigger className="h-8 min-w-16 rounded-xl bg-card px-2.5 text-sm text-foreground">
+                  <span>{limit}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {countOptions.map((option) => (
+                    <SelectItem key={option} value={String(option)}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>Mission setup</CardTitle>
-            <CardDescription>{selectedBook?.title ?? "Choose a book"}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form className="gap-4" onSubmit={startPractice}>
-            <div className="grid gap-2">
-              <Label htmlFor="practice-count">Cards</Label>
-              <Input
-                id="practice-count"
-                className="h-10"
-                type="number"
-                min={1}
-                max={selectedBook?.dueForReview ?? 1}
-                value={limit}
-                onChange={(event) => setLimit(Number(event.target.value))}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="h-11 rounded-2xl"
-              disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0}
+        <div className="hidden justify-self-end lg:block">
+          <NextImage
+            src={penguinPlayGame}
+            alt=""
+            className="h-auto w-52 object-contain"
+            priority
+          />
+        </div>
+      </section>
+
+      <Card className="rounded-2xl shadow-md shadow-brand-800/10">
+        <CardContent className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1.1fr)_1px_minmax(0,0.72fr)_1px_minmax(0,0.72fr)] lg:items-center">
+          <div className="grid gap-1.5 sm:grid-cols-[72px_minmax(0,1fr)] sm:items-center">
+            <Label className="text-sm font-semibold text-foreground">Play with</Label>
+            <Select
+              value={bookId}
+              onValueChange={(value) => {
+                const nextBook = books.find((book) => getReviewBookId(book) === value);
+
+                setBookId(value ?? "");
+                setLimit(Math.min(nextBook?.dueForReview ?? 1, 6) || 1);
+                setMessage("");
+              }}
             >
-              {isLoading ? (
-                <Icon icon={Loader2} className="animate-spin" />
-              ) : (
-                <Icon icon={Play} />
-              )}
-              Start mission
-            </Button>
-          </Form>
-          <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
-            <p>Target: {limit} card{limit === 1 ? "" : "s"}</p>
-            <p>Possible score: {maxScore}</p>
-            <p>Rule: faster correct answers keep more points.</p>
+              <SelectTrigger className="h-10 w-full rounded-xl bg-background px-3">
+                <span className="truncate text-left text-sm font-medium">
+                  {selectedBook?.title ?? "Choose a book"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {books.map((book) => (
+                  <SelectItem key={getReviewBookId(book)} value={getReviewBookId(book)}>
+                    {book.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          {message ? (
-            <p className="mt-3 text-sm text-destructive">{message}</p>
-          ) : selectedBook?.dueForReview === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              This book has no cards due right now.
-            </p>
-          ) : null}
-          </CardContent>
-        </Card>
+
+          <div className="hidden h-11 bg-border lg:block" />
+
+          <ReviewSetupMetric
+            tone="learned"
+            value={String(totalCards)}
+            label="Words learned"
+          />
+
+          <div className="hidden h-11 bg-border lg:block" />
+
+          <ReviewSetupMetric
+            tone="review"
+            value={String(totalDue)}
+            label="Words to review"
+          />
+        </CardContent>
+      </Card>
+
+      <section className="mx-auto grid w-full max-w-xl gap-3">
+        <div className="rounded-xl bg-accent/60 px-3 py-2 text-center text-xs font-medium text-foreground">
+          Includes question types: multiple choice, fill in the blank, type answer, and match words.
+        </div>
+
+        <Form className="mx-auto w-full max-w-xs" onSubmit={startPractice}>
+          <Button
+            type="submit"
+            className="h-11 w-full rounded-xl text-sm shadow-md shadow-brand-800/20"
+            disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0}
+          >
+            {isLoading ? (
+              <Icon icon={Loader2} className="animate-spin" />
+            ) : (
+              <Icon icon={Play} />
+            )}
+            Play now
+            <Icon icon={Sparkles} />
+          </Button>
+        </Form>
+
+        <div className="grid gap-0.5 text-center text-xs text-muted-foreground">
+          <p>
+            Target: {limit} word{limit === 1 ? "" : "s"} · Possible score: {maxScore}
+          </p>
+          <p>Faster correct answers keep more points.</p>
+        </div>
+
+        {message ? (
+          <p className="text-center text-xs text-destructive">{message}</p>
+        ) : selectedBook?.dueForReview === 0 ? (
+          <p className="text-center text-xs text-muted-foreground">
+            This book has no cards due right now.
+          </p>
+        ) : null}
       </section>
     </div>
   );
@@ -531,6 +807,168 @@ function ResultMetric({
         {label}
       </p>
       <p className="mt-1 text-3xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ReviewFlipCard({
+  card,
+  flipped,
+  onFlip,
+}: {
+  card: Flashcard;
+  flipped: boolean;
+  onFlip: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="group grid min-h-[420px] w-full max-w-md justify-self-center rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-ring/50"
+      onClick={onFlip}
+    >
+      <div
+        className={cn(
+          "relative size-full min-h-[420px] rounded-2xl transition-transform duration-500 [animation:flashcard-pull_2.4s_ease-in-out_infinite] [transform-style:preserve-3d] group-hover:[animation-play-state:paused]",
+          flipped && "[transform:rotateY(180deg)]"
+        )}
+      >
+        <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
+          <div className="flex items-start justify-between gap-4">
+            <Badge variant="secondary" className="rounded-xl text-xs">
+              Front
+            </Badge>
+            <span className="text-xs text-muted-foreground">Tap to flip</span>
+          </div>
+
+          <div className="grid place-items-center text-center">
+            <div className="grid justify-items-center gap-4">
+              {card.imageUrl ? (
+                <div
+                  className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center shadow-sm shadow-brand-800/10"
+                  style={{ backgroundImage: `url(${card.imageUrl})` }}
+                  aria-label={`${card.word} image`}
+                  role="img"
+                />
+              ) : null}
+              <p className="text-4xl font-semibold text-primary">{card.word}</p>
+              {card.pronunciation ? (
+                <p className="mt-2 text-sm text-muted-foreground">{card.pronunciation}</p>
+              ) : null}
+              {card.partOfSpeech ? (
+                <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+                  {card.partOfSpeech}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="flex items-start justify-between gap-4">
+            <Badge variant="outline" className="rounded-xl text-xs">
+              Back
+            </Badge>
+            <span className="text-xs text-muted-foreground">Tap to flip back</span>
+          </div>
+
+          <div className="grid max-h-full content-center gap-4 overflow-y-auto pr-1">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Definition
+              </p>
+              <p className="mt-1 text-lg font-semibold leading-7 text-foreground">
+                {card.definition || "No definition yet"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Translation
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {card.translation || "No translation yet"}
+              </p>
+            </div>
+            {card.example ? (
+              <div className="rounded-xl border border-border bg-background p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Example
+                </p>
+                <p className="mt-1 text-sm leading-6 text-foreground">{card.example}</p>
+                {card.exampleTranslation ? (
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    {card.exampleTranslation}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ReviewSetupMetric({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: "learned" | "review";
+  value: string;
+}) {
+  const styles =
+    tone === "learned"
+      ? {
+          accent: "text-sky-500",
+          main: "text-primary",
+          value: "text-primary",
+          warm: "text-secondary",
+        }
+      : {
+          accent: "text-emerald-500",
+          main: "text-primary",
+          value: "text-emerald-600 dark:text-emerald-200",
+          warm: "text-secondary",
+        };
+
+  return (
+    <div className="flex items-center justify-center gap-3 text-center sm:justify-start sm:text-left">
+      <MetricClusterIcon tone={tone} styles={styles} />
+      <div>
+        <p className={cn("text-xl font-semibold leading-none", styles.value)}>{value}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function MetricClusterIcon({
+  styles,
+  tone,
+}: {
+  styles: {
+    accent: string;
+    main: string;
+    warm: string;
+  };
+  tone: "learned" | "review";
+}) {
+  if (tone === "learned") {
+    return (
+      <div className="relative size-12 shrink-0">
+        <Icon icon={Student} weight="duotone" className={cn("absolute left-0.5 top-1.5 size-9", styles.main)} />
+        <Icon icon={Layers3} weight="duotone" className={cn("absolute bottom-0 right-0 size-6", styles.accent)} />
+        <Icon icon={Sparkles} weight="fill" className={cn("absolute right-1.5 top-0 size-3.5", styles.warm)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative size-12 shrink-0">
+      <Icon icon={Target} weight="duotone" className={cn("absolute left-0.5 top-0.5 size-10", styles.main)} />
+      <Icon icon={Check} weight="bold" className={cn("absolute bottom-1.5 right-0 size-5", styles.accent)} />
+      <Icon icon={Sparkles} weight="fill" className={cn("absolute right-1.5 top-0 size-3.5", styles.warm)} />
     </div>
   );
 }
@@ -589,6 +1027,20 @@ function getFinishTitle(accuracy: number) {
 
 function getReviewBookId(book?: ReviewDueBook) {
   return book?.bookId ?? book?.id ?? "";
+}
+
+function getPracticeCountOptions(dueCount: number) {
+  const options = [3, 6, 9, 12].filter((option) => option <= dueCount);
+
+  if (dueCount > 0 && !options.length) {
+    return [dueCount];
+  }
+
+  if (dueCount > 0 && !options.includes(dueCount) && dueCount < 12) {
+    return [...options, dueCount];
+  }
+
+  return options.length ? options : [1];
 }
 
 function PromptView({

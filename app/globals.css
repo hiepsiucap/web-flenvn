@@ -77,6 +77,24 @@
   }
 }
 
+@keyframes flashcard-pull {
+  0%,
+  100% {
+    scale: 1;
+    translate: 0 0;
+  }
+
+  45% {
+    scale: 0.985;
+    translate: 0 -6px;
+  }
+
+  70% {
+    scale: 1.005;
+    translate: 0 3px;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

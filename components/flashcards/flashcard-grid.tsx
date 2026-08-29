@@ -16,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Form,
-  FormActions,
   FormField,
   FormInput,
   FormLabel,
@@ -25,8 +24,11 @@ import {
 import { Icon } from "@/components/ui/icon";
 import {
   Modal,
+  ModalActionButton,
+  ModalBody,
   ModalContent,
   ModalDescription,
+  ModalFooter,
   ModalHeader,
   ModalTitle,
 } from "@/components/ui/modal";
@@ -205,12 +207,13 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
           }
         }}
       >
-        <ModalContent className="max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain sm:max-w-3xl">
+        <ModalContent className="sm:max-w-3xl">
           <ModalHeader>
             <ModalTitle>Flashcard detail</ModalTitle>
             <ModalDescription>View, update, or delete this flashcard.</ModalDescription>
           </ModalHeader>
 
+          <ModalBody>
           {selectedCard && !isEditing ? (
             <div className="grid gap-4">
               <div className="flex items-start gap-4">
@@ -294,30 +297,11 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                 ) : null}
               </div>
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? (
-                    <Icon icon={Loader2} className="animate-spin" />
-                  ) : (
-                    <Icon icon={Trash2} />
-                  )}
-                  Delete
-                </Button>
-                <Button type="button" onClick={() => setIsEditing(true)}>
-                  <Icon icon={Edit3} />
-                  Update
-                </Button>
-              </div>
             </div>
           ) : null}
 
           {selectedCard && isEditing ? (
-            <Form className="gap-4" onSubmit={handleUpdate}>
+            <Form id="update-flashcard-form" className="gap-4" onSubmit={handleUpdate}>
               {imageUrl ? (
                 <div
                   className="h-28 w-40 rounded-2xl bg-secondary bg-cover bg-center"
@@ -408,25 +392,56 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                 />
               </FormField>
 
-              <FormActions className="sm:justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isDeleting || isSaving}
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSaving || isDeleting}>
-                  {isSaving ? (
-                    <Icon icon={Loader2} className="animate-spin" />
-                  ) : (
-                    <Icon icon={Save} />
-                  )}
-                  Save changes
-                </Button>
-              </FormActions>
             </Form>
+          ) : null}
+          </ModalBody>
+
+          {selectedCard ? (
+            <ModalFooter className="sm:justify-between">
+              {isEditing ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isDeleting || isSaving}
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <ModalActionButton
+                    form="update-flashcard-form"
+                    disabled={isSaving || isDeleting}
+                  >
+                    {isSaving ? (
+                      <Icon icon={Loader2} className="animate-spin" />
+                    ) : (
+                      <Icon icon={Save} />
+                    )}
+                    Save changes
+                  </ModalActionButton>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isDeleting}
+                    onClick={handleDelete}
+                  >
+                    {isDeleting ? (
+                      <Icon icon={Loader2} className="animate-spin" />
+                    ) : (
+                      <Icon icon={Trash2} />
+                    )}
+                    Delete
+                  </Button>
+                  <Button type="button" onClick={() => setIsEditing(true)}>
+                    <Icon icon={Edit3} />
+                    Update
+                  </Button>
+                </>
+              )}
+            </ModalFooter>
           ) : null}
         </ModalContent>
       </Modal>

@@ -19,8 +19,11 @@ import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import {
   Modal,
+  ModalActionButton,
+  ModalBody,
   ModalContent,
   ModalDescription,
+  ModalFooter,
   ModalHeader,
   ModalTitle,
   ModalTrigger,
@@ -316,7 +319,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
           </Button>
         }
       />
-      <ModalContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
+      <ModalContent className="sm:max-w-5xl">
         <ModalHeader>
           <ModalTitle>Suggest vocabulary</ModalTitle>
           <ModalDescription>
@@ -324,8 +327,12 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
           </ModalDescription>
         </ModalHeader>
 
-        <div className="-mx-1 min-h-0 overflow-y-auto px-1 py-1 pr-2">
-          <Form className="gap-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={handleGenerate}>
+        <ModalBody className="py-1">
+          <Form
+            id="suggest-vocabulary-form"
+            className="gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            onSubmit={handleGenerate}
+          >
             <div className="grid gap-2 sm:col-span-2">
               <Label htmlFor="topic-vocabulary-topic">Topic</Label>
               <Input
@@ -369,7 +376,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                 onChange={(event) => setTargetLanguage(event.target.value)}
               />
             </div>
-            <div className="grid gap-2 sm:col-span-2 lg:col-span-4">
+            <div className="grid gap-2 sm:col-span-1 lg:col-span-3">
               <Label>Destination book</Label>
               <Select value={bookId} onValueChange={(value) => setBookId(value ?? "")}>
                 <SelectTrigger className="h-10 w-full">
@@ -386,18 +393,6 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              type="submit"
-              className="h-10 self-end rounded-2xl"
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <Icon icon={Loader2} className="animate-spin" />
-              ) : (
-                <Icon icon={Sparkles} />
-              )}
-              Generate
-            </Button>
           </Form>
           {message ? (
             <p className="mt-3 text-sm text-destructive">{message}</p>
@@ -405,7 +400,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
 
           <div className="mt-5 grid gap-3">
             {items.length ? (
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <Checkbox
                     checked={allSelected}
@@ -413,33 +408,6 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                   />
                   Select all
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 rounded-2xl"
-                    disabled={isCreating}
-                    onClick={clearSuggestions}
-                  >
-                    <Icon icon={RotateCcw} />
-                    Clear
-                  </Button>
-                  <Button
-                    type="button"
-                    className="h-10 rounded-2xl"
-                    disabled={isCreating || selectedCount === 0}
-                    onClick={handleCreateFlashcards}
-                  >
-                    {isCreating ? (
-                      <Icon icon={Loader2} className="animate-spin" />
-                    ) : (
-                      <Icon icon={Plus} />
-                    )}
-                    {isCreating
-                      ? `Creating ${createdCount} of ${selectedCount}`
-                      : `Create ${selectedCount}`}
-                  </Button>
-                </div>
               </div>
             ) : null}
 
@@ -550,7 +518,50 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
               </div>
             ))}
           </div>
-        </div>
+        </ModalBody>
+        <ModalFooter>
+          <ModalActionButton
+            form="suggest-vocabulary-form"
+            variant={items.length ? "outline" : "default"}
+            disabled={isGenerating || isCreating}
+          >
+            {isGenerating ? (
+              <Icon icon={Loader2} className="animate-spin" />
+            ) : (
+              <Icon icon={Sparkles} />
+            )}
+            Generate
+          </ModalActionButton>
+          {items.length ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-2xl"
+                disabled={isCreating}
+                onClick={clearSuggestions}
+              >
+                <Icon icon={RotateCcw} />
+                Clear
+              </Button>
+              <ModalActionButton
+                type="button"
+                className="h-10 rounded-2xl"
+                disabled={isCreating || selectedCount === 0}
+                onClick={handleCreateFlashcards}
+              >
+                {isCreating ? (
+                  <Icon icon={Loader2} className="animate-spin" />
+                ) : (
+                  <Icon icon={Plus} />
+                )}
+                {isCreating
+                  ? `Creating ${createdCount} of ${selectedCount}`
+                  : `Create ${selectedCount}`}
+              </ModalActionButton>
+            </>
+          ) : null}
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

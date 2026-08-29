@@ -32,7 +32,7 @@ function ModalContent({
   return (
     <DialogContent
       className={cn(
-        "overflow-visible px-7 py-7 sm:max-w-lg sm:px-10 sm:py-8",
+        "grid min-h-0 max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 py-7 sm:max-w-lg sm:px-10 sm:py-8",
         className
       )}
       {...props}
@@ -44,7 +44,7 @@ function ModalHeader({
   className,
   ...props
 }: React.ComponentProps<typeof DialogHeader>) {
-  return <DialogHeader className={cn("pr-8", className)} {...props} />
+  return <DialogHeader className={cn("shrink-0 pr-8", className)} {...props} />
 }
 
 function ModalTitle(props: React.ComponentProps<typeof DialogTitle>) {
@@ -61,7 +61,10 @@ function ModalBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="modal-body"
-      className={cn("grid gap-4", className)}
+      className={cn(
+        "-mx-2 grid min-h-0 max-h-full gap-4 overflow-y-auto overscroll-contain px-2",
+        className
+      )}
       {...props}
     />
   )
@@ -71,7 +74,15 @@ function ModalFooter({
   className,
   ...props
 }: React.ComponentProps<typeof DialogFooter>) {
-  return <DialogFooter className={className} {...props} />
+  return (
+    <DialogFooter
+      className={cn(
+        "mx-0 mb-0 shrink-0 rounded-none border-0 bg-transparent p-0 pt-4",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function ModalClose(props: React.ComponentProps<typeof DialogClose>) {
@@ -89,8 +100,23 @@ function ModalCancelButton({
   )
 }
 
+function ModalActionButton({
+  className,
+  type = "submit",
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type={type}
+      className={cn("h-10 shrink-0 rounded-2xl px-4", className)}
+      {...props}
+    />
+  )
+}
+
 export {
   Modal,
+  ModalActionButton,
   ModalBody,
   ModalCancelButton,
   ModalClose,
