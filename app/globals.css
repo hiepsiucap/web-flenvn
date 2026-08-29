@@ -95,6 +95,42 @@
   }
 }
 
+@keyframes score-pop {
+  0% {
+    opacity: 0.65;
+    scale: 0.78;
+    translate: 0 3px;
+  }
+  55% {
+    opacity: 1;
+    scale: 1.18;
+    translate: 0 -1px;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    translate: 0;
+  }
+}
+
+@keyframes score-spark {
+  0% {
+    opacity: 0;
+    rotate: -18deg;
+    scale: 0.35;
+  }
+  45% {
+    opacity: 1;
+    rotate: 8deg;
+    scale: 1.2;
+  }
+  100% {
+    opacity: 0;
+    rotate: 20deg;
+    scale: 0.8;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -3,15 +3,14 @@ import type { Flashcard } from "@/lib/dashboard-data";
 export type GameMechanism = "input" | "quiz" | "buzz";
 
 export type PracticePromptType =
-  | "translation"
+  | "definition"
   | "example-blank"
-  | "image"
-  | "audio";
+  | "media";
 
 export type PracticeGame = {
   id: string;
   flashcardId: string;
-  type: "translation-input" | "example-blank-quiz" | "image-quiz" | "audio-input";
+  type: "definition-input" | "example-blank-quiz" | "media-input";
   mechanism: GameMechanism;
   promptType: PracticePromptType;
   answer: string;
@@ -47,13 +46,13 @@ export function createPracticeGames(card: Flashcard, pool: Flashcard[]) {
     return games;
   }
 
-  if (card.translation?.trim()) {
+  if (card.definition?.trim()) {
     games.push({
-      id: `${card.id}:translation-input`,
+      id: `${card.id}:definition-input`,
       flashcardId: card.id,
-      type: "translation-input",
+      type: "definition-input",
       mechanism: "input",
-      promptType: "translation",
+      promptType: "definition",
       answer,
     });
   }
@@ -74,29 +73,13 @@ export function createPracticeGames(card: Flashcard, pool: Flashcard[]) {
     }
   }
 
-  if (card.imageUrl?.trim()) {
-    const choices = createChoices(card, pool);
-
-    if (choices.length >= 4) {
-      games.push({
-        id: `${card.id}:image-quiz`,
-        flashcardId: card.id,
-        type: "image-quiz",
-        mechanism: "quiz",
-        promptType: "image",
-        answer,
-        choices,
-      });
-    }
-  }
-
-  if (card.audioUrl?.trim()) {
+  if (card.imageUrl?.trim() || card.audioUrl?.trim()) {
     games.push({
-      id: `${card.id}:audio-input`,
+      id: `${card.id}:media-input`,
       flashcardId: card.id,
-      type: "audio-input",
+      type: "media-input",
       mechanism: "input",
-      promptType: "audio",
+      promptType: "media",
       answer,
     });
   }

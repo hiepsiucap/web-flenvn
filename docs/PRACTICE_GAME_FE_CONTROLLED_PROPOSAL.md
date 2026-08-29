@@ -63,19 +63,21 @@ Important:
 
 - `audioUrl` is used for word listening.
 - `exampleAudioUrl` is used for sentence/example listening or display.
-- `imageUrl` is used for image quiz.
+- `imageUrl` and `audioUrl` are gathered into one media input game.
 - `example` is used for blank-word quiz.
-- `translation` is used for translation-to-word input.
+- `definition` is the main prompt for definition-to-word input.
+- `translation` is shown as an optional subtitle beneath the definition.
 
 ## Current Practice Games
 
-Each flashcard can produce up to 4 games.
+Each flashcard can produce up to 3 games.
 
-### 1. Translation Input
+### 1. Definition Input
 
 Prompt:
 
-- Show `translation`.
+- Show `definition` as the main prompt.
+- Show `translation` beneath it as a subtitle when available.
 
 Answer:
 
@@ -91,9 +93,9 @@ Example:
 
 ```ts
 {
-  id: "translation-input",
+  id: "definition-input",
   mechanism: "input",
-  promptType: "translation",
+  promptType: "definition",
   answerType: "word"
 }
 ```
@@ -125,38 +127,12 @@ Example:
 }
 ```
 
-### 3. Image Quiz
+### 3. Media Input
 
 Prompt:
 
-- Show `imageUrl`.
-
-Answer:
-
-- User chooses the matching `word` from 4 options.
-
-Mechanism:
-
-```ts
-"quiz"
-```
-
-Example:
-
-```ts
-{
-  id: "image-quiz",
-  mechanism: "quiz",
-  promptType: "image",
-  answerType: "word"
-}
-```
-
-### 4. Audio Input
-
-Prompt:
-
-- Play `audioUrl`.
+- Show `imageUrl` and play `audioUrl` when both are available.
+- Show or play the available medium when only one exists.
 
 Answer:
 
@@ -172,9 +148,9 @@ Example:
 
 ```ts
 {
-  id: "audio-input",
+  id: "media-input",
   mechanism: "input",
-  promptType: "audio",
+  promptType: "media",
   answerType: "word"
 }
 ```
@@ -187,10 +163,9 @@ FE can model game steps like this:
 type GameMechanism = "input" | "quiz" | "buzz";
 
 type PracticePromptType =
-  | "translation"
+  | "definition"
   | "example-blank"
-  | "image"
-  | "audio"
+  | "media"
   | "example-audio";
 
 type PracticeGame = {
@@ -244,10 +219,9 @@ But this should be optional and preloaded before gameplay if added.
 FE should only create games when the required source field exists.
 
 ```ts
-translation-input requires translation
+definition-input requires definition
 example-blank-quiz requires example
-image-quiz requires imageUrl
-audio-input requires audioUrl
+media-input requires imageUrl or audioUrl
 example-audio games require exampleAudioUrl
 ```
 
@@ -255,8 +229,8 @@ If a field is missing, FE skips that game for the flashcard.
 
 Example:
 
-- Flashcard has no `imageUrl`.
-- FE does not generate `image-quiz`.
+- Flashcard has neither `imageUrl` nor `audioUrl`.
+- FE does not generate `media-input`.
 - User still plays the other valid games.
 
 ## Answer Validation
@@ -332,15 +306,8 @@ Body:
 
 Suggested mapping:
 
-```text
-all skipped: 0
-0 correct: 1
-1-2 correct: 3
-3 correct: 4
-4 correct: 5
-```
-
-If a flashcard has fewer than 4 generated games because data is missing, FE should calculate quality from the percentage correct.
+Quality is calculated from the percentage correct so it works consistently when a
+flashcard produces fewer than 3 games.
 
 Example:
 

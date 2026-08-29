@@ -7,8 +7,7 @@ import {
   Clock as Clock3,
   CaretLeft,
   CaretRight,
-  Headphones,
-  Image as ImageIcon,
+  SpeakerHigh,
   Stack as Layers3,
   Spinner as Loader2,
   Play,
@@ -35,10 +34,12 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { HttpError, http } from "@/lib/http";
+import { playGameSound, preloadGameSounds } from "@/lib/game-audio";
 import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
 import type { Flashcard, ReviewDueBook } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
 import penguinPlayGame from "@/img/penguin-playgame.png";
+import practiceCompletePenguin from "@/img/practice-complete-penguin.png";
 import {
   blankWord,
   calculateQuality,
@@ -62,7 +63,16 @@ type PracticeSummary = {
   accuracy: number;
 };
 
+type AnswerFeedback = {
+  result: PracticeGameResult["result"];
+  selectedAnswer: string;
+  correctAnswer: string;
+  score: number;
+  canRetry?: boolean;
+};
+
 const GAME_TIME_LIMIT_MS = 10000;
+const ANSWER_FEEDBACK_MS = 1400;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
@@ -120,6 +130,9 @@ export function PracticeRunner({
   const [isReviewFlipped, setIsReviewFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [answerFeedback, setAnswerFeedback] = useState<AnswerFeedback | null>(null);
+  const answerLockedRef = useRef(false);
+  const answerInputRef = useRef<HTMLInputElement>(null);
   const submitAnswerRef = useRef<(value: string, skipped?: boolean) => void>(() => {});
   const current = steps[index];
   const progress = steps.length ? Math.round((index / steps.length) * 100) : 0;
@@ -130,6 +143,10 @@ export function PracticeRunner({
   const totalCards = books.reduce((total, book) => total + book.totalCards, 0);
   const countOptions = getPracticeCountOptions(selectedBook?.dueForReview ?? 0);
   const maxScore = Math.min(limit, selectedBook?.dueForReview ?? 0) * 40;
+
+  useEffect(() => {
+    preloadGameSounds();
+  }, []);
 
   useEffect(() => {
     if (!current || isSubmitting || startedAt <= 0) {
@@ -198,7 +215,7 @@ export function PracticeRunner({
       }
 
       if (!nextSteps.length) {
-        setMessage("These due cards do not have enough translation, example, image, or audio data yet.");
+        setMessage("These due cards do not have enough definition, example, image, or audio data yet.");
         toast.error("No playable games found for these cards");
         return;
       }
@@ -211,6 +228,8 @@ export function PracticeRunner({
       setSteps([]);
       setIndex(0);
       setAnswer("");
+      setAnswerFeedback(null);
+      answerLockedRef.current = false;
       setResults({});
       setSummary(null);
       setStartedAt(0);
@@ -235,6 +254,8 @@ export function PracticeRunner({
     setIsReviewFlipped(false);
     setIndex(0);
     setAnswer("");
+    setAnswerFeedback(null);
+    answerLockedRef.current = false;
     setResults({});
     setSummary(null);
     setStartedAt(getNow());
@@ -298,9 +319,14 @@ export function PracticeRunner({
   }
 
   async function submitAnswer(value: string, skipped = false) {
-    if (!current) return;
+    if (!current || answerLockedRef.current) return;
 
     const correct = !skipped && isCorrectAnswer(value, current.game.answer);
+
+    if (!skipped) {
+      playGameSound(correct ? "correct" : "incorrect");
+    }
+
     const responseTime = Math.round(getNow() - startedAt);
     const result: PracticeGameResult = {
       gameType: current.game.type,
@@ -313,22 +339,69 @@ export function PracticeRunner({
       [current.card.id]: [...(results[current.card.id] ?? []), result],
     };
 
+    if (current.game.mechanism === "input" && !skipped && !correct) {
+      setResults(nextResults);
+      setAnswerFeedback({
+        result: "incorrect",
+        selectedAnswer: value,
+        correctAnswer: current.game.answer,
+        score: 0,
+        canRetry: true,
+      });
+      setAnswer("");
+      return;
+    }
+
+    answerLockedRef.current = true;
+    setIsSubmitting(true);
+
     setResults(nextResults);
+    setAnswerFeedback({
+      result: result.result,
+      selectedAnswer: value,
+      correctAnswer: current.game.answer,
+      score: result.score,
+    });
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, ANSWER_FEEDBACK_MS);
+    });
+
+    setAnswerFeedback(null);
     setAnswer("");
 
     if (index + 1 >= steps.length) {
       await finishPractice(nextResults);
+      answerLockedRef.current = false;
       return;
     }
 
     setIndex(index + 1);
     setStartedAt(getNow());
     setTimeLeftMs(GAME_TIME_LIMIT_MS);
+    setIsSubmitting(false);
+    answerLockedRef.current = false;
   }
 
   useEffect(() => {
     submitAnswerRef.current = submitAnswer;
   });
+
+  useEffect(() => {
+    if (!answerFeedback?.canRetry) return;
+
+    const focusTimer = window.setTimeout(() => {
+      answerInputRef.current?.focus({ preventScroll: true });
+    }, 0);
+
+    return () => window.clearTimeout(focusTimer);
+  }, [answerFeedback]);
+
+  useEffect(() => {
+    if (summary) {
+      playGameSound("complete");
+    }
+  }, [summary]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -395,33 +468,55 @@ export function PracticeRunner({
 
   if (summary) {
     return (
-      <div className="grid max-w-4xl gap-5">
-        <section className="relative overflow-hidden rounded-3xl border border-border p-6">
+      <div className="mx-auto grid w-full max-w-4xl gap-4">
+        <section className="relative overflow-hidden rounded-3xl border border-border bg-card px-6 py-10 shadow-sm sm:px-8 sm:py-12">
           <Confetti />
-          <div className="relative z-10 grid gap-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Practice complete</p>
-              <h1 className="mt-1 text-4xl font-semibold">{getFinishTitle(summary.accuracy)}</h1>
+          <div className="relative z-10 grid items-center gap-y-14 md:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1.3fr)] md:gap-x-12 lg:gap-x-16">
+            <div className="grid justify-items-center gap-7">
+              <NextImage
+                src={practiceCompletePenguin}
+                alt="Penguin celebrating practice completion"
+                className="h-auto w-full max-w-60 object-contain"
+                priority
+              />
+              <div className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border px-3 text-xs font-medium text-muted-foreground">
+                <Icon icon={CaretRight} className="text-primary" weight="bold" />
+                {summary.skippedGames
+                  ? `${summary.skippedGames} skipped game${summary.skippedGames === 1 ? "" : "s"}`
+                  : "No skipped games"}
+              </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <ResultMetric icon={<Icon icon={Trophy} />} label="Score" value={String(summary.score)} />
-              <ResultMetric icon={<Icon icon={Sparkles} />} label="Accuracy" value={`${summary.accuracy}%`} />
-              <ResultMetric icon={<Icon icon={Check} />} label="Correct" value={`${summary.correctGames}/${summary.totalGames}`} />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {summary.skippedGames
-                ? `${summary.skippedGames} skipped game${summary.skippedGames === 1 ? "" : "s"}.`
-                : "No skipped games."}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                className="h-10 rounded-2xl"
-                onClick={() => setSummary(null)}
-              >
-                <Icon icon={Play} />
-                Practice again
-              </Button>
+
+            <div className="grid gap-8 text-center md:text-left">
+              <div>
+                <Badge variant="secondary" className="rounded-xl px-3 py-1 text-sm">
+                  <Icon icon={Sparkles} weight="fill" />
+                  Practice complete
+                </Badge>
+                <h1 className="mt-3 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+                  {getFinishTitle(summary.accuracy)}!
+                </h1>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground md:mx-0 sm:text-base">
+                  {getFinishMessage(summary.accuracy)}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <ResultMetric icon={<Icon icon={Trophy} weight="fill" />} label="Score" value={String(summary.score)} />
+                <ResultMetric icon={<Icon icon={Target} weight="fill" />} label="Accuracy" value={`${summary.accuracy}%`} />
+                <ResultMetric icon={<Icon icon={Check} weight="bold" />} label="Correct" value={`${summary.correctGames}/${summary.totalGames}`} />
+              </div>
+
+              <div className="flex justify-center md:justify-end">
+                <Button
+                  type="button"
+                  className="h-10 w-full rounded-xl px-6 sm:w-auto"
+                  onClick={() => setSummary(null)}
+                >
+                  <Icon icon={Play} weight="fill" />
+                  Practice again
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -550,107 +645,237 @@ export function PracticeRunner({
 
   if (current) {
     return (
-      <div className="grid max-w-4xl gap-4">
+      <div className="mx-auto grid w-full max-w-4xl gap-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-muted-foreground">Practice</p>
-            <h1 className="text-2xl font-semibold">{selectedBook?.title}</h1>
+            <p className="text-xs text-muted-foreground">Practice</p>
+            <h1 className="text-xl font-semibold">{selectedBook?.title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="h-8 rounded-2xl px-3">
-              <Icon icon={Trophy} className="text-primary" />
-              {liveScore}
-            </Badge>
-            <Badge variant="outline" className="h-8 rounded-2xl px-3">
+            <div
+              className="relative inline-flex h-8 items-center rounded-full border border-secondary/70 bg-secondary/15 px-2.5 shadow-sm"
+              aria-label={`${liveScore} XP`}
+              aria-live="polite"
+            >
+              <span
+                key={`score-${liveScore}`}
+                className="inline-flex items-center gap-1.5 animate-[score-pop_450ms_cubic-bezier(0.2,0.9,0.3,1)] motion-reduce:animate-none"
+              >
+                <Icon icon={Trophy} className="size-4 text-secondary" weight="fill" />
+                <span className="min-w-5 text-right text-sm font-extrabold tabular-nums text-primary">
+                  {liveScore}
+                </span>
+                <span className="text-[0.6rem] font-extrabold uppercase tracking-wide text-muted-foreground">
+                  XP
+                </span>
+              </span>
+              {liveScore > 0 ? (
+                <Icon
+                  key={`score-spark-${liveScore}`}
+                  icon={Sparkles}
+                  className="pointer-events-none absolute -right-1.5 -top-1.5 size-4 animate-[score-spark_550ms_ease-out_forwards] text-secondary motion-reduce:animate-none"
+                  weight="fill"
+                  aria-hidden="true"
+                />
+              ) : null}
+            </div>
+            <Badge variant="outline" className="h-7 rounded-2xl px-2.5">
               {index + 1} / {steps.length}
             </Badge>
           </div>
         </div>
 
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Progress {progress}%</span>
-            <span className="inline-flex items-center gap-1">
-              <Icon icon={Clock3} />
+        <div className="grid gap-1.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon icon={Sparkles} className="size-3.5 text-secondary" weight="fill" />
+              Stage {index + 1} of {steps.length}
+            </span>
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              <Icon
+                icon={Clock3}
+                className={cn(
+                  "size-3.5 text-primary",
+                  timeLeftMs <= 3000 && "text-destructive"
+                )}
+              />
               {Math.ceil(timeLeftMs / 1000)}s
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-secondary">
-            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div className="relative h-1.5 overflow-hidden rounded-full bg-secondary/55">
             <div
-              className="h-full bg-accent transition-all"
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              style={{ width: `${progress}%` }}
+            />
+            <div className="pointer-events-none absolute inset-0 flex">
+              {steps.map((step, segment) => (
+                <span
+                  key={`${step.card.id}-${segment}`}
+                  className="flex-1 border-r border-background/60 last:border-r-0"
+                />
+              ))}
+            </div>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-secondary/45">
+            <div
+              className={cn(
+                "h-full rounded-full bg-accent transition-[width] duration-100",
+                timeLeftMs <= 3000 && "bg-destructive"
+              )}
               style={{ width: `${(timeLeftMs / GAME_TIME_LIMIT_MS) * 100}%` }}
             />
           </div>
         </div>
 
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+        <Card size="sm" className="overflow-hidden rounded-3xl">
+          <CardHeader className="h-20">
+            <div className="flex h-full min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
                 <CardTitle>{getGameTitle(current.game)}</CardTitle>
                 <CardDescription>{current.card.partOfSpeech || "Flashcard"}</CardDescription>
               </div>
-              <Badge variant="secondary" className="rounded-2xl capitalize">
+              <Badge variant="outline" className="rounded-2xl capitalize">
                 {current.game.mechanism}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-5">
-            <PromptView card={current.card} game={current.game} prompt={prompt} />
-            {current.game.mechanism === "quiz" ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {current.game.choices?.map((choice, choiceIndex) => (
+          <CardContent className="grid gap-4 px-5 pb-5 sm:px-6 sm:pb-6">
+            <div className="grid h-56 min-w-0 place-items-center overflow-hidden rounded-2xl">
+              <PromptView card={current.card} game={current.game} prompt={prompt} />
+            </div>
+            <div className="grid h-32 content-center overflow-hidden">
+              {current.game.mechanism === "quiz" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {current.game.choices?.map((choice) => (
+                    <Button
+                      key={choice}
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-14 min-w-0 justify-start rounded-2xl px-4 text-left text-sm transition-colors sm:text-base",
+                        answerFeedback &&
+                          isCorrectAnswer(choice, answerFeedback.correctAnswer) &&
+                          "border-emerald-500 bg-emerald-50 text-emerald-700 disabled:opacity-100 dark:bg-emerald-950/30 dark:text-emerald-300",
+                        answerFeedback?.result === "incorrect" &&
+                          isCorrectAnswer(choice, answerFeedback.selectedAnswer) &&
+                          "border-destructive bg-destructive/10 text-destructive disabled:opacity-100"
+                      )}
+                      disabled={isSubmitting}
+                      onClick={() => submitAnswer(choice)}
+                    >
+                      <span className="min-w-0 truncate">{choice}</span>
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <Form
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitAnswer(answer);
+                  }}
+                >
+                  <div className="relative min-w-0">
+                    <Input
+                      ref={answerInputRef}
+                      className={cn(
+                        "h-14 transition-colors",
+                        answerFeedback && "pr-20",
+                        answerFeedback?.result === "correct" &&
+                          "!border-emerald-500 !ring-3 !ring-emerald-500/20",
+                        answerFeedback?.result === "incorrect" &&
+                          "!border-destructive !text-destructive !ring-3 !ring-destructive/20"
+                      )}
+                      value={answer}
+                      onChange={(event) => {
+                        playGameSound("type");
+                        setAnswer(event.target.value);
+
+                        if (answerFeedback?.canRetry) {
+                          setAnswerFeedback(null);
+                        }
+                      }}
+                      autoFocus
+                      placeholder="Type your answer"
+                      aria-invalid={answerFeedback?.result === "incorrect"}
+                      aria-describedby={
+                        answerFeedback?.result === "correct" ||
+                        answerFeedback?.result === "incorrect"
+                          ? "typed-answer-status"
+                          : undefined
+                      }
+                      readOnly={Boolean(answerFeedback && !answerFeedback.canRetry)}
+                    />
+                    {answerFeedback?.result === "correct" ? (
+                      <span
+                        id="typed-answer-status"
+                        className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-300"
+                      >
+                        <Icon icon={Check} className="size-3.5" weight="bold" />
+                        Correct
+                      </span>
+                    ) : answerFeedback?.result === "incorrect" ? (
+                      <span
+                        id="typed-answer-status"
+                        className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 text-xs font-bold text-destructive"
+                      >
+                        <Icon icon={X} className="size-3.5" weight="bold" />
+                        Wrong
+                      </span>
+                    ) : null}
+                  </div>
                   <Button
-                    key={choice}
-                    type="button"
-                    variant="outline"
-                    className="h-12 justify-start rounded-2xl px-4 text-left"
-                    disabled={isSubmitting}
-                    onClick={() => submitAnswer(choice)}
+                    type="submit"
+                    className="h-14 rounded-2xl"
+                    disabled={isSubmitting || !answer.trim()}
                   >
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                      {choiceIndex + 1}
-                    </span>
-                    {choice}
+                    <Icon icon={Check} />
+                    Answer
                   </Button>
-                ))}
-              </div>
-            ) : (
-              <Form
-                className="flex flex-col gap-2 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submitAnswer(answer);
-                }}
-              >
-                <Input
-                  className="h-12"
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  autoFocus
-                  placeholder="Type your answer"
-                />
-                <Button className="h-12 rounded-2xl" disabled={isSubmitting || !answer.trim()}>
-                  <Icon icon={Check} />
-                  Answer
-                </Button>
-              </Form>
-            )}
-            <div className="flex items-center justify-between gap-2">
+                </Form>
+              )}
+            </div>
+            <div className="flex h-9 items-center justify-between gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-2xl"
+                size="sm"
+                className="rounded-xl"
                 disabled={isSubmitting}
                 onClick={() => submitAnswer("", true)}
               >
                 <Icon icon={X} />
                 Skip
               </Button>
-              <p className="text-sm text-muted-foreground">{totalCorrect} correct</p>
+              {answerFeedback ? (
+                <p
+                  key={`${current.game.id}-${answerFeedback.result}`}
+                  role="status"
+                  className={cn(
+                    "max-w-[72%] truncate text-right text-xs font-semibold animate-[score-pop_350ms_ease-out] motion-reduce:animate-none",
+                    answerFeedback.result === "correct"
+                      ? "text-emerald-600 dark:text-emerald-300"
+                      : answerFeedback.result === "incorrect"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                  )}
+                  title={
+                    answerFeedback.canRetry
+                      ? "Wrong. Try again."
+                      : answerFeedback.result === "correct"
+                      ? `Correct! +${answerFeedback.score} XP`
+                      : `${answerFeedback.result === "skipped" ? "Skipped" : "Not quite"}. Correct answer: ${answerFeedback.correctAnswer}`
+                  }
+                >
+                  {answerFeedback.canRetry
+                    ? "Wrong - Try again"
+                    : answerFeedback.result === "correct"
+                    ? `Correct! +${answerFeedback.score} XP`
+                    : `${answerFeedback.result === "skipped" ? "Skipped" : "Not quite"} - Answer: ${answerFeedback.correctAnswer}`}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{totalCorrect} correct</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -801,12 +1026,13 @@ function ResultMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border p-4">
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="grid min-h-28 place-items-center rounded-xl border border-border bg-background p-4 text-center shadow-sm">
+      <div className="text-primary [&_svg]:size-7">
         {icon}
-        {label}
-      </p>
-      <p className="mt-1 text-3xl font-semibold">{value}</p>
+      </div>
+      <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-2xl font-bold text-primary">{value}</p>
+      <div className="mt-1 h-1 w-16 rounded-full bg-primary/15" aria-hidden="true" />
     </div>
   );
 }
@@ -1025,6 +1251,13 @@ function getFinishTitle(accuracy: number) {
   return "Keep training";
 }
 
+function getFinishMessage(accuracy: number) {
+  if (accuracy >= 90) return "Outstanding work. Your vocabulary recall is getting stronger.";
+  if (accuracy >= 70) return "Great work. Keep practicing to make every word stick.";
+  if (accuracy >= 50) return "You did well. Keep practicing and you will get even better.";
+  return "Every round builds recall. Give it another go and keep improving.";
+}
+
 function getReviewBookId(book?: ReviewDueBook) {
   return book?.bookId ?? book?.id ?? "";
 }
@@ -1052,44 +1285,79 @@ function PromptView({
   game: PracticeGame;
   prompt: string | null;
 }) {
-  if (game.promptType === "translation") {
-    return <div className="text-4xl font-semibold text-primary">{card.translation}</div>;
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  function replayAudio() {
+    if (!audioRef.current) return;
+
+    audioRef.current.currentTime = 0;
+    void audioRef.current.play().catch(() => undefined);
+  }
+
+  if (game.promptType === "definition") {
+    return (
+      <div className="grid h-full w-full min-w-0 place-items-center px-4 text-center">
+        <div className="grid max-w-2xl gap-3">
+          <p className="break-words text-2xl font-semibold text-primary sm:text-3xl">
+            {card.definition}
+          </p>
+          {card.translation ? (
+            <p className="break-words text-base text-muted-foreground sm:text-lg">
+              {card.translation}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   if (game.promptType === "example-blank") {
-    return <p className="text-2xl leading-10">{prompt}</p>;
-  }
-
-  if (game.promptType === "image") {
     return (
-      <div className="overflow-hidden rounded-2xl border border-border bg-secondary">
-        {card.imageUrl ? (
-          <div
-            className="h-80 bg-cover bg-center"
-            style={{ backgroundImage: `url(${card.imageUrl})` }}
-          />
-        ) : (
-          <div className="grid h-56 place-items-center text-muted-foreground">
-            <Icon icon={ImageIcon} className="size-10" />
-          </div>
-        )}
+      <div className="grid h-full w-full min-w-0 place-items-center overflow-y-auto px-4 text-center">
+        <p className="max-w-2xl break-words text-xl leading-8 sm:text-2xl sm:leading-10">
+          {prompt}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 p-4">
-      <Icon icon={Headphones} className="size-8 text-primary" />
-      <audio controls src={card.audioUrl ?? undefined} className="w-full" />
+    <div className="flex h-full w-full items-center justify-center gap-3">
+      {card.imageUrl ? (
+        <div
+          className={cn(
+            "h-full w-96 min-w-0 rounded-2xl bg-cover bg-center bg-no-repeat",
+            card.audioUrl ? "max-w-[calc(100%_-_3.75rem)]" : "max-w-full"
+          )}
+          style={{ backgroundImage: `url(${card.imageUrl})` }}
+          role="img"
+          aria-label="Vocabulary prompt"
+        />
+      ) : null}
+      {card.audioUrl ? (
+        <>
+          <audio ref={audioRef} autoPlay preload="auto" src={card.audioUrl} />
+          <Button
+            type="button"
+            size="icon-lg"
+            variant="ghost"
+            className="size-12 rounded-full text-primary"
+            onClick={replayAudio}
+            aria-label="Replay audio"
+            title="Replay audio"
+          >
+            <Icon icon={SpeakerHigh} className="size-8" weight="fill" />
+          </Button>
+        </>
+      ) : null}
     </div>
   );
 }
 
 function getGameTitle(game: PracticeGame) {
-  if (game.type === "translation-input") return "Type the word from translation";
+  if (game.type === "definition-input") return "Type the word from the definition";
   if (game.type === "example-blank-quiz") return "Choose the missing word";
-  if (game.type === "image-quiz") return "Choose the word for this image";
-  return "Type what you hear";
+  return "Type the English word";
 }
 
 function mergeCards(primary: Flashcard[], secondary: Flashcard[]) {
