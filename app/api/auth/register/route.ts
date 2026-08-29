@@ -4,7 +4,6 @@ import type {
   RegisterRequest,
   RegisterResponse,
 } from "@/lib/auth-types";
-import { NextResponse } from "next/server";
 
 function json<TData>(data: TData, init?: ResponseInit) {
   return Response.json(data, init);
@@ -58,7 +57,7 @@ export async function POST(request: Request) {
   } catch {
     return json<ApiErrorResponse>(
       { message: "Request body must be valid JSON" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
   if (Object.keys(errors).length > 0) {
     return json<ApiErrorResponse>(
       { message: "Please check your registration details", errors },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -87,49 +86,30 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      }
+      },
     );
 
     const data = (await parseBackendResponse(backendResponse)) as
-      | RegisterResponse
-      | BackendErrorResponse;
+      RegisterResponse | BackendErrorResponse;
 
     if (!backendResponse.ok) {
       return json<ApiErrorResponse>(
         {
           message: normalizeMessage(
             "message" in data ? data.message : undefined,
-            "Unable to create account"
+            "Unable to create account",
           ),
           details: "details" in data ? data.details : undefined,
         },
-        { status: backendResponse.status }
+        { status: backendResponse.status },
       );
     }
 
-    const registerResponse = data as RegisterResponse;
-    const response = NextResponse.json<RegisterResponse>(registerResponse);
-    const cookieOptions = {
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax" as const,
-      secure: process.env.NODE_ENV === "production",
-    };
-
-    response.cookies.set("access_token", registerResponse.data.accessToken, {
-      ...cookieOptions,
-      maxAge: 28800,
-    });
-    response.cookies.set("refresh_token", registerResponse.data.refreshToken, {
-      ...cookieOptions,
-      maxAge: 604800,
-    });
-
-    return response;
+    return json<RegisterResponse>(data as RegisterResponse);
   } catch {
     return json<ApiErrorResponse>(
       { message: "Cannot reach the authentication service" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

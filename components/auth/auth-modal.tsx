@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 import {
+  CheckCircle,
   EnvelopeSimple as Mail,
   Eye,
   EyeSlash,
@@ -36,12 +37,7 @@ import {
   ModalTitle,
   ModalTrigger,
 } from "@/components/ui/modal";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HttpError, http } from "@/lib/http";
 import type {
   ApiErrorResponse,
@@ -80,7 +76,7 @@ function getFieldErrors(error: unknown): FieldErrors {
   return {};
 }
 
-function persistTokens(response: LoginResponse | RegisterResponse) {
+function persistTokens(response: LoginResponse) {
   window.localStorage.setItem("accessToken", response.data.accessToken);
   window.localStorage.setItem("refreshToken", response.data.refreshToken);
 }
@@ -92,6 +88,7 @@ export function AuthModal({
   children: React.ReactNode;
   defaultMode?: AuthMode;
 }) {
+  const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -100,6 +97,7 @@ export function AuthModal({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const hasGeneralError =
     Boolean(error) &&
     !fieldErrors.email &&
@@ -111,34 +109,59 @@ export function AuthModal({
     setFieldErrors({});
   }
 
+  function showLogin() {
+    setRegistrationComplete(false);
+    setMode("login");
+    setPassword("");
+    setShowPassword(false);
+    resetErrors();
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      if (registrationComplete) {
+        setMode("login");
+      }
+
+      setRegistrationComplete(false);
+      setPassword("");
+      setShowPassword(false);
+      resetErrors();
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     resetErrors();
     setIsSubmitting(true);
 
     try {
-      const response =
-        mode === "login"
-          ? await http.post<LoginResponse>("/api/auth/login", {
-              email,
-              password,
-            })
-          : await http.post<RegisterResponse>("/api/auth/register", {
-              email,
-              password,
-              username: username.trim() || undefined,
-            });
+      if (mode === "login") {
+        const response = await http.post<LoginResponse>("/api/auth/login", {
+          email,
+          password,
+        });
 
-      persistTokens(response);
-      toast.success(
-        response.message ??
-          (mode === "login" ? "Signed in successfully" : "Account created")
-      );
-      window.location.assign("/dashboard");
+        persistTokens(response);
+        toast.success(response.message ?? "Signed in successfully");
+        window.location.assign("/dashboard");
+        return;
+      }
+
+      await http.post<RegisterResponse>("/api/auth/register", {
+        email,
+        password,
+        username: username.trim() || undefined,
+      });
+      setPassword("");
+      setShowPassword(false);
+      setRegistrationComplete(true);
     } catch (requestError) {
       const message = getErrorMessage(
         requestError,
-        mode === "login" ? "Unable to sign in" : "Unable to create account"
+        mode === "login" ? "Unable to sign in" : "Unable to create account",
       );
 
       setError(message);
@@ -150,201 +173,260 @@ export function AuthModal({
   }
 
   return (
-    <Modal>
+    <Modal open={open} onOpenChange={handleOpenChange}>
       <ModalTrigger render={<span className="contents" />}>
         {children}
       </ModalTrigger>
       <ModalContent className="rounded-[1.75rem] border border-brand-200 bg-white px-5 py-5 text-foreground opacity-100 shadow-2xl shadow-primary/30 sm:max-w-[480px] sm:px-7 sm:py-6 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:text-foreground">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem]">
-          <Icon
-            icon={Sparkle}
-            className="absolute left-[20%] top-24 size-6 text-brand-300"
-            weight="fill"
-          />
-          <Icon
-            icon={Sparkle}
-            className="absolute right-[18%] top-36 size-4 text-pink-300"
-            weight="fill"
-          />
-          <Icon
-            icon={Sparkle}
-            className="absolute left-[12%] top-44 size-7 text-secondary"
-            weight="fill"
-          />
-          <Icon
-            icon={Sparkle}
-            className="absolute right-[12%] top-48 size-7 text-sky-400"
-            weight="fill"
-          />
-        </div>
+        {registrationComplete ? (
+          <>
+            <div className="relative flex justify-center">
+              <Image
+                src={logo}
+                alt="FLENVN logo"
+                className="h-auto w-24 sm:w-30"
+                priority
+              />
+            </div>
 
-        <div className="relative grid gap-4">
-          <div className="flex justify-center">
-            <Image
-              src={logo}
-              alt="FLENVN logo"
-              className="h-auto w-24 sm:w-30"
-              priority
-            />
-          </div>
+            <ModalBody className="relative place-items-center gap-4 py-4 text-center">
+              <Icon
+                icon={CheckCircle}
+                className="size-14 text-primary"
+                weight="fill"
+              />
+              <ModalHeader className="items-center gap-2 pr-0 text-center">
+                <ModalTitle>Congratulations!</ModalTitle>
+                <ModalDescription className="max-w-sm text-foreground/70">
+                  Your account has been created successfully. Sign in to start
+                  learning.
+                </ModalDescription>
+              </ModalHeader>
+            </ModalBody>
 
-          <ModalHeader className="items-center gap-1.5 pr-0 text-center">
-            <ModalTitle>
-              {mode === "login" ? "Welcome back" : "Create your account"}
-            </ModalTitle>
-            <ModalDescription className="max-w-sm text-foreground/70">
-              {mode === "login"
-                ? "Continue building your vocabulary habit."
-                : "Start saving words, reviewing cards, and learning with AI."}
-            </ModalDescription>
-          </ModalHeader>
-        </div>
+            <ModalFooter>
+              <ModalActionButton
+                type="button"
+                className="h-12 w-full rounded-2xl bg-primary text-base font-extrabold text-primary-foreground hover:bg-primary/90"
+                onClick={showLogin}
+              >
+                Go to login
+              </ModalActionButton>
+            </ModalFooter>
+          </>
+        ) : (
+          <>
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem]">
+              <Icon
+                icon={Sparkle}
+                className="absolute left-[20%] top-24 size-6 text-brand-300"
+                weight="fill"
+              />
+              <Icon
+                icon={Sparkle}
+                className="absolute right-[18%] top-36 size-4 text-pink-300"
+                weight="fill"
+              />
+              <Icon
+                icon={Sparkle}
+                className="absolute left-[12%] top-44 size-7 text-secondary"
+                weight="fill"
+              />
+              <Icon
+                icon={Sparkle}
+                className="absolute right-[12%] top-48 size-7 text-sky-400"
+                weight="fill"
+              />
+            </div>
 
-        <ModalBody className="relative">
-        <Tabs
-          value={mode}
-          onValueChange={(value) => {
-            setMode(value as AuthMode);
-            resetErrors();
-          }}
-          className="relative mt-2 gap-4"
-        >
-          <TabsList className="grid h-12 w-full grid-cols-2 rounded-2xl bg-brand-50 p-0 text-muted-foreground shadow-inner shadow-brand-200/40">
-            <TabsTrigger
-              value="login"
-              className="h-full rounded-2xl text-sm font-semibold data-active:bg-white data-active:text-primary data-active:shadow-md data-active:after:bg-primary sm:text-base"
-            >
-              Login
-            </TabsTrigger>
-            <TabsTrigger
-              value="register"
-              className="h-full rounded-2xl text-sm font-semibold data-active:bg-white data-active:text-primary data-active:shadow-md data-active:after:bg-primary sm:text-base"
-            >
-              Register
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={mode}>
-            <Form id="auth-form" onSubmit={handleSubmit} className="gap-4">
-              {error ? (
-                <Alert variant="destructive">
-                  <Icon icon={AlertCircle} />
-                  <AlertTitle>
-                    {mode === "login" ? "Sign in failed" : "Registration failed"}
-                  </AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {mode === "register" ? (
-                <FormField className="gap-2">
-                  <AuthField
-                    id="auth-username"
-                    label="Username"
-                    placeholder="Your name"
-                    autoComplete="username"
-                    value={username}
-                    icon={User}
-                    invalid={Boolean(fieldErrors.username) || hasGeneralError}
-                    onChange={(event) => setUsername(event.target.value)}
-                  />
-                  {fieldErrors.username ? (
-                    <FormMessage variant="error">
-                      {fieldErrors.username}
-                    </FormMessage>
-                  ) : null}
-                </FormField>
-              ) : null}
-
-              <FormField className="gap-2">
-                <AuthField
-                  id="auth-email"
-                  label="Email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  icon={Mail}
-                  invalid={Boolean(fieldErrors.email) || hasGeneralError}
-                  onChange={(event) => setEmail(event.target.value)}
+            <div className="relative grid gap-4">
+              <div className="flex justify-center">
+                <Image
+                  src={logo}
+                  alt="FLENVN logo"
+                  className="h-auto w-24 sm:w-30"
+                  priority
                 />
-                {fieldErrors.email ? (
-                  <FormMessage variant="error">{fieldErrors.email}</FormMessage>
-                ) : null}
-              </FormField>
+              </div>
 
-              <FormField className="gap-2">
-                <AuthField
-                  id="auth-password"
-                  label="Password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={
-                    mode === "login" ? "current-password" : "new-password"
-                  }
-                  placeholder={
-                    mode === "login" ? "Enter your password" : "At least 8 characters"
-                  }
-                  value={password}
-                  icon={LockKeyhole}
-                  invalid={Boolean(fieldErrors.password) || hasGeneralError}
-                  onChange={(event) => setPassword(event.target.value)}
-                  trailing={
-                    <button
-                      type="button"
-                      className="grid size-8 place-items-center text-muted-foreground transition hover:text-primary"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      onClick={() => setShowPassword((current) => !current)}
-                    >
-                      <Icon
-                        icon={showPassword ? EyeSlash : Eye}
-                        className="size-5"
-                        weight="bold"
+              <ModalHeader className="items-center gap-1.5 pr-0 text-center">
+                <ModalTitle>
+                  {mode === "login" ? "Welcome back" : "Create your account"}
+                </ModalTitle>
+                <ModalDescription className="max-w-sm text-foreground/70">
+                  {mode === "login"
+                    ? "Continue building your vocabulary habit."
+                    : "Start saving words, reviewing cards, and learning with AI."}
+                </ModalDescription>
+              </ModalHeader>
+            </div>
+
+            <ModalBody className="relative">
+              <Tabs
+                value={mode}
+                onValueChange={(value) => {
+                  setMode(value as AuthMode);
+                  resetErrors();
+                }}
+                className="relative mt-2 gap-4"
+              >
+                <TabsList className="grid h-12 w-full grid-cols-2 rounded-2xl bg-brand-50 p-0 text-muted-foreground shadow-inner shadow-brand-200/40">
+                  <TabsTrigger
+                    value="login"
+                    className="h-full rounded-2xl text-sm font-semibold data-active:bg-white data-active:text-primary data-active:shadow-md data-active:after:bg-primary sm:text-base"
+                  >
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="register"
+                    className="h-full rounded-2xl text-sm font-semibold data-active:bg-white data-active:text-primary data-active:shadow-md data-active:after:bg-primary sm:text-base"
+                  >
+                    Register
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value={mode}>
+                  <Form
+                    id="auth-form"
+                    onSubmit={handleSubmit}
+                    className="gap-4"
+                  >
+                    {error ? (
+                      <Alert variant="destructive">
+                        <Icon icon={AlertCircle} />
+                        <AlertTitle>
+                          {mode === "login"
+                            ? "Sign in failed"
+                            : "Registration failed"}
+                        </AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {mode === "register" ? (
+                      <FormField className="gap-2">
+                        <AuthField
+                          id="auth-username"
+                          label="Username"
+                          placeholder="Your name"
+                          autoComplete="username"
+                          value={username}
+                          icon={User}
+                          invalid={
+                            Boolean(fieldErrors.username) || hasGeneralError
+                          }
+                          onChange={(event) => setUsername(event.target.value)}
+                        />
+                        {fieldErrors.username ? (
+                          <FormMessage variant="error">
+                            {fieldErrors.username}
+                          </FormMessage>
+                        ) : null}
+                      </FormField>
+                    ) : null}
+
+                    <FormField className="gap-2">
+                      <AuthField
+                        id="auth-email"
+                        label="Email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        icon={Mail}
+                        invalid={Boolean(fieldErrors.email) || hasGeneralError}
+                        onChange={(event) => setEmail(event.target.value)}
                       />
-                    </button>
-                  }
-                />
-                {fieldErrors.password ? (
-                  <FormMessage variant="error">
-                    {fieldErrors.password}
-                  </FormMessage>
-                ) : null}
-              </FormField>
+                      {fieldErrors.email ? (
+                        <FormMessage variant="error">
+                          {fieldErrors.email}
+                        </FormMessage>
+                      ) : null}
+                    </FormField>
 
-            </Form>
-          </TabsContent>
-        </Tabs>
-        </ModalBody>
+                    <FormField className="gap-2">
+                      <AuthField
+                        id="auth-password"
+                        label="Password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={
+                          mode === "login" ? "current-password" : "new-password"
+                        }
+                        placeholder={
+                          mode === "login"
+                            ? "Enter your password"
+                            : "At least 8 characters"
+                        }
+                        value={password}
+                        icon={LockKeyhole}
+                        invalid={
+                          Boolean(fieldErrors.password) || hasGeneralError
+                        }
+                        onChange={(event) => setPassword(event.target.value)}
+                        trailing={
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center text-muted-foreground transition hover:text-primary"
+                            aria-label={
+                              showPassword ? "Hide password" : "Show password"
+                            }
+                            onClick={() =>
+                              setShowPassword((current) => !current)
+                            }
+                          >
+                            <Icon
+                              icon={showPassword ? EyeSlash : Eye}
+                              className="size-5"
+                              weight="bold"
+                            />
+                          </button>
+                        }
+                      />
+                      {fieldErrors.password ? (
+                        <FormMessage variant="error">
+                          {fieldErrors.password}
+                        </FormMessage>
+                      ) : null}
+                    </FormField>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+            </ModalBody>
 
-        <ModalFooter className="relative grid gap-3 sm:grid sm:grid-cols-1">
-          <ModalActionButton
-            form="auth-form"
-            className="h-12 w-full rounded-2xl bg-primary text-base font-extrabold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Icon icon={Loader2} className="animate-spin" />
-            ) : mode === "login" ? (
-              <Icon icon={LockKeyhole} />
-            ) : (
-              <Icon icon={Plus} />
-            )}
-            {mode === "login" ? "Continue studying" : "Create account"}
-          </ModalActionButton>
+            <ModalFooter className="relative grid gap-3 sm:grid sm:grid-cols-1">
+              <ModalActionButton
+                form="auth-form"
+                className="h-12 w-full rounded-2xl bg-primary text-base font-extrabold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Icon icon={Loader2} className="animate-spin" />
+                ) : mode === "login" ? (
+                  <Icon icon={LockKeyhole} />
+                ) : (
+                  <Icon icon={Plus} />
+                )}
+                {mode === "login" ? "Continue studying" : "Create account"}
+              </ModalActionButton>
 
-          <p className="text-center text-sm text-muted-foreground">
-            {mode === "login" ? "Need an account?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              className="font-extrabold text-primary hover:underline"
-              onClick={() => {
-                setMode(mode === "login" ? "register" : "login");
-                resetErrors();
-              }}
-            >
-              {mode === "login" ? "Register" : "Login"}
-            </button>
-          </p>
-        </ModalFooter>
+              <p className="text-center text-sm text-muted-foreground">
+                {mode === "login"
+                  ? "Need an account?"
+                  : "Already have an account?"}{" "}
+                <button
+                  type="button"
+                  className="font-extrabold text-primary hover:underline"
+                  onClick={() => {
+                    setMode(mode === "login" ? "register" : "login");
+                    resetErrors();
+                  }}
+                >
+                  {mode === "login" ? "Register" : "Login"}
+                </button>
+              </p>
+            </ModalFooter>
+          </>
+        )}
       </ModalContent>
     </Modal>
   );
@@ -382,7 +464,7 @@ function AuthField({
           "h-16 rounded-2xl border-brand-200 bg-white pb-2.5 pl-14 pr-14 pt-8 text-sm text-foreground shadow-none placeholder:text-muted-foreground/75 focus-visible:border-primary focus-visible:ring-primary/20",
           invalid && "animate-error-shake",
           !trailing && "pr-5",
-          className
+          className,
         )}
         {...props}
       />
