@@ -3,22 +3,24 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
-  Clock3,
+  Clock as Clock3,
   Headphones,
-  ImageIcon,
-  Layers3,
-  Loader2,
+  Image as ImageIcon,
+  Stack as Layers3,
+  Spinner as Loader2,
   Play,
-  Sparkles,
+  Sparkle as Sparkles,
   Trophy,
   X,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HttpError, http } from "@/lib/http";
@@ -266,9 +268,9 @@ export function PracticeRunner({
               <h1 className="mt-1 text-4xl font-semibold">{getFinishTitle(summary.accuracy)}</h1>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <ResultMetric icon={<Trophy className="size-4" />} label="Score" value={String(summary.score)} />
-              <ResultMetric icon={<Sparkles className="size-4" />} label="Accuracy" value={`${summary.accuracy}%`} />
-              <ResultMetric icon={<Check className="size-4" />} label="Correct" value={`${summary.correctGames}/${summary.totalGames}`} />
+              <ResultMetric icon={<Icon icon={Trophy} />} label="Score" value={String(summary.score)} />
+              <ResultMetric icon={<Icon icon={Sparkles} />} label="Accuracy" value={`${summary.accuracy}%`} />
+              <ResultMetric icon={<Icon icon={Check} />} label="Correct" value={`${summary.correctGames}/${summary.totalGames}`} />
             </div>
             <p className="text-sm text-muted-foreground">
               {summary.skippedGames
@@ -281,7 +283,7 @@ export function PracticeRunner({
                 className="h-10 rounded-2xl"
                 onClick={() => setSummary(null)}
               >
-                <Play className="size-4" />
+                <Icon icon={Play} />
                 Practice again
               </Button>
             </div>
@@ -301,7 +303,7 @@ export function PracticeRunner({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="h-8 rounded-2xl px-3">
-              <Trophy className="size-4 text-primary" />
+              <Icon icon={Trophy} className="text-primary" />
               {liveScore}
             </Badge>
             <Badge variant="outline" className="h-8 rounded-2xl px-3">
@@ -314,7 +316,7 @@ export function PracticeRunner({
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Progress {progress}%</span>
             <span className="inline-flex items-center gap-1">
-              <Clock3 className="size-4" />
+              <Icon icon={Clock3} />
               {Math.ceil(timeLeftMs / 1000)}s
             </span>
           </div>
@@ -359,7 +361,7 @@ export function PracticeRunner({
                 ))}
               </div>
             ) : (
-              <form
+              <Form
                 className="flex flex-col gap-2 sm:flex-row"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -374,10 +376,10 @@ export function PracticeRunner({
                   placeholder="Type your answer"
                 />
                 <Button className="h-12 rounded-2xl" disabled={isSubmitting || !answer.trim()}>
-                  <Check className="size-4" />
+                  <Icon icon={Check} />
                   Answer
                 </Button>
-              </form>
+              </Form>
             )}
             <div className="flex items-center justify-between gap-2">
               <Button
@@ -387,7 +389,7 @@ export function PracticeRunner({
                 disabled={isSubmitting}
                 onClick={() => submitAnswer("", true)}
               >
-                <X className="size-4" />
+                <Icon icon={X} />
                 Skip
               </Button>
               <p className="text-sm text-muted-foreground">{totalCorrect} correct</p>
@@ -437,7 +439,7 @@ export function PracticeRunner({
                     />
                   ) : (
                     <div className="grid h-20 w-16 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground">
-                      <Layers3 className="size-5" />
+                      <Icon icon={Layers3} size="lg" />
                     </div>
                   )}
                   <div className="min-w-0">
@@ -468,7 +470,7 @@ export function PracticeRunner({
             <CardDescription>{selectedBook?.title ?? "Choose a book"}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4" onSubmit={startPractice}>
+            <Form className="gap-4" onSubmit={startPractice}>
             <div className="grid gap-2">
               <Label htmlFor="practice-count">Cards</Label>
               <Input
@@ -486,10 +488,14 @@ export function PracticeRunner({
               className="h-11 rounded-2xl"
               disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0}
             >
-              {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+              {isLoading ? (
+                <Icon icon={Loader2} className="animate-spin" />
+              ) : (
+                <Icon icon={Play} />
+              )}
               Start mission
             </Button>
-          </form>
+          </Form>
           <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
             <p>Target: {limit} card{limit === 1 ? "" : "s"}</p>
             <p>Possible score: {maxScore}</p>
@@ -612,7 +618,7 @@ function PromptView({
           />
         ) : (
           <div className="grid h-56 place-items-center text-muted-foreground">
-            <ImageIcon className="size-10" />
+            <Icon icon={ImageIcon} className="size-10" />
           </div>
         )}
       </div>
@@ -621,7 +627,7 @@ function PromptView({
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 p-4">
-      <Headphones className="size-8 text-primary" />
+      <Icon icon={Headphones} className="size-8 text-primary" />
       <audio controls src={card.audioUrl ?? undefined} className="w-full" />
     </div>
   );

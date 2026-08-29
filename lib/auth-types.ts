@@ -3,6 +3,12 @@ export type LoginRequest = {
   password: string;
 };
 
+export type RegisterRequest = {
+  email: string;
+  password: string;
+  username?: string;
+};
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -25,6 +31,8 @@ export type ApiEnvelope<TData> = {
 };
 
 export type LoginResponse = ApiEnvelope<LoginResponseData>;
+
+export type RegisterResponse = ApiEnvelope<LoginResponseData>;
 
 export type TokenResponseData = {
   accessToken: string;

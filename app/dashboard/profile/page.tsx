@@ -1,5 +1,9 @@
-import { Mail, UserRound } from "lucide-react";
+import {
+  EnvelopeSimple as Mail,
+  UserCircle as UserRound,
+} from "@phosphor-icons/react/ssr";
 
+import { Icon } from "@/components/ui/icon";
 import {
   Card,
   CardContent,
@@ -7,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { getDashboardShellData } from "@/lib/dashboard-data";
 
 export default async function ProfilePage() {
@@ -15,10 +20,12 @@ export default async function ProfilePage() {
   return (
     <div className="grid gap-6">
       <section>
-        <h2 className="text-2xl font-semibold">User profile</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <Text as="div" size="2xl" weight="semibold">
+          User profile
+        </Text>
+        <Text className="mt-2" size="sm" tone="muted">
           View your account details.
-        </p>
+        </Text>
       </section>
 
       <Card className="rounded-3xl">
@@ -29,23 +36,29 @@ export default async function ProfilePage() {
         <CardContent className="grid gap-4">
           <div className="flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-primary">
-              <UserRound className="size-5" />
+              <Icon icon={UserRound} size="lg" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm text-muted-foreground">Name</p>
-              <p className="truncate font-medium">{user.name}</p>
+              <Text className="truncate" size="sm" tone="muted">
+                Name
+              </Text>
+              <Text className="truncate" weight="medium">
+                {user.name}
+              </Text>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-primary">
-              <Mail className="size-5" />
+              <Icon icon={Mail} size="lg" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm text-muted-foreground">Email</p>
-              <p className="truncate font-medium">
+              <Text className="truncate" size="sm" tone="muted">
+                Email
+              </Text>
+              <Text className="truncate" weight="medium">
                 {user.email || "No email available"}
-              </p>
+              </Text>
             </div>
           </div>
         </CardContent>

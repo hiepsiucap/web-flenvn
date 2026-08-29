@@ -294,6 +294,7 @@ export async function getDashboardPageData() {
     accuracy: study?.accuracy ?? 0,
     nextDeck,
     totalCards,
+    masteredCards,
     masteredPercent,
     error: flashcardsResult.error ?? booksResult.error ?? studyResult.error,
   };

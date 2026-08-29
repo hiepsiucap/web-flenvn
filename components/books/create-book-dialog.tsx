@@ -1,24 +1,30 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Plus, Spinner as Loader2 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+  Form,
+  FormActions,
+  FormField,
+  FormInput,
+  FormLabel,
+  FormTextarea,
+} from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalHeader,
+  ModalTitle,
+  ModalTrigger,
+} from "@/components/ui/modal";
+import { Text } from "@/components/ui/text";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 
@@ -73,31 +79,31 @@ export function CreateBookDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
+    <Modal open={open} onOpenChange={setOpen}>
+      <ModalTrigger
         render={
           <Button className="h-10 rounded-2xl" type="button">
-            <Plus className="size-4" />
+            <Icon icon={Plus} />
             Create book
           </Button>
         }
       />
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Create book</DialogTitle>
-          <DialogDescription>Add a book for grouping flashcards.</DialogDescription>
-        </DialogHeader>
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="book-title">Title</Label>
-            <Input id="book-title" name="title" required className="h-10" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="book-description">Description</Label>
-            <Textarea id="book-description" name="description" />
-          </div>
+      <ModalContent className="max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain sm:max-w-xl">
+        <ModalHeader>
+          <ModalTitle>Create book</ModalTitle>
+          <ModalDescription>Add a book for grouping flashcards.</ModalDescription>
+        </ModalHeader>
+        <Form className="gap-4" onSubmit={handleSubmit}>
+          <FormField>
+            <FormLabel htmlFor="book-title">Title</FormLabel>
+            <FormInput id="book-title" name="title" required className="h-10" />
+          </FormField>
+          <FormField>
+            <FormLabel htmlFor="book-description">Description</FormLabel>
+            <FormTextarea id="book-description" name="description" />
+          </FormField>
 
-          <div className="grid gap-2">
+          <FormField>
             <label className="flex cursor-pointer items-center gap-2">
               <Checkbox
                 checked={useCoverUpload}
@@ -117,9 +123,9 @@ export function CreateBookDialog() {
                 onFileNameChange={setCoverFileName}
               />
             ) : null}
-          </div>
+          </FormField>
 
-          <div className="grid gap-2">
+          <FormField>
             <label className="flex cursor-pointer items-center gap-2">
               <Checkbox
                 checked={useBookUpload}
@@ -139,27 +145,31 @@ export function CreateBookDialog() {
                   fileName={bookFileName}
                   onFileNameChange={setBookFileName}
                 />
-                <div className="grid gap-2">
-                  <Label htmlFor="book-content">Fallback content</Label>
-                  <Textarea
+                <FormField>
+                  <FormLabel htmlFor="book-content">Fallback content</FormLabel>
+                  <FormTextarea
                     id="book-content"
                     name="content"
                     placeholder="Paste text here if the file cannot be extracted"
                   />
-                </div>
+                </FormField>
               </div>
             ) : null}
-          </div>
+          </FormField>
           <input type="hidden" name="isPublic" value="false" />
-          <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent px-0 pb-0">
+          <FormActions>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+              {isSubmitting ? (
+                <Icon icon={Loader2} className="animate-spin" />
+              ) : (
+                <Icon icon={Plus} />
+              )}
               Save book
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </FormActions>
+        </Form>
+      </ModalContent>
+    </Modal>
   );
 }
 
@@ -199,9 +209,9 @@ function FileInput({
       >
         {label}
       </Button>
-      <span className="min-w-0 truncate text-sm text-muted-foreground">
+      <Text as="span" className="min-w-0 truncate" size="sm" tone="muted">
         {fileName || "No file selected"}
-      </span>
+      </Text>
     </div>
   );
 }

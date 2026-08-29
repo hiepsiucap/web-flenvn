@@ -1,17 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Flame, Search, Trophy } from "lucide-react";
+import {
+  Fire as Flame,
+  MagnifyingGlass as Search,
+  Trophy,
+} from "@phosphor-icons/react/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
+import { Text } from "@/components/ui/text";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
 import { SuggestVocabularyDialog } from "@/components/vocabulary/suggest-vocabulary-dialog";
 import {
   SidebarNav,
   type SidebarNavItem,
 } from "@/components/dashboard/sidebar-nav";
-import logo from "@/app/logo.png";
+import logo from "@/img/new-logo.png";
+import penguinTopbar from "@/img/peguin-topbar.png";
 import { getBooks, getDashboardShellData } from "@/lib/dashboard-data";
 
 const navItems: SidebarNavItem[] = [
@@ -36,12 +43,16 @@ export async function DashboardShell({
           <Image
             src={logo}
             alt="FLEN logo"
-            className="size-12 rounded-2xl bg-white p-1.5 shadow-sm"
+            className="size-14"
             priority
           />
           <div>
-            <p className="text-lg font-bold leading-none">FLEN</p>
-            <p className="mt-1 text-xs text-muted-foreground">Flashcards</p>
+            <Text size="lg" weight="bold" leading="none">
+              FLEN
+            </Text>
+            <Text className="mt-1" size="xs" tone="muted">
+              Flashcards
+            </Text>
           </div>
         </Link>
 
@@ -51,60 +62,65 @@ export async function DashboardShell({
 
         <div className="mt-auto rounded-3xl bg-sidebar-accent p-4 text-sidebar-accent-foreground">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <Trophy className="size-4" />
+            <Icon icon={Trophy} />
             Daily Goal
           </div>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          <Text className="mt-2 leading-5" size="xs" tone="muted">
             Review 20 cards to keep today on track.
-          </p>
+          </Text>
         </div>
       </aside>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 border-b border-border/80 bg-background/90 backdrop-blur">
-          <div className="flex min-h-20 items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <Image
-                src={logo}
-                alt="FLEN logo"
-                className="size-11 rounded-2xl bg-white p-1.5 shadow-sm lg:hidden"
-                priority
-              />
-              <div className="min-w-0">
-                <p className="truncate text-sm text-muted-foreground">
-                  Welcome back
-                </p>
-                <h1 className="truncate text-xl font-semibold sm:text-2xl">
-                  {user.name}
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <div className="hidden min-w-40 sm:block">
-                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Progress</span>
-                  <span>{user.progress}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${user.progress}%` }}
-                  />
+        <header className="sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 backdrop-blur">
+          <div className="relative border border-brand-200/80 bg-white">
+            <div className="relative flex min-h-16 items-center justify-between gap-4 px-5 py-2.5 sm:px-6 lg:min-h-18">
+              <div className="flex min-w-0 items-center gap-3">
+                <Image
+                  src={penguinTopbar}
+                  alt="FLEN penguin"
+                  className="size-12 shrink-0 object-contain"
+                  priority
+                />
+                <div className="min-w-0">
+                  <Text className="truncate text-xs text-brand-700" weight="semibold">
+                    Welcome back,
+                  </Text>
+                  <Text
+                    as="div"
+                    className="truncate text-lg font-extrabold tracking-normal sm:text-xl"
+                  >
+                    {user.name} <span className="text-base sm:text-lg">👋</span>
+                  </Text>
                 </div>
               </div>
 
-              <Badge variant="secondary" className="h-8 rounded-2xl px-3">
-                <Flame className="size-4 text-primary" />
-                {user.streak} day
-              </Badge>
+              <div className="flex shrink-0 items-center gap-3">
+                <div className="hidden w-44 xl:block">
+                  <div className="mb-1 flex items-center justify-between text-xs font-extrabold text-brand-800">
+                    <span>Progress</span>
+                    <span>{user.progress}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-brand-100">
+                    <div
+                      className="h-full rounded-full bg-secondary"
+                      style={{ width: `${user.progress}%` }}
+                    />
+                  </div>
+                </div>
 
-              <Button variant="outline" size="icon-lg" className="rounded-2xl">
-                <Search className="size-4" />
-                <span className="sr-only">Search</span>
-              </Button>
+                <Badge variant="secondary" className="h-9 rounded-full px-3.5 text-sm font-extrabold">
+                  <Icon icon={Flame} className="text-primary" />
+                  {user.streak} day
+                </Badge>
 
-              <ProfileMenu user={user} />
+                <Button variant="outline" size="icon-lg" className="size-9 rounded-2xl border-brand-200 bg-white">
+                  <Icon icon={Search} className="size-4" />
+                  <span className="sr-only">Search</span>
+                </Button>
+
+                <ProfileMenu user={user} />
+              </div>
             </div>
           </div>
         </header>

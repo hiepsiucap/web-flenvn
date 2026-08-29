@@ -3,6 +3,7 @@ import type {
   BackendErrorResponse,
   TokenResponse,
 } from "@/lib/auth-types";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 async function parseBackendResponse(response: Response) {
@@ -28,12 +29,11 @@ function normalizeMessage(message: unknown, fallback: string) {
 }
 
 export async function POST(request: Request) {
-  const refreshToken = request.headers
-    .get("cookie")
-    ?.split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("refresh_token="))
-    ?.replace("refresh_token=", "");
+  const cookieStore = await cookies();
+  const refreshToken =
+    cookieStore.get("refresh_token")?.value ??
+    request.headers.get("x-refresh-token") ??
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
   if (!refreshToken) {
     return NextResponse.json<ApiErrorResponse>(

@@ -1,28 +1,30 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useRef, useState } from "react";
 import {
+  ArrowClockwise as RotateCcw,
   Check,
-  ImageIcon,
-  Loader2,
+  Image as ImageIcon,
   Plus,
-  RotateCcw,
-  Sparkles,
-  Wand2,
-} from "lucide-react";
+  Sparkle as Sparkles,
+  Spinner as Loader2,
+  MagicWand as Wand2,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalHeader,
+  ModalTitle,
+  ModalTrigger,
+} from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -76,19 +78,14 @@ function getErrorMessage(error: unknown) {
   return "Unable to create flashcard";
 }
 
-function getBackendBaseUrl() {
-  if (typeof window !== "undefined") {
-    return window.location.origin;
-  }
-
-  return process.env.API_BASE_URL ?? "http://localhost:5000";
-}
-
 async function refreshClientToken() {
   try {
+    const refreshToken = window.localStorage.getItem("refreshToken");
     const response = await http.post<{
       data: { accessToken: string; refreshToken: string };
-    }>("/api/auth/refresh");
+    }>("/api/auth/refresh", undefined, {
+      headers: refreshToken ? { "x-refresh-token": refreshToken } : undefined,
+    });
 
     window.localStorage.setItem("accessToken", response.data.accessToken);
     window.localStorage.setItem("refreshToken", response.data.refreshToken);
@@ -101,7 +98,7 @@ async function refreshClientToken() {
   }
 }
 
-async function backendRequest<TData>(
+async function apiRequest<TData>(
   path: string,
   init: RequestInit = {},
   retryOnUnauthorized = true
@@ -113,7 +110,7 @@ async function backendRequest<TData>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(new URL(path, getBackendBaseUrl()), {
+  const response = await fetch(path, {
     ...init,
     headers,
   });
@@ -124,7 +121,7 @@ async function backendRequest<TData>(
     if (nextToken) {
       const retryHeaders = new Headers(init.headers);
       retryHeaders.set("Authorization", `Bearer ${nextToken}`);
-      return backendRequest<TData>(
+      return apiRequest<TData>(
         path,
         { ...init, headers: retryHeaders },
         false
@@ -198,10 +195,10 @@ export function CreateFlashcardDialog({
       setIsAutocompleting(true);
 
       try {
-        const url = new URL("/api/v1/words/autocomplete", getBackendBaseUrl());
+        const url = new URL("/api/words/autocomplete", window.location.origin);
         url.searchParams.set("q", query);
         url.searchParams.set("limit", "5");
-        const response = await backendRequest<AutocompleteResponse>(
+        const response = await apiRequest<AutocompleteResponse>(
           `${url.pathname}${url.search}`
         );
         const options = Array.isArray(response)
@@ -236,7 +233,9 @@ export function CreateFlashcardDialog({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
-  async function handleSuggest() {
+  async function handleSuggest(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+
     if (!word.trim()) {
       toast.error("Enter a word first");
       return;
@@ -245,11 +244,11 @@ export function CreateFlashcardDialog({
     setIsSuggesting(true);
 
     try {
-      const url = new URL("/api/v1/words/suggest", getBackendBaseUrl());
+      const url = new URL("/api/words/suggest", window.location.origin);
       url.searchParams.set("word", word.trim());
       url.searchParams.set("targetLanguage", "vi");
       url.searchParams.set("imageLimit", "6");
-      const response = await backendRequest<{ data: WordSuggestion }>(
+      const response = await apiRequest<{ data: WordSuggestion }>(
         `${url.pathname}${url.search}`
       );
       const nextSuggestion = response.data;
@@ -276,7 +275,9 @@ export function CreateFlashcardDialog({
     }
   }
 
-  async function handleCorrectExample() {
+  async function handleCorrectExample(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+
     if (!example.trim()) {
       toast.error("Enter an example first");
       return;
@@ -285,8 +286,8 @@ export function CreateFlashcardDialog({
     setIsCorrectingExample(true);
 
     try {
-      const response = await backendRequest<CorrectionResponse>(
-        "/api/v1/words/correct",
+      const response = await apiRequest<CorrectionResponse>(
+        "/api/words/correct",
         {
           method: "POST",
           headers: {
@@ -348,16 +349,16 @@ export function CreateFlashcardDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
+    <Modal open={open} onOpenChange={setOpen}>
+      <ModalTrigger
         render={
           <Button className="h-10 rounded-2xl" type="button" disabled={!books.length}>
-            <Plus className="size-4" />
+            <Icon icon={Plus} />
             Create flashcard
           </Button>
         }
       />
-      <DialogContent className="grid h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden overscroll-contain sm:max-w-5xl">
+      <ModalContent className="grid h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden overscroll-contain sm:max-w-5xl">
         <Button
           type="button"
           variant="outline"
@@ -366,18 +367,18 @@ export function CreateFlashcardDialog({
           disabled={isSubmitting || isSuggesting}
           onClick={clearForm}
         >
-          <RotateCcw className="size-4" />
+          <Icon icon={RotateCcw} />
           Clear
         </Button>
-        <DialogHeader>
-          <DialogTitle>Create flashcard</DialogTitle>
-          <DialogDescription>Add a new card to a book.</DialogDescription>
-        </DialogHeader>
+        <ModalHeader>
+          <ModalTitle>Create flashcard</ModalTitle>
+          <ModalDescription>Add a new card to a book.</ModalDescription>
+        </ModalHeader>
 
         <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
-          <form
+          <Form
             id="create-flashcard-form"
-            className="min-h-0 overflow-y-auto overscroll-contain pb-16 pr-1"
+            className="-mx-1 min-h-0 overflow-y-auto overscroll-contain px-1 pb-16 pt-1 pr-2"
             onSubmit={handleSubmit}
           >
             <div className="grid gap-4 pb-1">
@@ -426,9 +427,9 @@ export function CreateFlashcardDialog({
                       onClick={handleSuggest}
                     >
                       {isSuggesting ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Icon icon={Loader2} className="animate-spin" />
                       ) : (
-                        <Sparkles className="size-4" />
+                        <Icon icon={Sparkles} />
                       )}
                       Suggest
                     </Button>
@@ -437,7 +438,7 @@ export function CreateFlashcardDialog({
                     <div className="absolute left-0 right-[108px] top-11 z-20 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg">
                       {isAutocompleting ? (
                         <div className="flex h-9 items-center gap-2 px-3 text-sm text-muted-foreground">
-                          <Loader2 className="size-3.5 animate-spin" />
+                          <Icon icon={Loader2} size="sm" className="animate-spin" />
                           Searching
                         </div>
                       ) : null}
@@ -511,9 +512,9 @@ export function CreateFlashcardDialog({
                   onClick={handleCorrectExample}
                 >
                   {isCorrectingExample ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Icon icon={Loader2} size="sm" className="animate-spin" />
                   ) : (
-                    <Wand2 className="size-3.5" />
+                    <Icon icon={Wand2} size="sm" />
                   )}
                   Correct
                 </Button>
@@ -556,7 +557,7 @@ export function CreateFlashcardDialog({
                         />
                         {isSelected ? (
                           <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground shadow-md animate-in zoom-in-75">
-                            <Check className="size-3.5" />
+                            <Icon icon={Check} size="sm" />
                           </span>
                         ) : null}
                       </button>
@@ -565,14 +566,14 @@ export function CreateFlashcardDialog({
                 </div>
               ) : (
                 <div className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
-                  <ImageIcon className="mr-2 size-4" />
+                  <Icon icon={ImageIcon} className="mr-2" />
                   Use Suggest to choose a picture
                 </div>
               )}
             </div>
 
             </div>
-          </form>
+          </Form>
 
           <aside className="min-h-0 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-muted/30 p-3 pb-16">
             {suggestion ? (
@@ -652,7 +653,7 @@ export function CreateFlashcardDialog({
             ) : (
               <div className="grid h-full min-h-[180px] place-items-center text-center">
                 <div>
-                  <Sparkles className="mx-auto size-8 text-muted-foreground" />
+                  <Icon icon={Sparkles} className="mx-auto size-8 text-muted-foreground" />
                   <p className="mt-3 text-sm font-medium">No suggestions yet</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Enter a word and click Suggest.
@@ -671,14 +672,14 @@ export function CreateFlashcardDialog({
             disabled={isSubmitting || !bookId}
           >
             {isSubmitting ? (
-              <Loader2 className="size-5 animate-spin" />
+              <Icon icon={Loader2} size="lg" className="animate-spin" />
             ) : (
-              <Plus className="size-5" />
+              <Icon icon={Plus} size="lg" />
             )}
             Save flashcard
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 }

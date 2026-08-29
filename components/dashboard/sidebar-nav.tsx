@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, Home, Layers3, Settings, SquareStack } from "lucide-react";
+import {
+  BookOpen,
+  ChartBar as BarChart3,
+  GearSix as Settings,
+  House as Home,
+  Stack as Layers3,
+  SquaresFour as SquareStack,
+} from "@phosphor-icons/react";
 
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 export type SidebarNavItem = {
@@ -27,7 +35,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
   return (
     <nav className="grid gap-1">
       {items.map((item) => {
-        const Icon = icons[item.icon];
+        const ItemIcon = icons[item.icon];
         const isActive =
           pathname === item.href ||
           (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -42,7 +50,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
                 "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
             )}
           >
-            <Icon className="size-4" />
+            <Icon icon={ItemIcon} />
             {item.label}
           </Link>
         );

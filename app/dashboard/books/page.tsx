@@ -1,15 +1,13 @@
-import { Library } from "lucide-react";
+import Image from "next/image";
+import { Books as Library } from "@phosphor-icons/react/ssr";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
 import { BooksGrid } from "@/components/books/books-grid";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { getBooks } from "@/lib/dashboard-data";
+import emptyFolderImage from "@/img/empty-folder.png";
 
 export default async function BooksPage() {
   const books = await getBooks();
@@ -18,14 +16,16 @@ export default async function BooksPage() {
     <div className="grid gap-6">
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Books</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <Text as="div" size="2xl" weight="semibold">
+            Books
+          </Text>
+          <Text className="mt-2" size="sm" tone="muted">
             Choose a book to review its flashcards.
-          </p>
+          </Text>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="h-8 w-fit rounded-2xl px-3">
-            <Library className="size-4 text-primary" />
+            <Icon icon={Library} className="text-primary" />
             {books.length} books
           </Badge>
           <CreateBookDialog />
@@ -35,14 +35,25 @@ export default async function BooksPage() {
       {books.length > 0 ? (
         <BooksGrid books={books} />
       ) : (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>No books yet</CardTitle>
-            <CardDescription>
+        <section className="grid min-h-[520px] place-items-center px-6 py-12 text-center">
+          <div className="flex max-w-sm flex-col items-center">
+            <Image
+              src={emptyFolderImage}
+              alt=""
+              className="h-auto w-52"
+              priority
+            />
+            <Text as="div" className="mt-6" size="xl" weight="semibold">
+              No books yet
+            </Text>
+            <Text className="mt-2" size="sm" tone="muted">
               Create or import a book to start building flashcards.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+            </Text>
+            <div className="mt-6 flex justify-center">
+              <CreateBookDialog />
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );

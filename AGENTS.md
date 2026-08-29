@@ -13,3 +13,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Keep pages focused on composition and route-level behavior; move repeated UI patterns into components.
 - Keep forms and upload controls plain and product-like. Avoid decorative background panels, dashed-card sections, large icon blocks, and "AI-looking" visual wrappers unless they are already established by the surrounding UI. Prefer simple checkbox rows that reveal direct inputs underneath.
 - Keep CTA sections plain. Do not add decorative backgrounds, tinted panels, gradients, or visual wrappers around CTA areas unless the surrounding design system already uses that exact treatment.
+- When displaying the app logo, do not wrap it in a background, padding, border, or shadow. Use the raw logo image and make it larger when it needs emphasis.
+- Avoid heavy decorative backgrounds, layered gradients, glow shadows, and "AI generated" visual effects. Prefer clean surfaces, clear borders, and subtle shadows; use color for hierarchy, status, and emphasis rather than decoration.

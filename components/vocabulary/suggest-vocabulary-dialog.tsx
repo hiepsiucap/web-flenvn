@@ -1,21 +1,30 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Check, Loader2, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import {
+  ArrowClockwise as RotateCcw,
+  Check,
+  Plus,
+  Sparkle as Sparkles,
+  Spinner as Loader2,
+  X,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Form } from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalHeader,
+  ModalTitle,
+  ModalTrigger,
+} from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -294,29 +303,29 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
+    <Modal open={open} onOpenChange={setOpen}>
+      <ModalTrigger
         render={
           <Button
             type="button"
             size="icon-lg"
             className="fixed bottom-5 right-5 z-40 size-14 rounded-full shadow-lg shadow-brand-800/20"
           >
-            <Sparkles className="size-5" />
+            <Icon icon={Sparkles} size="lg" />
             <span className="sr-only">Suggest vocabulary</span>
           </Button>
         }
       />
-      <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
-        <DialogHeader>
-          <DialogTitle>Suggest vocabulary</DialogTitle>
-          <DialogDescription>
+      <ModalContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
+        <ModalHeader>
+          <ModalTitle>Suggest vocabulary</ModalTitle>
+          <ModalDescription>
             Generate topic words, choose what you want, then create flashcards.
-          </DialogDescription>
-        </DialogHeader>
+          </ModalDescription>
+        </ModalHeader>
 
-        <div className="min-h-0 overflow-y-auto pr-1">
-          <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={handleGenerate}>
+        <div className="-mx-1 min-h-0 overflow-y-auto px-1 py-1 pr-2">
+          <Form className="gap-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={handleGenerate}>
             <div className="grid gap-2 sm:col-span-2">
               <Label htmlFor="topic-vocabulary-topic">Topic</Label>
               <Input
@@ -383,13 +392,13 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
               disabled={isGenerating}
             >
               {isGenerating ? (
-                <Loader2 className="size-4 animate-spin" />
+                <Icon icon={Loader2} className="animate-spin" />
               ) : (
-                <Sparkles className="size-4" />
+                <Icon icon={Sparkles} />
               )}
               Generate
             </Button>
-          </form>
+          </Form>
           {message ? (
             <p className="mt-3 text-sm text-destructive">{message}</p>
           ) : null}
@@ -412,7 +421,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                     disabled={isCreating}
                     onClick={clearSuggestions}
                   >
-                    <RotateCcw className="size-4" />
+                    <Icon icon={RotateCcw} />
                     Clear
                   </Button>
                   <Button
@@ -422,9 +431,9 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                     onClick={handleCreateFlashcards}
                   >
                     {isCreating ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Icon icon={Loader2} className="animate-spin" />
                     ) : (
-                      <Plus className="size-4" />
+                      <Icon icon={Plus} />
                     )}
                     {isCreating
                       ? `Creating ${createdCount} of ${selectedCount}`
@@ -518,9 +527,9 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                     onClick={() => handleEnrichSuggestion(item)}
                   >
                     {enrichingId === item.localId ? (
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Icon icon={Loader2} size="sm" className="animate-spin" />
                     ) : (
-                      <Sparkles className="size-3.5" />
+                      <Icon icon={Sparkles} size="sm" />
                     )}
                     Suggest
                   </Button>
@@ -534,7 +543,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
                       )
                     }
                   >
-                    <X className="size-4" />
+                    <Icon icon={X} />
                     <span className="sr-only">Remove suggestion</span>
                   </Button>
                 </div>
@@ -542,8 +551,8 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
             ))}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 }
 
@@ -585,7 +594,7 @@ function SuggestionStatus({ item }: { item: SelectableSuggestion }) {
   if (item.status === "created") {
     return (
       <Badge variant="secondary">
-        <Check className="size-3.5" />
+        <Icon icon={Check} size="sm" />
         Created
       </Badge>
     );

@@ -4,7 +4,12 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import {
+  CaretDown as ChevronDownIcon,
+  CaretUp as ChevronUpIcon,
+  Check as CheckIcon,
+} from "@phosphor-icons/react"
+import { Icon } from "@/components/ui/icon"
 
 const Select = SelectPrimitive.Root
 
@@ -49,7 +54,10 @@ function SelectTrigger({
       {children}
       <SelectPrimitive.Icon
         render={
-          <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+          <Icon
+            icon={ChevronDownIcon}
+            className="pointer-events-none text-muted-foreground"
+          />
         }
       />
     </SelectPrimitive.Trigger>
@@ -130,7 +138,7 @@ function SelectItem({
           <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
         }
       >
-        <CheckIcon className="pointer-events-none" />
+        <Icon icon={CheckIcon} className="pointer-events-none" />
       </SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   )
@@ -162,8 +170,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <ChevronUpIcon
-      />
+      <Icon icon={ChevronUpIcon} />
     </SelectPrimitive.ScrollUpArrow>
   )
 }
@@ -181,8 +188,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <ChevronDownIcon
-      />
+      <Icon icon={ChevronDownIcon} />
     </SelectPrimitive.ScrollDownArrow>
   )
 }

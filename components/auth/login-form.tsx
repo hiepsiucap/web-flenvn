@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, LockKeyhole, Mail } from "lucide-react";
+import {
+  CheckCircle as CheckCircle2,
+  EnvelopeSimple as Mail,
+  LockKey as LockKeyhole,
+  Spinner as Loader2,
+  WarningCircle as AlertCircle,
+} from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,8 +19,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormInput,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse, LoginResponse } from "@/lib/auth-types";
 import { cn } from "@/lib/utils";
@@ -96,10 +109,10 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-6">
-        <form className="grid gap-5" onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit}>
           {error ? (
             <Alert variant="destructive">
-              <AlertCircle className="size-4" />
+              <Icon icon={AlertCircle} />
               <AlertTitle>Sign in failed</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -107,7 +120,7 @@ export function LoginForm() {
 
           {success ? (
             <Alert>
-              <CheckCircle2 className="size-4 text-primary" />
+              <Icon icon={CheckCircle2} className="text-primary" />
               <AlertTitle>Signed in</AlertTitle>
               <AlertDescription>
                 {success}. Your study dashboard is ready.
@@ -115,11 +128,14 @@ export function LoginForm() {
             </Alert>
           ) : null}
 
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+          <FormField>
+            <FormLabel htmlFor="email">Email</FormLabel>
+            <FormControl>
+              <Icon
+                icon={Mail}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <FormInput
                 id="email"
                 type="email"
                 autoComplete="email"
@@ -132,17 +148,20 @@ export function LoginForm() {
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </div>
+            </FormControl>
             {fieldErrors.email ? (
-              <p className="text-sm text-destructive">{fieldErrors.email}</p>
+              <FormMessage variant="error">{fieldErrors.email}</FormMessage>
             ) : null}
-          </div>
+          </FormField>
 
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <LockKeyhole className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+          <FormField>
+            <FormLabel htmlFor="password">Password</FormLabel>
+            <FormControl>
+              <Icon
+                icon={LockKeyhole}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <FormInput
                 id="password"
                 type="password"
                 autoComplete="current-password"
@@ -156,13 +175,11 @@ export function LoginForm() {
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />
-            </div>
+            </FormControl>
             {fieldErrors.password ? (
-              <p className="text-sm text-destructive">
-                {fieldErrors.password}
-              </p>
+              <FormMessage variant="error">{fieldErrors.password}</FormMessage>
             ) : null}
-          </div>
+          </FormField>
 
           <Button
             type="submit"
@@ -170,13 +187,13 @@ export function LoginForm() {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Icon icon={Loader2} className="animate-spin" />
             ) : (
-              <LockKeyhole className="size-4" />
+              <Icon icon={LockKeyhole} />
             )}
             Continue studying
           </Button>
-        </form>
+        </Form>
       </CardContent>
     </Card>
   );

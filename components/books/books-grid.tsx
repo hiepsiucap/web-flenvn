@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Layers3, Loader2, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  Spinner as Loader2,
+  Stack as Layers3,
+  Trash as Trash2,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import {
   Card,
   CardContent,
@@ -14,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
@@ -72,7 +79,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
                 />
               ) : (
                 <div className="grid h-full place-items-center text-primary">
-                  <BookOpen className="size-8" />
+                  <Icon icon={BookOpen} className="size-8" />
                 </div>
               )}
             </div>
@@ -87,10 +94,14 @@ export function BooksGrid({ books }: { books: Book[] }) {
               </CardHeader>
               <CardContent className="flex items-center justify-between gap-3 p-0 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  <Layers3 className="size-3.5" />
+                  <Icon icon={Layers3} size="sm" />
                   {book.totalCards ?? 0} cards
                 </span>
-                {book.wordCount ? <span>{book.wordCount} words</span> : null}
+                {book.wordCount ? (
+                  <Text as="span" size="xs" tone="muted">
+                    {book.wordCount} words
+                  </Text>
+                ) : null}
               </CardContent>
             </div>
           </Link>
@@ -104,9 +115,9 @@ export function BooksGrid({ books }: { books: Book[] }) {
             onClick={() => handleDelete(book)}
           >
             {deletingBookId === book.id ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Icon icon={Loader2} className="animate-spin" />
             ) : (
-              <Trash2 className="size-4" />
+              <Icon icon={Trash2} />
             )}
             <span className="sr-only">Delete book</span>
           </Button>

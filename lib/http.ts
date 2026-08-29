@@ -114,9 +114,17 @@ export async function request<TData, TBody = unknown>(
 
 async function refreshSession() {
   try {
+    const refreshToken = window.localStorage.getItem("refreshToken");
     const response = await request<{
       data: { accessToken: string; refreshToken: string };
-    }>("/api/auth/refresh", { method: "POST" }, false);
+    }>(
+      "/api/auth/refresh",
+      {
+        method: "POST",
+        headers: refreshToken ? { "x-refresh-token": refreshToken } : undefined,
+      },
+      false
+    );
 
     window.localStorage.setItem("accessToken", response.data.accessToken);
     window.localStorage.setItem("refreshToken", response.data.refreshToken);

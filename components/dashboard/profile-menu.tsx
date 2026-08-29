@@ -1,6 +1,10 @@
 "use client";
 
-import { ChevronDown, LogOut, User } from "lucide-react";
+import {
+  CaretDown as ChevronDown,
+  SignOut as LogOut,
+  User,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 
 import {
@@ -12,6 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
 
 type ProfileMenuProps = {
   user: {
@@ -47,32 +53,32 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open user menu"
-        className="inline-flex h-10 items-center gap-2 rounded-2xl border border-border bg-background px-1.5 text-foreground transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="inline-flex h-9 items-center gap-2 rounded-2xl border border-brand-200 bg-white px-1.5 text-foreground transition-colors hover:bg-brand-50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {user.avatar ? (
           <span
-            className="size-8 rounded-xl bg-cover bg-center bg-secondary"
+            className="size-7 rounded-full bg-cover bg-center bg-secondary"
             style={{ backgroundImage: `url(${user.avatar})` }}
             aria-hidden="true"
           />
         ) : (
-          <span className="grid size-8 place-items-center rounded-xl bg-primary text-xs font-bold text-primary-foreground">
+          <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
             {user.initials}
           </span>
         )}
-        <ChevronDown className="size-4 text-muted-foreground" />
+        <Icon icon={ChevronDown} className="text-muted-foreground" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" sideOffset={8} className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
-            <span className="block truncate text-sm font-semibold text-foreground">
+            <Text as="span" className="block truncate" size="sm" weight="semibold">
               {user.name}
-            </span>
+            </Text>
             {user.email ? (
-              <span className="mt-0.5 block truncate font-normal">
+              <Text as="span" className="mt-0.5 block truncate" size="xs" tone="muted">
                 {user.email}
-              </span>
+              </Text>
             ) : null}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
@@ -81,7 +87,7 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
           render={<Link href="/dashboard/profile" />}
           className="cursor-pointer"
         >
-          <User className="size-4" />
+          <Icon icon={User} />
           User profile
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -92,7 +98,7 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
           className="w-full cursor-pointer"
           onClick={handleLogout}
         >
-          <LogOut className="size-4" />
+          <Icon icon={LogOut} />
           Logout
         </DropdownMenuItem>
       </DropdownMenuContent>

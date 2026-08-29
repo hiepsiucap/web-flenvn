@@ -1,22 +1,36 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { BookOpen, Edit3, Loader2, Save, Trash2, Volume2 } from "lucide-react";
+import {
+  BookOpen,
+  FloppyDisk as Save,
+  PencilSimple as Edit3,
+  SpeakerHigh as Volume2,
+  Spinner as Loader2,
+  Trash as Trash2,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+  Form,
+  FormActions,
+  FormField,
+  FormInput,
+  FormLabel,
+  FormTextarea,
+} from "@/components/ui/form";
+import { Icon } from "@/components/ui/icon";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
+import { Text } from "@/components/ui/text";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Flashcard } from "@/lib/dashboard-data";
@@ -132,7 +146,7 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
 
   return (
     <>
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <section className="grid w-full grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
         {flashcards.map((card) => (
           <button
             key={card.id}
@@ -147,32 +161,34 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
               />
             ) : (
               <div className="grid aspect-[5/3] place-items-center bg-secondary text-primary">
-                <BookOpen className="size-7" />
+                <Icon icon={BookOpen} className="size-7" />
               </div>
             )}
             <div className="grid gap-2 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-base font-semibold">{card.word}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <Text className="truncate" weight="semibold">
+                    {card.word}
+                  </Text>
+                  <Text className="truncate" size="xs" tone="muted">
                     {card.partOfSpeech || "Flashcard"}
                     {card.pronunciation ? ` - ${card.pronunciation}` : ""}
-                  </p>
+                  </Text>
                 </div>
                 <Badge variant="outline" className="shrink-0 rounded-2xl capitalize">
                   {card.status}
                 </Badge>
               </div>
-                  <p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                  <Text className="line-clamp-2 min-h-10 leading-5" size="sm" tone="muted">
                     {card.definition || "No definition available."}
-                  </p>
+                  </Text>
                   {isValidHttpUrl(card.exampleAudioUrl) ? (
                     <span
                       className="inline-flex size-8 items-center justify-center rounded-xl border border-border bg-background text-primary"
                       title="Example audio available"
                       aria-label="Example audio available"
                     >
-                      <Volume2 className="size-4" />
+                      <Icon icon={Volume2} />
                     </span>
                   ) : null}
                 </div>
@@ -180,7 +196,7 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
         ))}
       </section>
 
-      <Dialog
+      <Modal
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
           if (!open) {
@@ -189,11 +205,11 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
           }
         }}
       >
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Flashcard detail</DialogTitle>
-            <DialogDescription>View, update, or delete this flashcard.</DialogDescription>
-          </DialogHeader>
+        <ModalContent className="max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain sm:max-w-3xl">
+          <ModalHeader>
+            <ModalTitle>Flashcard detail</ModalTitle>
+            <ModalDescription>View, update, or delete this flashcard.</ModalDescription>
+          </ModalHeader>
 
           {selectedCard && !isEditing ? (
             <div className="grid gap-4">
@@ -205,12 +221,14 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                   />
                 ) : (
                   <div className="grid h-24 w-32 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
-                    <BookOpen className="size-8" />
+                    <Icon icon={BookOpen} className="size-8" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-3xl font-semibold">{selectedCard.word}</h3>
+                    <Text as="div" size="3xl" weight="semibold">
+                      {selectedCard.word}
+                    </Text>
                     <Badge variant="outline" className="rounded-2xl capitalize">
                       {selectedCard.status}
                     </Badge>
@@ -230,33 +248,33 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                         aria-label="Play pronunciation audio"
                         onClick={() => playAudio(selectedCard.audioUrl)}
                       >
-                        <Volume2 className="size-3.5" />
+                        <Icon icon={Volume2} size="sm" />
                       </button>
                     ) : null}
                   </div>
                   {selectedCard.translation ? (
-                    <p className="mt-3 text-base font-medium text-primary">
+                    <Text className="mt-3" weight="medium" tone="primary">
                       {selectedCard.translation}
-                    </p>
+                    </Text>
                   ) : null}
                 </div>
               </div>
 
               <div className="grid gap-3 rounded-2xl border border-border bg-muted/30 p-4">
                 <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                  <Text size="xs" weight="medium" tone="muted" className="uppercase">
                     Definition
-                  </p>
-                  <p className="mt-1 text-sm leading-6">
+                  </Text>
+                  <Text className="mt-1 leading-6" size="sm">
                     {selectedCard.definition || "No definition available."}
-                  </p>
+                  </Text>
                 </div>
                 {selectedCard.example ? (
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                      <Text size="xs" weight="medium" tone="muted" className="uppercase">
                         Example
-                      </p>
+                      </Text>
                       {isValidHttpUrl(selectedCard.exampleAudioUrl) ? (
                         <button
                           type="button"
@@ -265,13 +283,13 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                           aria-label="Play example audio"
                           onClick={() => playAudio(selectedCard.exampleAudioUrl)}
                         >
-                          <Volume2 className="size-3.5" />
+                          <Icon icon={Volume2} size="sm" />
                         </button>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-sm leading-6 text-foreground">
+                    <Text className="mt-1 leading-6" size="sm">
                       {selectedCard.example}
-                    </p>
+                    </Text>
                   </div>
                 ) : null}
               </div>
@@ -284,14 +302,14 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                   onClick={handleDelete}
                 >
                   {isDeleting ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <Icon icon={Loader2} className="animate-spin" />
                   ) : (
-                    <Trash2 className="size-4" />
+                    <Icon icon={Trash2} />
                   )}
                   Delete
                 </Button>
                 <Button type="button" onClick={() => setIsEditing(true)}>
-                  <Edit3 className="size-4" />
+                  <Icon icon={Edit3} />
                   Update
                 </Button>
               </div>
@@ -299,7 +317,7 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
           ) : null}
 
           {selectedCard && isEditing ? (
-            <form className="grid gap-4" onSubmit={handleUpdate}>
+            <Form className="gap-4" onSubmit={handleUpdate}>
               {imageUrl ? (
                 <div
                   className="h-28 w-40 rounded-2xl bg-secondary bg-cover bg-center"
@@ -308,89 +326,89 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
               ) : null}
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="detail-word">Word</Label>
-                  <Input
+                <FormField>
+                  <FormLabel htmlFor="detail-word">Word</FormLabel>
+                  <FormInput
                     id="detail-word"
                     className="h-10"
                     value={word}
                     onChange={(event) => setWord(event.target.value)}
                     required
                   />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="detail-part">Part of speech</Label>
-                  <Input
+                </FormField>
+                <FormField>
+                  <FormLabel htmlFor="detail-part">Part of speech</FormLabel>
+                  <FormInput
                     id="detail-part"
                     className="h-10"
                     value={partOfSpeech}
                     onChange={(event) => setPartOfSpeech(event.target.value)}
                   />
-                </div>
+                </FormField>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="detail-pronunciation">Pronunciation</Label>
-                  <Input
+                <FormField>
+                  <FormLabel htmlFor="detail-pronunciation">Pronunciation</FormLabel>
+                  <FormInput
                     id="detail-pronunciation"
                     className="h-10"
                     value={pronunciation}
                     onChange={(event) => setPronunciation(event.target.value)}
                   />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="detail-translation">Translation</Label>
-                  <Input
+                </FormField>
+                <FormField>
+                  <FormLabel htmlFor="detail-translation">Translation</FormLabel>
+                  <FormInput
                     id="detail-translation"
                     className="h-10"
                     value={translation}
                     onChange={(event) => setTranslation(event.target.value)}
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="detail-definition">Definition</Label>
-                <Textarea
+              <FormField>
+                <FormLabel htmlFor="detail-definition">Definition</FormLabel>
+                <FormTextarea
                   id="detail-definition"
                   value={definition}
                   onChange={(event) => setDefinition(event.target.value)}
                 />
-              </div>
+              </FormField>
 
-              <div className="grid gap-2">
-                <Label htmlFor="detail-example">Example</Label>
-                <Textarea
+              <FormField>
+                <FormLabel htmlFor="detail-example">Example</FormLabel>
+                <FormTextarea
                   id="detail-example"
                   value={example}
                   onChange={(event) => setExample(event.target.value)}
                 />
-              </div>
+              </FormField>
 
-              <div className="grid gap-2">
-                <Label htmlFor="detail-example-audio">Example audio URL</Label>
-                <Input
+              <FormField>
+                <FormLabel htmlFor="detail-example-audio">Example audio URL</FormLabel>
+                <FormInput
                   id="detail-example-audio"
                   className="h-10"
                   type="url"
                   value={exampleAudioUrl}
                   onChange={(event) => setExampleAudioUrl(event.target.value)}
                 />
-              </div>
+              </FormField>
 
-              <div className="grid gap-2">
-                <Label htmlFor="detail-image">Image URL</Label>
-                <Input
+              <FormField>
+                <FormLabel htmlFor="detail-image">Image URL</FormLabel>
+                <FormInput
                   id="detail-image"
                   className="h-10"
                   type="url"
                   value={imageUrl}
                   onChange={(event) => setImageUrl(event.target.value)}
                 />
-              </div>
+              </FormField>
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+              <FormActions className="sm:justify-between">
                 <Button
                   type="button"
                   variant="outline"
@@ -401,17 +419,17 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                 </Button>
                 <Button type="submit" disabled={isSaving || isDeleting}>
                   {isSaving ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <Icon icon={Loader2} className="animate-spin" />
                   ) : (
-                    <Save className="size-4" />
+                    <Icon icon={Save} />
                   )}
                   Save changes
                 </Button>
-              </div>
-            </form>
+              </FormActions>
+            </Form>
           ) : null}
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
