@@ -98,7 +98,7 @@ export async function request<TData, TBody = unknown>(
     if (
       response.status === 401 &&
       retryOnUnauthorized &&
-      path !== "/api/auth/refresh" &&
+      !path.startsWith("/api/auth/") &&
       typeof window !== "undefined"
     ) {
       const refreshed = await refreshSessionOnce();

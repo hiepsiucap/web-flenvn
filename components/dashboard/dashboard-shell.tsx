@@ -95,7 +95,7 @@ export async function DashboardShell({
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-2">
                 <div className="hidden w-44 xl:block">
                   <div className="mb-1 flex items-center justify-between text-xs font-extrabold text-brand-800">
                     <span>Progress</span>
@@ -109,12 +109,12 @@ export async function DashboardShell({
                   </div>
                 </div>
 
-                <Badge variant="secondary" className="h-9 rounded-full px-3.5 text-sm font-extrabold">
+                <Badge variant="secondary" className="h-8 rounded-full px-3 text-xs font-extrabold">
                   <Icon icon={Flame} className="text-primary" />
                   {user.streak} day
                 </Badge>
 
-                <Button variant="outline" size="icon-lg" className="size-9 rounded-2xl border-brand-200 bg-white">
+                <Button variant="outline" size="icon-sm" className="size-9 rounded-xl border-brand-200 bg-white">
                   <Icon icon={Search} className="size-4" />
                   <span className="sr-only">Search</span>
                 </Button>

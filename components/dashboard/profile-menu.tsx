@@ -53,7 +53,7 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open user menu"
-        className="inline-flex h-9 items-center gap-2 rounded-2xl border border-brand-200 bg-white px-1.5 text-foreground transition-colors hover:bg-brand-50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-white px-1.5 text-foreground transition-colors hover:bg-brand-50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {user.avatar ? (
           <span
@@ -66,39 +66,39 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
             {user.initials}
           </span>
         )}
-        <Icon icon={ChevronDown} className="text-muted-foreground" />
+        <Icon icon={ChevronDown} className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" sideOffset={8} className="w-56">
+      <DropdownMenuContent align="end" sideOffset={10} className="w-64 rounded-xl p-0">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>
-            <Text as="span" className="block truncate" size="sm" weight="semibold">
+          <DropdownMenuLabel className="px-4 py-3">
+            <Text as="span" className="block truncate text-base" weight="bold">
               {user.name}
             </Text>
             {user.email ? (
-              <Text as="span" className="mt-0.5 block truncate" size="xs" tone="muted">
+              <Text as="span" className="mt-1 block truncate text-sm" tone="muted">
                 {user.email}
               </Text>
             ) : null}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="mx-0 my-0 bg-brand-100" />
         <DropdownMenuItem
           render={<Link href="/dashboard/profile" />}
-          className="cursor-pointer"
+          className="h-11 cursor-pointer rounded-none px-4 text-base font-medium"
         >
-          <Icon icon={User} />
+          <Icon icon={User} className="size-5" />
           User profile
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="mx-0 my-0 bg-brand-100" />
         <DropdownMenuItem
           render={<button type="button" />}
           nativeButton
           variant="destructive"
-          className="w-full cursor-pointer"
+          className="h-11 w-full cursor-pointer rounded-none px-4 text-base font-medium"
           onClick={handleLogout}
         >
-          <Icon icon={LogOut} />
+          <Icon icon={LogOut} className="size-5" />
           Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
