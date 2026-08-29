@@ -8,7 +8,6 @@ import {
   CheckCircle,
   GameController,
   Heart,
-  Headphones,
   Lightning,
   MagnifyingGlass,
   PencilSimple,
@@ -27,7 +26,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import hiwAi from "@/img/hiw-ai.png";
+import hiwPenguin from "@/img/HIW-penguin.png";
 import logo from "@/img/new-logo.png";
+import trophyPenguin from "@/img/trophy-penguin.png";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -640,38 +642,13 @@ function FeatureIllustration({
 
 function FeatureMascot() {
   return (
-    <div className="relative mt-9 hidden h-64 max-w-lg sm:block">
-      <div className="absolute bottom-0 left-4 h-15 w-64 rounded-[50%] bg-primary/30 blur-sm" />
-      <div className="absolute bottom-12 left-20 grid size-38 place-items-center rounded-full bg-primary shadow-2xl shadow-blue-950/35">
-        <div className="relative size-28 rounded-full bg-white">
-          <div className="absolute left-7 top-10 size-4 rounded-full bg-primary" />
-          <div className="absolute right-7 top-8 size-5 rounded-full bg-primary" />
-          <div className="absolute left-12 top-14 size-6 rounded-full bg-secondary" />
-          <div className="absolute bottom-4 left-9 h-3 w-12 rounded-full bg-primary/80" />
-        </div>
-        <Icon
-          icon={Headphones}
-          className="absolute -top-5 size-42 text-brand-300"
-          weight="duotone"
-        />
-      </div>
-      <div className="absolute bottom-4 left-5 size-16 rounded-full bg-primary" />
-      <div className="absolute bottom-4 left-50 size-16 rounded-full bg-primary" />
-      <div className="absolute bottom-1 left-22 h-6 w-18 rounded-full bg-secondary" />
-      <div className="absolute bottom-1 left-42 h-6 w-18 rounded-full bg-secondary" />
-      <div className="absolute bottom-7 left-55 h-22 w-22 -rotate-7 rounded-lg bg-white p-3 shadow-xl shadow-blue-950/30">
-        <Text as="div" className="text-lg font-extrabold text-primary">
-          word
-        </Text>
-        <div className="mt-3 h-2 w-13 rounded-full bg-brand-200" />
-        <div className="mt-2 h-2 w-10 rounded-full bg-brand-100" />
-      </div>
-      <div className="absolute bottom-32 left-68 rotate-6 rounded-lg bg-brand-400 px-4 py-3 text-3xl font-black text-white shadow-xl shadow-blue-950/30">
-        Aa
-      </div>
-      <Icon icon={Star} className="absolute bottom-8 left-0 size-7 text-secondary" weight="fill" />
-      <Icon icon={Star} className="absolute bottom-18 left-88 size-8 text-secondary" weight="fill" />
-      <Icon icon={Sparkle} className="absolute right-7 top-6 size-6 text-brand-400" weight="fill" />
+    <div className="relative mt-8 hidden h-72 max-w-lg sm:block">
+      <Image
+        src={hiwPenguin}
+        alt="Penguin learning vocabulary with flashcards"
+        className="h-full w-full object-contain object-left"
+        sizes="(min-width: 1280px) 480px, (min-width: 640px) 420px, 0px"
+      />
     </div>
   );
 }
@@ -721,29 +698,11 @@ function WorkflowIllustration({
   if (scene === "discover") {
     return (
       <div className="relative mt-3 h-34 w-72 max-w-full">
-        <div className="absolute left-7 top-0 grid size-24 place-items-center rounded-full bg-primary shadow-xl shadow-blue-950/35">
-          <div className="relative size-18 rounded-full bg-white">
-            <div className="absolute left-4 top-6 size-3 rounded-full bg-primary" />
-            <div className="absolute right-4 top-5 size-4 rounded-full bg-primary" />
-            <div className="absolute left-7 top-9 size-4 rounded-full bg-secondary" />
-            <div className="absolute bottom-3 left-5 h-2 w-8 rounded-full bg-primary/80" />
-          </div>
-        </div>
-        <div className="absolute left-15 top-20 h-9 w-3 rotate-45 rounded-full bg-secondary" />
-        <div className="absolute right-2 top-5 rotate-3 rounded-lg bg-brand-400 px-3 py-2 text-base font-black text-white shadow-lg shadow-blue-950/30">
-          AI+
-        </div>
-        <div className="absolute bottom-0 right-10 w-38 rounded-lg bg-white px-5 py-4 text-left text-blue-950 shadow-xl shadow-blue-950/30">
-          <Text as="div" className="text-lg font-extrabold text-blue-950">
-            brilliant
-          </Text>
-          <div className="mt-3 h-2 w-24 rounded-full bg-brand-200" />
-          <div className="mt-2 h-2 w-16 rounded-full bg-brand-100" />
-        </div>
-        <Icon
-          icon={Sparkle}
-          className="absolute left-37 top-8 size-7 text-secondary"
-          weight="fill"
+        <Image
+          src={hiwAi}
+          alt="Penguin discovering the word brilliant with AI"
+          className="h-full w-full object-contain"
+          sizes="288px"
         />
       </div>
     );
@@ -752,32 +711,11 @@ function WorkflowIllustration({
   if (scene === "review") {
     return (
       <div className="relative mt-3 h-34 w-72 max-w-full">
-        <div className="absolute left-5 bottom-5">
-          <Icon icon={Trophy} className="size-16 text-secondary" weight="duotone" />
-        </div>
-        <div className="absolute left-28 top-0 grid size-25 place-items-center rounded-full bg-primary shadow-xl shadow-blue-950/35">
-          <div className="relative size-18 rounded-full bg-white">
-            <div className="absolute left-4 top-6 size-3 rounded-full bg-primary" />
-            <div className="absolute right-4 top-5 size-4 rounded-full bg-primary" />
-            <div className="absolute left-7 top-9 size-4 rounded-full bg-secondary" />
-            <div className="absolute bottom-3 left-5 h-2 w-8 rounded-full bg-primary/80" />
-          </div>
-          <Icon
-            icon={Headphones}
-            className="absolute -top-3 size-26 text-brand-300"
-            weight="duotone"
-          />
-        </div>
-        <div className="absolute bottom-9 right-14 rotate-6 rounded-lg bg-white p-3 shadow-xl shadow-blue-950/30">
-          <Icon icon={CheckCircle} className="size-8 text-green-500" weight="fill" />
-        </div>
-        <div className="absolute right-0 top-8 rotate-12 rounded-lg bg-brand-400 px-3 py-2 text-lg font-black text-white shadow-lg shadow-blue-950/30">
-          A
-        </div>
-        <Icon
-          icon={Star}
-          className="absolute right-16 top-7 size-7 text-secondary"
-          weight="fill"
+        <Image
+          src={trophyPenguin}
+          alt="Penguin celebrating a successful vocabulary review"
+          className="h-full w-full object-contain"
+          sizes="288px"
         />
       </div>
     );
@@ -812,6 +750,13 @@ function WorkflowIllustration({
 function HeroScene() {
   return (
     <div className="relative mx-auto hidden min-h-[560px] w-full max-w-3xl lg:block">
+      <Image
+        src={hiwPenguin}
+        alt="Penguin learning vocabulary"
+        className="pointer-events-none absolute right-4 top-8 h-[430px] w-[560px] object-contain"
+        sizes="560px"
+      />
+
       <div className="absolute left-8 top-14 h-[420px] w-[232px] rotate-[-10deg] rounded-[2rem] border-[8px] border-blue-500 bg-blue-700 shadow-2xl shadow-blue-950/50">
         <div className="absolute left-1/2 top-3 h-7 w-24 -translate-x-1/2 rounded-b-2xl bg-blue-950" />
         <div className="m-3 mt-10 rounded-[1.5rem] bg-white p-3 text-blue-950">
@@ -845,19 +790,6 @@ function HeroScene() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="absolute right-28 top-28 grid size-56 place-items-center rounded-full bg-blue-600 shadow-2xl shadow-blue-950/45">
-        <div className="grid size-38 place-items-center rounded-full bg-white text-blue-950">
-          <div className="text-center">
-            <div className="text-5xl font-black">AI</div>
-            <Text className="mt-1 text-blue-950/60" size="sm" weight="bold">
-              tutor
-            </Text>
-          </div>
-        </div>
-        <div className="absolute -left-8 top-22 size-14 rounded-full border-[8px] border-blue-300 bg-white" />
-        <div className="absolute -right-8 top-22 size-14 rounded-full border-[8px] border-blue-300 bg-white" />
       </div>
 
       <div className="absolute right-0 top-28 rounded-[1.5rem] border border-white/20 bg-white p-4 text-blue-950 shadow-xl shadow-blue-950/30">
