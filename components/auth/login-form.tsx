@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   CheckCircle as CheckCircle2,
   EnvelopeSimple as Mail,
@@ -69,6 +69,13 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasGeneralError =
     Boolean(error) && !fieldErrors.email && !fieldErrors.password;
+
+  useEffect(() => {
+    window.localStorage.removeItem("accessToken");
+    window.localStorage.removeItem("refreshToken");
+    window.sessionStorage.removeItem("accessToken");
+    window.sessionStorage.removeItem("refreshToken");
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

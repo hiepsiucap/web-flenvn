@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-import type { ApiEnvelope, TokenResponse } from "@/lib/auth-types";
+import type { ApiEnvelope } from "@/lib/auth-types";
 
 export type UserProfile = {
   id: string;
@@ -85,6 +86,7 @@ export type Flashcard = {
 type BackendResult<TData> = {
   data: TData | null;
   error: string | null;
+  authenticationRequired: boolean;
 };
 
 function getApiBaseUrl() {
@@ -94,11 +96,6 @@ function getApiBaseUrl() {
 async function getAccessToken() {
   const cookieStore = await cookies();
   return cookieStore.get("access_token")?.value;
-}
-
-async function getRefreshToken() {
-  const cookieStore = await cookies();
-  return cookieStore.get("refresh_token")?.value;
 }
 
 function decodeJwtPayload(token: string) {
@@ -124,18 +121,27 @@ function decodeJwtPayload(token: string) {
 
 async function backendGet<TData>(path: string) {
   const result = await backendGetResult<TData>(path);
+
+  if (result.authenticationRequired) {
+    redirect("/api/auth/reauth");
+  }
+
   return result.data;
 }
 
 async function backendGetResult<TData>(path: string): Promise<BackendResult<TData>> {
-  const token = (await getAccessToken()) ?? (await refreshAccessToken());
+  const token = await getAccessToken();
 
   if (!token) {
-    return { data: null, error: "Please sign in to load dashboard data." };
+    return {
+      data: null,
+      error: "Please sign in to load dashboard data.",
+      authenticationRequired: true,
+    };
   }
 
   try {
-    let response = await fetch(new URL(path, getApiBaseUrl()), {
+    const response = await fetch(new URL(path, getApiBaseUrl()), {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -143,53 +149,30 @@ async function backendGetResult<TData>(path: string): Promise<BackendResult<TDat
     });
 
     if (response.status === 401) {
-      const refreshedToken = await refreshAccessToken();
-
-      if (refreshedToken) {
-        response = await fetch(new URL(path, getApiBaseUrl()), {
-          headers: {
-            Authorization: `Bearer ${refreshedToken}`,
-          },
-          cache: "no-store",
-        });
-      }
+      return {
+        data: null,
+        error: "Your session has expired.",
+        authenticationRequired: true,
+      };
     }
 
     if (!response.ok) {
       return {
         data: null,
         error: `Backend request failed with ${response.status}.`,
+        authenticationRequired: false,
       };
     }
 
     const envelope = (await response.json()) as ApiEnvelope<TData>;
-    return { data: envelope.data, error: null };
+    return { data: envelope.data, error: null, authenticationRequired: false };
   } catch {
-    return { data: null, error: "Cannot reach the dashboard service." };
+    return {
+      data: null,
+      error: "Cannot reach the dashboard service.",
+      authenticationRequired: false,
+    };
   }
-}
-
-async function refreshAccessToken() {
-  const refreshToken = await getRefreshToken();
-
-  if (!refreshToken) {
-    return null;
-  }
-
-  const response = await fetch(new URL("/api/v1/auth/refresh", getApiBaseUrl()), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${refreshToken}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const envelope = (await response.json()) as TokenResponse;
-  return envelope.data.accessToken;
 }
 
 export async function getBooks() {
@@ -245,6 +228,14 @@ export async function getDashboardShellData() {
   const authProfile = authProfileResult.data;
   const flashcards = flashcardsResult.data;
   const streak = streakResult.data;
+
+  if (
+    [userProfileResult, authProfileResult, flashcardsResult, streakResult].some(
+      (result) => result.authenticationRequired
+    )
+  ) {
+    redirect("/api/auth/reauth");
+  }
   const profile = userProfile ?? authProfile?.user ?? tokenProfile;
   const displayName =
     profile?.username || profile?.email || tokenProfile?.email || "FLEN learner";

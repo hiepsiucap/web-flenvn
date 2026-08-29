@@ -28,6 +28,19 @@ function normalizeMessage(message: unknown, fallback: string) {
   return fallback;
 }
 
+function clearSessionCookies(response: NextResponse) {
+  ["access_token", "refresh_token"].forEach((name) => {
+    response.cookies.set(name, "", {
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 0,
+      expires: new Date(0),
+    });
+  });
+}
+
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const refreshToken =
@@ -36,10 +49,12 @@ export async function POST(request: Request) {
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
   if (!refreshToken) {
-    return NextResponse.json<ApiErrorResponse>(
+    const response = NextResponse.json<ApiErrorResponse>(
       { message: "Refresh token is missing" },
       { status: 401 }
     );
+    clearSessionCookies(response);
+    return response;
   }
 
   const backendResponse = await fetch(
@@ -50,7 +65,7 @@ export async function POST(request: Request) {
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${refreshToken}`,
+        "x-refresh-token": refreshToken,
       },
     }
   );
@@ -59,7 +74,7 @@ export async function POST(request: Request) {
     | BackendErrorResponse;
 
   if (!backendResponse.ok) {
-    return NextResponse.json<ApiErrorResponse>(
+    const response = NextResponse.json<ApiErrorResponse>(
       {
         message: normalizeMessage(
           "message" in data ? data.message : undefined,
@@ -69,6 +84,12 @@ export async function POST(request: Request) {
       },
       { status: backendResponse.status }
     );
+
+    if ([400, 401, 403].includes(backendResponse.status)) {
+      clearSessionCookies(response);
+    }
+
+    return response;
   }
 
   const tokenResponse = data as TokenResponse;
@@ -86,7 +107,7 @@ export async function POST(request: Request) {
   });
   response.cookies.set("refresh_token", tokenResponse.data.refreshToken, {
     ...cookieOptions,
-    maxAge: 2592000,
+    maxAge: 604800,
   });
 
   return response;

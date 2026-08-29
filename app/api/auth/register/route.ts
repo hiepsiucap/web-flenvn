@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     });
     response.cookies.set("refresh_token", registerResponse.data.refreshToken, {
       ...cookieOptions,
-      maxAge: 2592000,
+      maxAge: 604800,
     });
 
     return response;

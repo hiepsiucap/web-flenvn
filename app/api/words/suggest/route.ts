@@ -7,6 +7,11 @@ type WordSuggestion = {
   definitions?: { text?: string; partOfSpeech?: string }[];
   translation?: string;
   examples?: { text?: string; translation?: string }[];
+  suggestions?: {
+    definition?: { text?: string; partOfSpeech?: string };
+    translation?: string;
+    example?: { text?: string; translation?: string };
+  }[];
   audio?: { url?: string };
   images?: { url?: string }[];
 };

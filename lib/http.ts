@@ -19,6 +19,8 @@ export class HttpError<TData = unknown> extends Error {
   }
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
 function buildUrl(path: string, query?: RequestOptions["query"]) {
   const url = new URL(path, getBaseUrl());
 
@@ -99,7 +101,7 @@ export async function request<TData, TBody = unknown>(
       path !== "/api/auth/refresh" &&
       typeof window !== "undefined"
     ) {
-      const refreshed = await refreshSession();
+      const refreshed = await refreshSessionOnce();
 
       if (refreshed) {
         return request<TData, TBody>(path, options, false);
@@ -114,14 +116,12 @@ export async function request<TData, TBody = unknown>(
 
 async function refreshSession() {
   try {
-    const refreshToken = window.localStorage.getItem("refreshToken");
     const response = await request<{
       data: { accessToken: string; refreshToken: string };
     }>(
       "/api/auth/refresh",
       {
         method: "POST",
-        headers: refreshToken ? { "x-refresh-token": refreshToken } : undefined,
       },
       false
     );
@@ -130,11 +130,28 @@ async function refreshSession() {
     window.localStorage.setItem("refreshToken", response.data.refreshToken);
 
     return true;
-  } catch {
-    window.localStorage.removeItem("accessToken");
-    window.localStorage.removeItem("refreshToken");
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      (error.status === 400 || error.status === 401 || error.status === 403)
+    ) {
+      window.localStorage.removeItem("accessToken");
+      window.localStorage.removeItem("refreshToken");
+      window.location.assign("/login?reason=session-expired");
+    }
+
     return false;
   }
+}
+
+function refreshSessionOnce() {
+  if (!refreshPromise) {
+    refreshPromise = refreshSession().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
 }
 
 export const http = {

@@ -38,14 +38,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
+import { cn } from "@/lib/utils";
+
+type SuggestedDefinition = {
+  text?: string;
+  partOfSpeech?: string;
+};
+
+type SuggestedExample = {
+  text?: string;
+  translation?: string;
+};
+
+type FlashcardSuggestion = {
+  definition?: SuggestedDefinition;
+  translation?: string;
+  example?: SuggestedExample;
+};
 
 type WordSuggestion = {
   word?: string;
   pronunciation?: string;
   partOfSpeech?: string;
-  definitions?: { text?: string; partOfSpeech?: string }[];
+  definitions?: SuggestedDefinition[];
   translation?: string;
-  examples?: { text?: string; translation?: string }[];
+  examples?: SuggestedExample[];
+  suggestions?: FlashcardSuggestion[];
   audio?: { url?: string };
   images?: { url?: string; source?: string; photographer?: string }[];
 };
@@ -76,69 +94,6 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Unable to create flashcard";
-}
-
-async function refreshClientToken() {
-  try {
-    const refreshToken = window.localStorage.getItem("refreshToken");
-    const response = await http.post<{
-      data: { accessToken: string; refreshToken: string };
-    }>("/api/auth/refresh", undefined, {
-      headers: refreshToken ? { "x-refresh-token": refreshToken } : undefined,
-    });
-
-    window.localStorage.setItem("accessToken", response.data.accessToken);
-    window.localStorage.setItem("refreshToken", response.data.refreshToken);
-
-    return response.data.accessToken;
-  } catch {
-    window.localStorage.removeItem("accessToken");
-    window.localStorage.removeItem("refreshToken");
-    return null;
-  }
-}
-
-async function apiRequest<TData>(
-  path: string,
-  init: RequestInit = {},
-  retryOnUnauthorized = true
-) {
-  const token = window.localStorage.getItem("accessToken");
-  const headers = new Headers(init.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const response = await fetch(path, {
-    ...init,
-    headers,
-  });
-
-  if (response.status === 401 && retryOnUnauthorized) {
-    const nextToken = await refreshClientToken();
-
-    if (nextToken) {
-      const retryHeaders = new Headers(init.headers);
-      retryHeaders.set("Authorization", `Bearer ${nextToken}`);
-      return apiRequest<TData>(
-        path,
-        { ...init, headers: retryHeaders },
-        false
-      );
-    }
-  }
-
-  const contentType = response.headers.get("content-type");
-  const data = contentType?.includes("application/json")
-    ? await response.json()
-    : await response.text();
-
-  if (!response.ok) {
-    throw new HttpError(response, data);
-  }
-
-  return data as TData;
 }
 
 export function CreateFlashcardDialog({
@@ -195,11 +150,9 @@ export function CreateFlashcardDialog({
       setIsAutocompleting(true);
 
       try {
-        const url = new URL("/api/words/autocomplete", window.location.origin);
-        url.searchParams.set("q", query);
-        url.searchParams.set("limit", "5");
-        const response = await apiRequest<AutocompleteResponse>(
-          `${url.pathname}${url.search}`
+        const response = await http.get<AutocompleteResponse>(
+          "/api/words/autocomplete",
+          { query: { q: query, limit: 5 } }
         );
         const options = Array.isArray(response)
           ? response
@@ -244,16 +197,26 @@ export function CreateFlashcardDialog({
     setIsSuggesting(true);
 
     try {
-      const url = new URL("/api/words/suggest", window.location.origin);
-      url.searchParams.set("word", word.trim());
-      url.searchParams.set("targetLanguage", "vi");
-      url.searchParams.set("imageLimit", "6");
-      const response = await apiRequest<{ data: WordSuggestion }>(
-        `${url.pathname}${url.search}`
+      const response = await http.get<{ data: WordSuggestion }>(
+        "/api/words/suggest",
+        {
+          query: {
+            word: word.trim(),
+            targetLanguage: "vi",
+            imageLimit: 6,
+          },
+        }
       );
       const nextSuggestion = response.data;
-      const firstDefinition = nextSuggestion.definitions?.find((item) => item.text);
-      const firstExample = nextSuggestion.examples?.find((item) => item.text);
+      const firstFlashcardSuggestion = nextSuggestion.suggestions?.find(
+        (item) => item.definition?.text
+      );
+      const firstDefinition =
+        firstFlashcardSuggestion?.definition ??
+        nextSuggestion.definitions?.find((item) => item.text);
+      const firstExample =
+        firstFlashcardSuggestion?.example ??
+        nextSuggestion.examples?.find((item) => item.text);
       const firstImage = nextSuggestion.images?.find((item) => item.url);
 
       setSuggestion(nextSuggestion);
@@ -262,7 +225,9 @@ export function CreateFlashcardDialog({
         nextSuggestion.partOfSpeech || firstDefinition?.partOfSpeech || ""
       );
       setPronunciation(nextSuggestion.pronunciation || "");
-      setTranslation(nextSuggestion.translation || "");
+      setTranslation(
+        firstFlashcardSuggestion?.translation || nextSuggestion.translation || ""
+      );
       setDefinition(firstDefinition?.text || "");
       setExample(firstExample?.text || "");
       setImageUrl(firstImage?.url || "");
@@ -286,17 +251,11 @@ export function CreateFlashcardDialog({
     setIsCorrectingExample(true);
 
     try {
-      const response = await apiRequest<CorrectionResponse>(
+      const response = await http.post<CorrectionResponse>(
         "/api/words/correct",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text: example,
-            language: "en-US",
-          }),
+          text: example,
+          language: "en-US",
         }
       );
       const correctedText =
@@ -592,7 +551,68 @@ export function CreateFlashcardDialog({
                   ) : null}
                 </div>
 
-                {suggestion.definitions?.length ? (
+                {suggestion.suggestions?.length ? (
+                  <div className="grid gap-2">
+                    <Label>Flashcard options</Label>
+                    {suggestion.suggestions
+                      .filter((item) => item.definition?.text)
+                      .map((item, index) => (
+                        <button
+                          key={`${item.definition?.text}-${index}`}
+                          type="button"
+                          aria-pressed={
+                            definition === item.definition?.text &&
+                            example === (item.example?.text ?? "")
+                          }
+                          className={cn(
+                            "rounded-xl border bg-card p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                            definition === item.definition?.text &&
+                              example === (item.example?.text ?? "")
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-border"
+                          )}
+                          onClick={() => {
+                            setDefinition(item.definition?.text ?? "");
+                            setTranslation(
+                              item.translation ?? suggestion.translation ?? ""
+                            );
+                            setExample(item.example?.text ?? "");
+                            if (item.definition?.partOfSpeech) {
+                              setPartOfSpeech(item.definition.partOfSpeech);
+                            }
+                          }}
+                        >
+                          <span className="block leading-relaxed">
+                            {item.definition?.text}
+                          </span>
+                          {item.definition?.partOfSpeech ? (
+                            <Badge variant="secondary" className="mt-2 capitalize">
+                              {item.definition.partOfSpeech}
+                            </Badge>
+                          ) : null}
+                          {item.translation ? (
+                            <span className="mt-2 block font-medium text-primary">
+                              {item.translation}
+                            </span>
+                          ) : null}
+                          {item.example?.text ? (
+                            <span className="mt-2 block border-t border-border pt-2 text-muted-foreground">
+                              {item.example.text}
+                              {item.example.translation ? (
+                                <span className="mt-1 block text-xs">
+                                  {item.example.translation}
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : (
+                            <span className="mt-2 block text-xs text-muted-foreground">
+                              No example available
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                  </div>
+                ) : suggestion.definitions?.length ? (
                   <div className="grid gap-2">
                     <Label>Definitions</Label>
                     {suggestion.definitions
@@ -618,7 +638,7 @@ export function CreateFlashcardDialog({
                   </div>
                 ) : null}
 
-                {suggestion.examples?.length ? (
+                {!suggestion.suggestions?.length && suggestion.examples?.length ? (
                   <div className="grid gap-2">
                     <Label>Examples</Label>
                     {suggestion.examples
