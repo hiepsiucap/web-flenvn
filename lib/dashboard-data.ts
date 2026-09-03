@@ -2,6 +2,17 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { ApiEnvelope } from "@/lib/auth-types";
+import type { StreakStatus } from "@/lib/streak-types";
+
+export type UserRank = {
+  slug: string;
+  name: string;
+  division: "III" | "II" | "I" | null;
+  displayName: string;
+  imageUrl: string;
+  nextRank: string | null;
+  progressPercent: number;
+};
 
 export type UserProfile = {
   id: string;
@@ -9,8 +20,9 @@ export type UserProfile = {
   username?: string | null;
   avatar?: string | null;
   streak?: number;
-  level?: number;
-  exp?: number;
+  level: number;
+  exp: number;
+  rank: UserRank;
 };
 
 type AuthProfileData = {
@@ -24,12 +36,6 @@ export type FlashcardStats = {
   reviewing: number;
   mastered: number;
   dueForReview: number;
-};
-
-export type StreakStats = {
-  currentStreak: number;
-  longestStreak: number;
-  lastStudyDate?: string | null;
 };
 
 export type StudyStats = {
@@ -222,7 +228,7 @@ export async function getDashboardShellData() {
       backendGetResult<UserProfile>("/api/v1/users/profile"),
       backendGetResult<AuthProfileData>("/api/v1/auth/profile"),
       backendGetResult<FlashcardStats>("/api/v1/flashcards/stats"),
-      backendGetResult<StreakStats>("/api/v1/sessions/streak"),
+      backendGetResult<StreakStatus>("/api/v1/streak"),
   ]);
   const userProfile = userProfileResult.data;
   const authProfile = authProfileResult.data;
@@ -242,8 +248,12 @@ export async function getDashboardShellData() {
   const displayEmail = profile?.email ?? tokenProfile?.email ?? "";
 
   const totalCards = flashcards?.total ?? 0;
-  const progress =
+  const masteryProgress =
     totalCards > 0 ? Math.round(((flashcards?.mastered ?? 0) / totalCards) * 100) : 0;
+  const progress = Math.max(
+    0,
+    Math.min(100, profile?.rank?.progressPercent ?? masteryProgress)
+  );
 
   return {
     name: displayName,
@@ -251,7 +261,11 @@ export async function getDashboardShellData() {
     avatar: profile?.avatar ?? null,
     initials: getInitials(displayName),
     progress,
+    exp: profile?.exp ?? 0,
+    level: profile?.level ?? 1,
+    rank: profile?.rank ?? null,
     streak: streak?.currentStreak ?? profile?.streak ?? 0,
+    streakStatus: streak,
     error:
       userProfileResult.error ??
       authProfileResult.error ??

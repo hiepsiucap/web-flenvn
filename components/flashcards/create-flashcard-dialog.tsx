@@ -337,11 +337,11 @@ export function CreateFlashcardDialog({
           <ModalDescription>Add a new card to a book.</ModalDescription>
         </ModalHeader>
 
-        <ModalBody>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <ModalBody className="lg:overflow-hidden">
+          <div className="grid gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <Form
             id="create-flashcard-form"
-            className="min-h-0 pt-1"
+            className="min-h-0 content-start pt-1 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2"
             onSubmit={handleSubmit}
           >
             <div className="grid gap-4 pb-1">
@@ -538,7 +538,7 @@ export function CreateFlashcardDialog({
             </div>
           </Form>
 
-          <aside className="min-h-0 rounded-2xl border border-border bg-muted/30 p-3">
+          <aside className="min-h-0 rounded-2xl border border-border bg-muted/30 p-3 lg:h-full lg:overflow-y-auto lg:overscroll-contain">
             {suggestion ? (
               <div className="grid gap-4">
                 <div className="flex items-center justify-between gap-3">

@@ -22,6 +22,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
+import { StreakCard } from "@/components/streak/streak-card";
 import { getDashboardPageData } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
 import emptyFolderImage from "@/img/empty-folder.png";
@@ -68,7 +69,8 @@ export default async function DashboardPage() {
 
       {hasDashboardData ? (
         <>
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <section className="grid gap-5 xl:grid-cols-2">
+          <div className="grid content-start gap-5">
           <Card className="relative min-h-[360px] justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(5)]">
             <CardHeader className="relative z-(--z-dashboard-content) gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -113,6 +115,8 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          <StreakCard />
+          </div>
 
           <div className="relative grid gap-5 sm:grid-cols-2">
             <ReviewMascot />

@@ -27,6 +27,9 @@ import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProgressCelebration } from "@/components/progress/progress-celebration";
+import { StreakCompletionDialog } from "@/components/streak/streak-completion-dialog";
+import { useStreak } from "@/components/streak/streak-provider";
 import {
   Select,
   SelectContent,
@@ -36,7 +39,12 @@ import {
 import { HttpError, http } from "@/lib/http";
 import { playGameSound, preloadGameSounds } from "@/lib/game-audio";
 import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
-import type { Flashcard, ReviewDueBook } from "@/lib/dashboard-data";
+import type { Flashcard, ReviewDueBook, UserProfile } from "@/lib/dashboard-data";
+import type { SessionResponse, StreakProgress } from "@/lib/streak-types";
+import {
+  createProgressTransition,
+  type ProgressTransition,
+} from "@/lib/progress-transition";
 import { cn } from "@/lib/utils";
 import penguinPlayGame from "@/img/penguin-playgame.png";
 import practiceCompletePenguin from "@/img/practice-complete-penguin.png";
@@ -73,6 +81,8 @@ type AnswerFeedback = {
 
 const GAME_TIME_LIMIT_MS = 10000;
 const ANSWER_FEEDBACK_MS = 1400;
+const MAX_GAME_SCORE = 100;
+const SCORE_LOSS_PER_SECOND = 10;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
@@ -86,6 +96,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 function getCardList(data: ApiEnvelope<Flashcard[]> | Flashcard[]) {
   return Array.isArray(data) ? data : data.data;
+}
+
+function getProfileData(data: ApiEnvelope<UserProfile> | UserProfile) {
+  return "success" in data ? data.data : data;
 }
 
 function getNow() {
@@ -111,6 +125,7 @@ export function PracticeRunner({
   flashcardPool: Flashcard[];
 }) {
   const router = useRouter();
+  const { applyStreakProgress, refreshStreak } = useStreak();
   const firstBook = books.find((book) => book.dueForReview > 0) ?? books[0];
   const [bookId, setBookId] = useState(getReviewBookId(firstBook) ?? "");
   const selectedBook = books.find((book) => getReviewBookId(book) === bookId);
@@ -131,9 +146,13 @@ export function PracticeRunner({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [answerFeedback, setAnswerFeedback] = useState<AnswerFeedback | null>(null);
+  const [progressTransition, setProgressTransition] =
+    useState<ProgressTransition | null>(null);
+  const [streakCompletion, setStreakCompletion] = useState<StreakProgress | null>(null);
   const answerLockedRef = useRef(false);
   const answerInputRef = useRef<HTMLInputElement>(null);
   const submitAnswerRef = useRef<(value: string, skipped?: boolean) => void>(() => {});
+  const profileBeforeRef = useRef<UserProfile | null>(null);
   const current = steps[index];
   const progress = steps.length ? Math.round((index / steps.length) * 100) : 0;
   const completedGames = Object.values(results).flat();
@@ -142,7 +161,7 @@ export function PracticeRunner({
   const totalDue = books.reduce((total, book) => total + book.dueForReview, 0);
   const totalCards = books.reduce((total, book) => total + book.totalCards, 0);
   const countOptions = getPracticeCountOptions(selectedBook?.dueForReview ?? 0);
-  const maxScore = Math.min(limit, selectedBook?.dueForReview ?? 0) * 40;
+  const availableScore = calculateGameScore(GAME_TIME_LIMIT_MS - timeLeftMs);
 
   useEffect(() => {
     preloadGameSounds();
@@ -193,15 +212,21 @@ export function PracticeRunner({
     setIsLoading(true);
 
     try {
-      const response = await http.get<ApiEnvelope<Flashcard[]> | Flashcard[]>(
-        "/api/flashcards/review/due",
-        {
-          query: {
-            bookId,
-            limit: Math.min(limit, selectedBook.dueForReview),
-          },
-        }
-      );
+      const [response, profileBefore] = await Promise.all([
+        http.get<ApiEnvelope<Flashcard[]> | Flashcard[]>(
+          "/api/flashcards/review/due",
+          {
+            query: {
+              bookId,
+              limit: Math.min(limit, selectedBook.dueForReview),
+            },
+          }
+        ),
+        http
+          .get<ApiEnvelope<UserProfile> | UserProfile>("/api/users/profile")
+          .then(getProfileData)
+          .catch(() => null),
+      ]);
       const dueCards = getCardList(response) ?? [];
       const pool = mergeCards(dueCards, flashcardPool);
       const nextSteps = dueCards.flatMap((card) =>
@@ -221,6 +246,7 @@ export function PracticeRunner({
       }
 
       preloadMedia(dueCards);
+      profileBeforeRef.current = profileBefore;
       setReviewCards(dueCards);
       setReviewSteps(nextSteps);
       setReviewIndex(0);
@@ -232,6 +258,7 @@ export function PracticeRunner({
       answerLockedRef.current = false;
       setResults({});
       setSummary(null);
+      setProgressTransition(null);
       setStartedAt(0);
       setRunStartedAt(0);
       setTimeLeftMs(GAME_TIME_LIMIT_MS);
@@ -300,22 +327,59 @@ export function PracticeRunner({
     const nextSummary = summarizeResults(nextResults);
 
     try {
-      await http.post("/api/sessions/practice", {
+      const sessionResponse = await http.post<ApiEnvelope<SessionResponse> | SessionResponse>("/api/sessions/practice", {
         bookId: selectedBook.bookId,
         durationMs: Math.round(getNow() - runStartedAt),
         flashcards,
       });
-      await http.get("/api/users/profile");
-      toast.success("Practice saved");
-      setSteps([]);
-      setIndex(0);
-      setSummary(nextSummary);
-      router.refresh();
+      const sessionData = "data" in sessionResponse ? sessionResponse.data : sessionResponse;
+      if (sessionData.streakProgress) {
+        applyStreakProgress(sessionData.streakProgress);
+        if (sessionData.streakProgress.justCompleted) setStreakCompletion(sessionData.streakProgress);
+        void refreshStreak();
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Practice finished, but saving failed"));
-    } finally {
       setIsSubmitting(false);
+      return;
     }
+
+    let nextTransition: ProgressTransition | null = null;
+
+    try {
+      const profileResponse = await http.get<
+        ApiEnvelope<UserProfile> | UserProfile
+      >("/api/users/profile");
+      const profileAfter = getProfileData(profileResponse);
+      const profileBefore = profileBeforeRef.current;
+
+      if (profileBefore) {
+        nextTransition = createProgressTransition(profileBefore, profileAfter);
+      }
+
+      profileBeforeRef.current = profileAfter;
+    } catch {
+      toast.warn("Practice saved, but progress could not be refreshed");
+    }
+
+    const shouldCelebrate = Boolean(
+      nextTransition &&
+      (nextTransition.xpEarned > 0 ||
+        nextTransition.leveledUp ||
+        nextTransition.rankedUp)
+    );
+
+    if (nextTransition && shouldCelebrate) {
+      await preloadRankBadge(nextTransition);
+    }
+
+    toast.success("Practice saved");
+    setSteps([]);
+    setIndex(0);
+    setSummary(nextSummary);
+    setProgressTransition(shouldCelebrate ? nextTransition : null);
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   async function submitAnswer(value: string, skipped = false) {
@@ -468,7 +532,17 @@ export function PracticeRunner({
 
   if (summary) {
     return (
-      <div className="mx-auto grid w-full max-w-4xl gap-4">
+      <>
+        {streakCompletion ? (
+          <StreakCompletionDialog progress={streakCompletion} onComplete={() => setStreakCompletion(null)} />
+        ) : progressTransition ? (
+          <ProgressCelebration
+            transition={progressTransition}
+            open
+            onComplete={() => setProgressTransition(null)}
+          />
+        ) : null}
+        <div className="mx-auto grid w-full max-w-4xl gap-4">
         <section className="relative overflow-hidden rounded-3xl border border-border bg-card px-6 py-10 shadow-sm sm:px-8 sm:py-12">
           <Confetti />
           <div className="relative z-10 grid items-center gap-y-14 md:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1.3fr)] md:gap-x-12 lg:gap-x-16">
@@ -520,7 +594,8 @@ export function PracticeRunner({
             </div>
           </div>
         </section>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -691,7 +766,15 @@ export function PracticeRunner({
               <Icon icon={Sparkles} className="size-3.5 text-secondary" weight="fill" />
               Stage {index + 1} of {steps.length}
             </span>
-            <span className="inline-flex items-center gap-1 tabular-nums">
+            <span className="inline-flex items-center gap-2 tabular-nums">
+              <span
+                className={cn(
+                  "font-extrabold text-primary",
+                  availableScore <= 30 && "text-destructive"
+                )}
+              >
+                {availableScore} XP
+              </span>
               <Icon
                 icon={Clock3}
                 className={cn(
@@ -743,7 +826,7 @@ export function PracticeRunner({
             <div className="grid h-56 min-w-0 place-items-center overflow-hidden rounded-2xl">
               <PromptView card={current.card} game={current.game} prompt={prompt} />
             </div>
-            <div className="grid h-32 content-center overflow-hidden">
+            <div className="grid h-32 content-center">
               {current.game.mechanism === "quiz" ? (
                 <div className="grid grid-cols-2 gap-3">
                   {current.game.choices?.map((choice) => (
@@ -999,9 +1082,9 @@ export function PracticeRunner({
 
         <div className="grid gap-0.5 text-center text-xs text-muted-foreground">
           <p>
-            Target: {limit} word{limit === 1 ? "" : "s"} · Possible score: {maxScore}
+            Target: {limit} word{limit === 1 ? "" : "s"} · Up to 100 XP per game
           </p>
-          <p>Faster correct answers keep more points.</p>
+          <p>Every second costs 10 XP, so answer fast.</p>
         </div>
 
         {message ? (
@@ -1046,91 +1129,117 @@ function ReviewFlipCard({
   flipped: boolean;
   onFlip: () => void;
 }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    if (!audio || !card.audioUrl) return;
+
+    audio.currentTime = 0;
+    void audio.play().catch(() => undefined);
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [card.id, card.audioUrl]);
+
   return (
-    <button
-      type="button"
-      className="group grid min-h-[420px] w-full max-w-md justify-self-center rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-ring/50"
-      onClick={onFlip}
-    >
-      <div
-        className={cn(
-          "relative size-full min-h-[420px] rounded-2xl transition-transform duration-500 [animation:flashcard-pull_2.4s_ease-in-out_infinite] [transform-style:preserve-3d] group-hover:[animation-play-state:paused]",
-          flipped && "[transform:rotateY(180deg)]"
-        )}
+    <>
+      {card.audioUrl ? (
+        <audio
+          ref={audioRef}
+          className="hidden"
+          preload="auto"
+          src={card.audioUrl}
+        />
+      ) : null}
+      <button
+        type="button"
+        className="group grid min-h-[420px] w-full max-w-md justify-self-center rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-ring/50"
+        onClick={onFlip}
       >
-        <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
-          <div className="flex items-start justify-between gap-4">
-            <Badge variant="secondary" className="rounded-xl text-xs">
-              Front
-            </Badge>
-            <span className="text-xs text-muted-foreground">Tap to flip</span>
-          </div>
-
-          <div className="grid place-items-center text-center">
-            <div className="grid justify-items-center gap-4">
-              {card.imageUrl ? (
-                <div
-                  className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center shadow-sm shadow-brand-800/10"
-                  style={{ backgroundImage: `url(${card.imageUrl})` }}
-                  aria-label={`${card.word} image`}
-                  role="img"
-                />
-              ) : null}
-              <p className="text-4xl font-semibold text-primary">{card.word}</p>
-              {card.pronunciation ? (
-                <p className="mt-2 text-sm text-muted-foreground">{card.pronunciation}</p>
-              ) : null}
-              {card.partOfSpeech ? (
-                <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
-                  {card.partOfSpeech}
-                </p>
-              ) : null}
+        <div
+          className={cn(
+            "relative size-full min-h-[420px] rounded-2xl transition-transform duration-500 [animation:flashcard-pull_2.4s_ease-in-out_infinite] [transform-style:preserve-3d] group-hover:[animation-play-state:paused]",
+            flipped && "[transform:rotateY(180deg)]"
+          )}
+        >
+          <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
+            <div className="flex items-start justify-between gap-4">
+              <Badge variant="secondary" className="rounded-xl text-xs">
+                Front
+              </Badge>
+              <span className="text-xs text-muted-foreground">Tap to flip</span>
             </div>
-          </div>
-        </div>
 
-        <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <div className="flex items-start justify-between gap-4">
-            <Badge variant="outline" className="rounded-xl text-xs">
-              Back
-            </Badge>
-            <span className="text-xs text-muted-foreground">Tap to flip back</span>
-          </div>
-
-          <div className="grid max-h-full content-center gap-4 overflow-y-auto pr-1">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Definition
-              </p>
-              <p className="mt-1 text-lg font-semibold leading-7 text-foreground">
-                {card.definition || "No definition yet"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Translation
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {card.translation || "No translation yet"}
-              </p>
-            </div>
-            {card.example ? (
-              <div className="rounded-xl border border-border bg-background p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Example
-                </p>
-                <p className="mt-1 text-sm leading-6 text-foreground">{card.example}</p>
-                {card.exampleTranslation ? (
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    {card.exampleTranslation}
+            <div className="grid place-items-center text-center">
+              <div className="grid justify-items-center gap-4">
+                {card.imageUrl ? (
+                  <div
+                    className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center shadow-sm shadow-brand-800/10"
+                    style={{ backgroundImage: `url(${card.imageUrl})` }}
+                    aria-label={`${card.word} image`}
+                    role="img"
+                  />
+                ) : null}
+                <p className="text-4xl font-semibold text-primary">{card.word}</p>
+                {card.pronunciation ? (
+                  <p className="mt-2 text-sm text-muted-foreground">{card.pronunciation}</p>
+                ) : null}
+                {card.partOfSpeech ? (
+                  <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+                    {card.partOfSpeech}
                   </p>
                 ) : null}
               </div>
-            ) : null}
+            </div>
+          </div>
+
+          <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <div className="flex items-start justify-between gap-4">
+              <Badge variant="outline" className="rounded-xl text-xs">
+                Back
+              </Badge>
+              <span className="text-xs text-muted-foreground">Tap to flip back</span>
+            </div>
+
+            <div className="grid max-h-full content-center gap-4 overflow-y-auto pr-1">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Definition
+                </p>
+                <p className="mt-1 text-lg font-semibold leading-7 text-foreground">
+                  {card.definition || "No definition yet"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Translation
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {card.translation || "No translation yet"}
+                </p>
+              </div>
+              {card.example ? (
+                <div className="rounded-xl border border-border bg-background p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Example
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-foreground">{card.example}</p>
+                  {card.exampleTranslation ? (
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {card.exampleTranslation}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </>
   );
 }
 
@@ -1240,8 +1349,11 @@ function summarizeResults(results: Record<string, PracticeGameResult[]>): Practi
 }
 
 function calculateGameScore(responseTime: number) {
-  const remainingRatio = Math.max(0, GAME_TIME_LIMIT_MS - responseTime) / GAME_TIME_LIMIT_MS;
-  return Math.max(1, Math.ceil(remainingRatio * 10));
+  const elapsedSeconds = Math.floor(Math.max(0, responseTime) / 1000);
+  return Math.max(
+    0,
+    MAX_GAME_SCORE - elapsedSeconds * SCORE_LOSS_PER_SECOND
+  );
 }
 
 function getFinishTitle(accuracy: number) {
@@ -1372,5 +1484,27 @@ function preloadMedia(cards: Flashcard[]) {
       const image = new Image();
       image.src = card.imageUrl;
     }
+  });
+}
+
+function preloadRankBadge(transition: ProgressTransition) {
+  if (!transition.rankedUp || !transition.currentRank.imageUrl) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    const image = new Image();
+    const timeout = window.setTimeout(finish, 2500);
+
+    function finish() {
+      window.clearTimeout(timeout);
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    }
+
+    image.onload = finish;
+    image.onerror = finish;
+    image.src = transition.currentRank.imageUrl;
   });
 }
