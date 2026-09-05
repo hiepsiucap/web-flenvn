@@ -168,14 +168,14 @@ export default async function DashboardPage() {
                 cta="Start"
               />
               <QuickAction
-                href="/dashboard/books"
+                href="/books"
                 icon={BookOpen}
                 title="Books"
                 description={`${dashboard.activeDecks} active decks`}
                 cta="Open"
               />
               <QuickAction
-                href="/flashcard"
+                href="/flashcards"
                 icon={Cards}
                 title="Flashcards"
                 description={`${dashboard.totalCards} total cards`}

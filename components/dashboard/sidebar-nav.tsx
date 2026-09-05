@@ -8,6 +8,7 @@ import {
   ChartBar as BarChart3,
   GearSix as Settings,
   House as Home,
+  Lifebuoy,
   Stack as Layers3,
   SquaresFour as SquareStack,
 } from "@phosphor-icons/react";
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 export type SidebarNavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "progress" | "settings";
+  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "progress" | "support" | "settings";
 };
 
 const icons = {
@@ -28,6 +29,7 @@ const icons = {
   flip: Cards,
   review: BookOpen,
   progress: BarChart3,
+  support: Lifebuoy,
   settings: Settings,
 };
 

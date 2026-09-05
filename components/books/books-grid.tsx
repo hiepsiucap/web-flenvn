@@ -68,7 +68,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
           className="group relative h-full overflow-hidden rounded-3xl transition-colors hover:border-primary/60"
         >
           <Link
-            href={`/flashcard?bookId=${encodeURIComponent(book.id)}`}
+            href={`/flashcards?bookId=${encodeURIComponent(book.id)}`}
             className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 p-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <div className="h-24 overflow-hidden rounded-2xl bg-secondary">

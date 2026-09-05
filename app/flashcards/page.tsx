@@ -28,7 +28,7 @@ export default async function FlashcardPage({
     return (
       <div className="grid w-full gap-6">
         <Button
-          render={<Link href="/dashboard/books" />}
+          render={<Link href="/books" />}
           nativeButton={false}
           variant="outline"
           className="w-fit rounded-2xl"
@@ -69,7 +69,7 @@ export default async function FlashcardPage({
       <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <Button
-            render={<Link href="/dashboard/books" />}
+            render={<Link href="/books" />}
             nativeButton={false}
             variant="outline"
             size="icon-lg"

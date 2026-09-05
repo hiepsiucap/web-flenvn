@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
@@ -37,6 +38,7 @@ const navLinks = [
   { label: "Games", href: "#games" },
   { label: "Pricing", href: "#pricing" },
   { label: "Blog", href: "#blog" },
+  { label: "Support", href: "/support" },
 ];
 
 const highlights = [
@@ -180,9 +182,9 @@ export default function Home() {
 
           <nav className="hidden items-center gap-8 text-sm font-bold text-white/90 lg:flex">
             {navLinks.map((item) => (
-              <a key={item.label} href={item.href} className="hover:text-white">
+              <Link key={item.label} href={item.href} className="hover:text-white">
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 

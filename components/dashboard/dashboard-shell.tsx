@@ -22,10 +22,11 @@ import { getBooks, getDashboardShellData } from "@/lib/dashboard-data";
 
 const navItems: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { label: "Books", href: "/dashboard/books", icon: "books" },
-  { label: "Flashcards", href: "/flashcard", icon: "flashcards" },
+  { label: "Books", href: "/books", icon: "books" },
+  { label: "Flashcards", href: "/flashcards", icon: "flashcards" },
   { label: "Flip cards", href: "/flip-flashcards", icon: "flip" },
   { label: "Review", href: "/review", icon: "review" },
+  { label: "Support", href: "/support", icon: "support" },
   { label: "Settings", href: "/dashboard/settings", icon: "settings" },
 ];
 
