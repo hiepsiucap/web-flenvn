@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  Cards,
   ChartBar as BarChart3,
   GearSix as Settings,
   House as Home,
@@ -17,13 +18,14 @@ import { cn } from "@/lib/utils";
 export type SidebarNavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "books" | "flashcards" | "review" | "progress" | "settings";
+  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "progress" | "settings";
 };
 
 const icons = {
   dashboard: Home,
   books: Layers3,
   flashcards: SquareStack,
+  flip: Cards,
   review: BookOpen,
   progress: BarChart3,
   settings: Settings,

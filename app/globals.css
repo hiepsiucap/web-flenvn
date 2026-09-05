@@ -131,6 +131,41 @@
   }
 }
 
+@keyframes practice-energy-flow {
+  from {
+    background-position: 0 50%;
+  }
+  to {
+    background-position: 180px 50%;
+  }
+}
+
+@keyframes practice-progress-bob {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(-3deg);
+  }
+  50% {
+    transform: translate(-50%, calc(-50% - 3px)) rotate(3deg);
+  }
+}
+
+@keyframes practice-flame {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scaleX(0.9) scaleY(1.14) rotate(4deg);
+    filter: brightness(1.16);
+  }
+  65% {
+    transform: scaleX(1.08) scaleY(0.94) rotate(-5deg);
+    filter: brightness(1.06);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -249,6 +284,40 @@
   html {
     font-family: var(--font-sans);
     @apply font-sans;
+  }
+
+  :where(
+    a[href],
+    button:not(:disabled),
+    summary,
+    label[for],
+    select:not(:disabled),
+    input[type="button"]:not(:disabled),
+    input[type="submit"]:not(:disabled),
+    input[type="reset"]:not(:disabled),
+    input[type="checkbox"]:not(:disabled),
+    input[type="radio"]:not(:disabled),
+    input[type="file"]:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    [role="link"]:not([aria-disabled="true"]),
+    [role="tab"]:not([aria-disabled="true"]),
+    [role="menuitem"]:not([aria-disabled="true"]),
+    [role="option"]:not([aria-disabled="true"]),
+    [role="checkbox"]:not([aria-disabled="true"]),
+    [role="radio"]:not([aria-disabled="true"]),
+    [role="switch"]:not([aria-disabled="true"])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(
+    button:disabled,
+    select:disabled,
+    input:disabled,
+    [aria-disabled="true"],
+    [data-disabled]
+  ) {
+    cursor: not-allowed;
   }
 }
 

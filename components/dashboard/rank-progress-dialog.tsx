@@ -6,6 +6,7 @@ import { CaretLeft, CaretRight, CheckCircle, LockSimple, Medal, Sparkle, Star } 
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { LoadingState } from "@/components/ui/loading-state";
 import { RankLevelProgress } from "@/components/dashboard/rank-level-progress";
 import { Modal, ModalBody, ModalCancelButton, ModalContent, ModalFooter, ModalTitle, ModalTrigger } from "@/components/ui/modal";
 import type { ApiEnvelope } from "@/lib/auth-types";
@@ -127,6 +128,34 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
       } />
 
       <ModalContent className="sm:max-w-4xl sm:px-6 sm:py-5">
+        {isLoading || error || !catalog ? (
+          <div className="absolute inset-0 z-40 grid min-h-[36rem] place-items-center rounded-xl bg-popover p-6">
+            {isLoading ? (
+              <LoadingState
+                title="Loading your rank journey"
+                description="Preparing your rank, level progress, and milestones."
+                className="w-full"
+              />
+            ) : (
+              <div className="grid max-w-sm justify-items-center gap-4 text-center" role="alert">
+                <Icon icon={Medal} className="size-14 text-primary" weight="duotone" />
+                <div>
+                  <p className="text-base font-extrabold">Rank journey unavailable</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {error || "We couldn't load your rank journey."}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ModalCancelButton>Close</ModalCancelButton>
+                  <Button type="button" onClick={() => void loadRanks()}>
+                    Try again
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
         <ModalTitle className="text-xl">Your rank journey</ModalTitle>
 
         <ModalBody className="gap-4 overflow-x-hidden overflow-y-hidden" aria-live="polite">

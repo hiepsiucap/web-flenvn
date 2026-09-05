@@ -1,20 +1,31 @@
-import type { Flashcard } from "@/lib/dashboard-data";
+import type { Flashcard } from "./dashboard-data";
 
-export type GameMechanism = "input" | "quiz" | "buzz";
+export type GameMechanism = "input" | "quiz" | "puzzle" | "buzz";
 
 export type PracticePromptType =
   | "definition"
   | "example-blank"
-  | "media";
+  | "media"
+  | "sentence-puzzle";
+
+export type PuzzleToken = {
+  id: string;
+  text: string;
+};
 
 export type PracticeGame = {
   id: string;
   flashcardId: string;
-  type: "definition-input" | "example-blank-quiz" | "media-input";
+  type:
+    | "definition-input"
+    | "example-blank-quiz"
+    | "media-input"
+    | "sentence-puzzle";
   mechanism: GameMechanism;
   promptType: PracticePromptType;
   answer: string;
   choices?: string[];
+  tokens?: PuzzleToken[];
 };
 
 export type PracticeGameResult = {
@@ -71,6 +82,20 @@ export function createPracticeGames(card: Flashcard, pool: Flashcard[]) {
         choices,
       });
     }
+
+    const puzzleTokens = createSentencePuzzleTokens(card.example);
+
+    if (puzzleTokens.length >= 3 && puzzleTokens.length <= 10) {
+      games.push({
+        id: `${card.id}:sentence-puzzle`,
+        flashcardId: card.id,
+        type: "sentence-puzzle",
+        mechanism: "puzzle",
+        promptType: "sentence-puzzle",
+        answer: card.example.trim(),
+        tokens: puzzleTokens,
+      });
+    }
   }
 
   if (card.imageUrl?.trim() || card.audioUrl?.trim()) {
@@ -90,6 +115,32 @@ export function createPracticeGames(card: Flashcard, pool: Flashcard[]) {
 export function blankWord(example: string, word: string) {
   const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return example.replace(new RegExp(`\\b${escaped}\\b`, "i"), "_____");
+}
+
+export function createSentencePuzzleTokens(
+  sentence: string,
+  random: () => number = Math.random
+): PuzzleToken[] {
+  const words = sentence.trim().split(/\s+/).filter(Boolean);
+  const tokens = words.map((text, index) => ({ id: `word-${index}`, text }));
+
+  if (tokens.length < 2) return tokens;
+
+  const shuffled = shuffle(tokens, random);
+
+  if (shuffled.every((token, index) => token.id === tokens[index].id)) {
+    return [...shuffled.slice(1), shuffled[0]];
+  }
+
+  return shuffled;
+}
+
+export function isCorrectSentence(userAnswer: string, answer: string) {
+  return normalizeSentence(userAnswer) === normalizeSentence(answer);
+}
+
+function normalizeSentence(value: string) {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
 }
 
 export function calculateQuality(results: PracticeGameResult[]) {
@@ -122,9 +173,9 @@ function createChoices(card: Flashcard, pool: Flashcard[]) {
   return shuffle([correct, ...distractors]);
 }
 
-function shuffle<TItem>(items: TItem[]) {
+function shuffle<TItem>(items: TItem[], random: () => number = Math.random) {
   return items
-    .map((item) => ({ item, sort: Math.random() }))
+    .map((item) => ({ item, sort: random() }))
     .sort((a, b) => a.sort - b.sort)
     .map(({ item }) => item);
 }

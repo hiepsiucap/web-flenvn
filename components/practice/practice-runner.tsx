@@ -7,6 +7,9 @@ import {
   Clock as Clock3,
   CaretLeft,
   CaretRight,
+  Fire,
+  PuzzlePiece,
+  Star,
   SpeakerHigh,
   Stack as Layers3,
   Spinner as Loader2,
@@ -27,7 +30,10 @@ import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tag } from "@/components/ui/tag";
 import { ProgressCelebration } from "@/components/progress/progress-celebration";
+import { PracticeEnergyProgress } from "@/components/practice/practice-energy-progress";
+import { SentencePuzzle } from "@/components/practice/sentence-puzzle";
 import { StreakCompletionDialog } from "@/components/streak/streak-completion-dialog";
 import { useStreak } from "@/components/streak/streak-provider";
 import {
@@ -53,6 +59,7 @@ import {
   calculateQuality,
   createPracticeGames,
   isCorrectAnswer,
+  isCorrectSentence,
   type PracticeFlashcardResult,
   type PracticeGame,
   type PracticeGameResult,
@@ -154,14 +161,13 @@ export function PracticeRunner({
   const submitAnswerRef = useRef<(value: string, skipped?: boolean) => void>(() => {});
   const profileBeforeRef = useRef<UserProfile | null>(null);
   const current = steps[index];
-  const progress = steps.length ? Math.round((index / steps.length) * 100) : 0;
+  const progress = steps.length ? Math.round(((index + 1) / steps.length) * 100) : 0;
   const completedGames = Object.values(results).flat();
   const totalCorrect = completedGames.filter((item) => item.result === "correct").length;
   const liveScore = completedGames.reduce((total, item) => total + item.score, 0);
   const totalDue = books.reduce((total, book) => total + book.dueForReview, 0);
   const totalCards = books.reduce((total, book) => total + book.totalCards, 0);
   const countOptions = getPracticeCountOptions(selectedBook?.dueForReview ?? 0);
-  const availableScore = calculateGameScore(GAME_TIME_LIMIT_MS - timeLeftMs);
 
   useEffect(() => {
     preloadGameSounds();
@@ -385,7 +391,11 @@ export function PracticeRunner({
   async function submitAnswer(value: string, skipped = false) {
     if (!current || answerLockedRef.current) return;
 
-    const correct = !skipped && isCorrectAnswer(value, current.game.answer);
+    const correct =
+      !skipped &&
+      (current.game.type === "sentence-puzzle"
+        ? isCorrectSentence(value, current.game.answer)
+        : isCorrectAnswer(value, current.game.answer));
 
     if (!skipped) {
       playGameSound(correct ? "correct" : "incorrect");
@@ -403,7 +413,11 @@ export function PracticeRunner({
       [current.card.id]: [...(results[current.card.id] ?? []), result],
     };
 
-    if (current.game.mechanism === "input" && !skipped && !correct) {
+    if (
+      (current.game.mechanism === "input" || current.game.mechanism === "puzzle") &&
+      !skipped &&
+      !correct
+    ) {
       setResults(nextResults);
       setAnswerFeedback({
         result: "incorrect",
@@ -721,113 +735,94 @@ export function PracticeRunner({
   if (current) {
     return (
       <div className="mx-auto grid w-full max-w-4xl gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground">Practice</p>
-            <h1 className="text-xl font-semibold">{selectedBook?.title}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="relative inline-flex h-8 items-center rounded-full border border-secondary/70 bg-secondary/15 px-2.5 shadow-sm"
-              aria-label={`${liveScore} XP`}
-              aria-live="polite"
-            >
+        <section className="grid gap-2 rounded-2xl border border-brand-100 bg-card px-4 py-3 shadow-sm sm:px-5">
+          <div className="flex items-center justify-between gap-4 text-sm font-bold">
+            <span className="inline-flex min-w-0 items-center gap-2 text-primary">
+              <Icon icon={Star} className="size-5 shrink-0 text-secondary" weight="fill" />
+              <span className="truncate">Stage {index + 1} of {steps.length}</span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-4 tabular-nums">
               <span
-                key={`score-${liveScore}`}
-                className="inline-flex items-center gap-1.5 animate-[score-pop_450ms_cubic-bezier(0.2,0.9,0.3,1)] motion-reduce:animate-none"
+                className="inline-flex items-center gap-1.5 font-extrabold text-primary"
               >
-                <Icon icon={Trophy} className="size-4 text-secondary" weight="fill" />
-                <span className="min-w-5 text-right text-sm font-extrabold tabular-nums text-primary">
-                  {liveScore}
-                </span>
-                <span className="text-[0.6rem] font-extrabold uppercase tracking-wide text-muted-foreground">
-                  XP
-                </span>
-              </span>
-              {liveScore > 0 ? (
                 <Icon
-                  key={`score-spark-${liveScore}`}
-                  icon={Sparkles}
-                  className="pointer-events-none absolute -right-1.5 -top-1.5 size-4 animate-[score-spark_550ms_ease-out_forwards] text-secondary motion-reduce:animate-none"
+                  icon={Fire}
+                  className="size-5 origin-bottom animate-[practice-flame_900ms_ease-in-out_infinite] text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.55)] motion-reduce:animate-none"
                   weight="fill"
-                  aria-hidden="true"
                 />
-              ) : null}
-            </div>
-            <Badge variant="outline" className="h-7 rounded-2xl px-2.5">
-              {index + 1} / {steps.length}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <Icon icon={Sparkles} className="size-3.5 text-secondary" weight="fill" />
-              Stage {index + 1} of {steps.length}
-            </span>
-            <span className="inline-flex items-center gap-2 tabular-nums">
-              <span
-                className={cn(
-                  "font-extrabold text-primary",
-                  availableScore <= 30 && "text-destructive"
-                )}
-              >
-                {availableScore} XP
+                {liveScore} XP
               </span>
-              <Icon
-                icon={Clock3}
-                className={cn(
-                  "size-3.5 text-primary",
-                  timeLeftMs <= 3000 && "text-destructive"
-                )}
-              />
-              {Math.ceil(timeLeftMs / 1000)}s
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Icon
+                  icon={Clock3}
+                  className={cn("size-5 text-primary", timeLeftMs <= 3000 && "text-destructive")}
+                  weight="fill"
+                />
+                {Math.ceil(timeLeftMs / 1000)}s
+              </span>
             </span>
           </div>
-          <div className="relative h-1.5 overflow-hidden rounded-full bg-secondary/55">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
-              style={{ width: `${progress}%` }}
-            />
-            <div className="pointer-events-none absolute inset-0 flex">
-              {steps.map((step, segment) => (
-                <span
-                  key={`${step.card.id}-${segment}`}
-                  className="flex-1 border-r border-background/60 last:border-r-0"
-                />
-              ))}
-            </div>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-secondary/45">
-            <div
-              className={cn(
-                "h-full rounded-full bg-accent transition-[width] duration-100",
-                timeLeftMs <= 3000 && "bg-destructive"
-              )}
-              style={{ width: `${(timeLeftMs / GAME_TIME_LIMIT_MS) * 100}%` }}
-            />
-          </div>
-        </div>
+          <PracticeEnergyProgress progress={progress} segments={steps.length} />
+        </section>
 
-        <Card size="sm" className="overflow-hidden rounded-3xl">
-          <CardHeader className="h-20">
+        <Card size="sm" className="overflow-hidden rounded-2xl border border-brand-100 shadow-sm">
+          <CardHeader className="h-28 px-5 sm:px-6">
             <div className="flex h-full min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle>{getGameTitle(current.game)}</CardTitle>
-                <CardDescription>{current.card.partOfSpeech || "Flashcard"}</CardDescription>
+              <div className="flex min-w-0 gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-100 text-primary">
+                  <Icon
+                    icon={current.game.mechanism === "puzzle" ? PuzzlePiece : Target}
+                    className="size-6"
+                    weight="fill"
+                  />
+                </span>
+                <div className="min-w-0">
+                  <CardTitle className="text-xl font-bold">{getGameTitle(current.game)}</CardTitle>
+                  <CardDescription className="mt-0.5 truncate">
+                    {getGameInstruction(current.game)}
+                  </CardDescription>
+                  <Tag size="sm" variant="primary" className="mt-2 capitalize">
+                    {current.card.partOfSpeech || "Flashcard"}
+                  </Tag>
+                </div>
               </div>
-              <Badge variant="outline" className="rounded-2xl capitalize">
-                {current.game.mechanism}
-              </Badge>
+              <Tag
+                variant="outline"
+                className="shrink-0 text-primary"
+                leadingIcon={
+                  <Icon
+                    icon={current.game.mechanism === "puzzle" ? PuzzlePiece : Target}
+                    size="sm"
+                    weight="fill"
+                  />
+                }
+              >
+                {current.game.mechanism === "puzzle" ? "Puzzle" : current.game.mechanism}
+              </Tag>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 px-5 pb-5 sm:px-6 sm:pb-6">
-            <div className="grid h-56 min-w-0 place-items-center overflow-hidden rounded-2xl">
-              <PromptView card={current.card} game={current.game} prompt={prompt} />
-            </div>
-            <div className="grid h-32 content-center">
-              {current.game.mechanism === "quiz" ? (
+            {current.game.mechanism === "puzzle" ? (
+              <SentencePuzzle
+                key={current.game.id}
+                tokens={current.game.tokens ?? []}
+                correctSentence={current.game.answer}
+                translation={current.card.exampleTranslation}
+                feedback={answerFeedback}
+                disabled={isSubmitting}
+                onEdit={() => {
+                  if (answerFeedback?.canRetry) setAnswerFeedback(null);
+                }}
+                onSkip={() => submitAnswer("", true)}
+                onSubmit={(sentence) => submitAnswer(sentence)}
+              />
+            ) : (
+              <>
+                <div className="grid h-56 min-w-0 place-items-center overflow-hidden rounded-2xl">
+                  <PromptView card={current.card} game={current.game} prompt={prompt} />
+                </div>
+                <div className="grid h-32 content-center">
+                  {current.game.mechanism === "quiz" ? (
                 <div className="grid grid-cols-2 gap-3">
                   {current.game.choices?.map((choice) => (
                     <Button
@@ -850,7 +845,7 @@ export function PracticeRunner({
                     </Button>
                   ))}
                 </div>
-              ) : (
+                  ) : (
                 <Form
                   className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"
                   onSubmit={(event) => {
@@ -916,8 +911,11 @@ export function PracticeRunner({
                     Answer
                   </Button>
                 </Form>
-              )}
-            </div>
+                  )}
+                </div>
+              </>
+            )}
+            {current.game.mechanism !== "puzzle" ? (
             <div className="flex h-9 items-center justify-between gap-2">
               <Button
                 type="button"
@@ -960,6 +958,7 @@ export function PracticeRunner({
                 <p className="text-xs text-muted-foreground">{totalCorrect} correct</p>
               )}
             </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -1469,7 +1468,24 @@ function PromptView({
 function getGameTitle(game: PracticeGame) {
   if (game.type === "definition-input") return "Type the word from the definition";
   if (game.type === "example-blank-quiz") return "Choose the missing word";
+  if (game.type === "sentence-puzzle") return "Build the sentence";
   return "Type the English word";
+}
+
+function getGameInstruction(game: PracticeGame) {
+  if (game.type === "sentence-puzzle") {
+    return "Choose the words to make a correct sentence.";
+  }
+
+  if (game.type === "example-blank-quiz") {
+    return "Choose the word that completes the example.";
+  }
+
+  if (game.type === "definition-input") {
+    return "Type the English word that matches this definition.";
+  }
+
+  return "Use the image or audio clue to type the word.";
 }
 
 function mergeCards(primary: Flashcard[], secondary: Flashcard[]) {

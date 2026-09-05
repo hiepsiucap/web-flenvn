@@ -24,6 +24,7 @@ const navItems: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
   { label: "Books", href: "/dashboard/books", icon: "books" },
   { label: "Flashcards", href: "/flashcard", icon: "flashcards" },
+  { label: "Flip cards", href: "/flip-flashcards", icon: "flip" },
   { label: "Review", href: "/review", icon: "review" },
   { label: "Settings", href: "/dashboard/settings", icon: "settings" },
 ];
