@@ -39,6 +39,7 @@ const navLinks = [
   { label: "Pricing", href: "#pricing" },
   { label: "Blog", href: "#blog" },
   { label: "Support", href: "/support" },
+  { label: "Privacy", href: "/privacy" },
 ];
 
 const highlights = [

@@ -50,11 +50,11 @@ export default function SupportPage() {
             </Text>
           </Link>
           <Button
-            render={<Link href="/login" />}
+            render={<Link href="/privacy" />}
             nativeButton={false}
             variant="outline"
           >
-            Sign in
+            Privacy
           </Button>
         </div>
       </header>
