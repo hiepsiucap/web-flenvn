@@ -14,8 +14,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FLENVN",
-  description: "Flashcards for English learners.",
+  metadataBase: new URL("https://flenvn.app"),
+  title: {
+    default: "FLENVN — Learn English Vocabulary with Flashcards",
+    template: "%s | FLENVN",
+  },
+  description:
+    "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
+  applicationName: "FLENVN",
+  keywords: [
+    "English vocabulary",
+    "flashcards",
+    "learn English",
+    "vocabulary games",
+    "spaced repetition",
+    "FLENVN",
+  ],
+  creator: "FLENVN",
+  publisher: "FLENVN",
+  openGraph: {
+    type: "website",
+    siteName: "FLENVN",
+    title: "FLENVN — Learn English Vocabulary with Flashcards",
+    description:
+      "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
+  },
+  twitter: {
+    card: "summary",
+    title: "FLENVN — Learn English Vocabulary with Flashcards",
+    description:
+      "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

@@ -9,8 +9,11 @@ import { Text } from "@/components/ui/text";
 import logo from "@/img/new-logo.png";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | FLENVN",
+  title: "Privacy Policy",
   description: "Privacy policy for the FLENVN Translator browser extension.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 const permissions = [

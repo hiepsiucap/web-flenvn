@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -31,6 +32,12 @@ import hiwAi from "@/img/hiw-ai.png";
 import hiwPenguin from "@/img/HIW-penguin.png";
 import logo from "@/img/new-logo.png";
 import trophyPenguin from "@/img/trophy-penguin.png";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
 
 const navLinks = [
   { label: "Features", href: "#features" },

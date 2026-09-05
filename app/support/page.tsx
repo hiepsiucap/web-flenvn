@@ -16,8 +16,11 @@ import { Text } from "@/components/ui/text";
 import logo from "@/img/new-logo.png";
 
 export const metadata: Metadata = {
-  title: "Support | FLENVN",
+  title: "Support",
   description: "Get help using FLENVN flashcards, books, and study tools.",
+  alternates: {
+    canonical: "/support",
+  },
 };
 
 const supportOptions = [
