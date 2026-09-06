@@ -27,7 +27,7 @@ const navItems: SidebarNavItem[] = [
   { label: "Flip cards", href: "/flip-flashcards", icon: "flip" },
   { label: "Review", href: "/review", icon: "review" },
   { label: "Support", href: "/support", icon: "support" },
-  { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { label: "Settings", href: "/settings", icon: "settings" },
 ];
 
 export async function DashboardShell({

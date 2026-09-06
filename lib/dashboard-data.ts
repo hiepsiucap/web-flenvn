@@ -23,6 +23,7 @@ export type UserProfile = {
   level: number;
   exp: number;
   rank: UserRank;
+  isEmailVerified?: boolean;
 };
 
 type AuthProfileData = {
@@ -73,6 +74,29 @@ export type ReviewDueBooksResponse = {
 
 export type FlashcardStatus = "new" | "learning" | "reviewing" | "mastered";
 
+export type LabelType = "topic" | "level" | "usage" | "custom";
+export type LabelSource = "manual" | "gemini" | "system";
+export type LabelingStatus = "pending" | "processing" | "completed" | "failed";
+export type LabelFilterMode = "any" | "all";
+
+export type FlashcardLabel = {
+  id: string;
+  userId?: string;
+  name: string;
+  normalizedName?: string;
+  type: LabelType;
+  color?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  source?: LabelSource;
+  confirmedByUser?: boolean;
+};
+
+export type LabelCatalogItem = FlashcardLabel & {
+  totalCards?: number;
+  dueCards?: number;
+};
+
 export type Flashcard = {
   id: string;
   word: string;
@@ -87,6 +111,17 @@ export type Flashcard = {
   exampleTranslation?: string | null;
   status: FlashcardStatus;
   bookId?: string | null;
+  labelingStatus?: LabelingStatus;
+  labelingVersion?: number;
+  labelingAttempts?: number;
+  labelingQueuedAt?: string | null;
+  labeledAt?: string | null;
+  labels?: FlashcardLabel[];
+};
+
+export type FlashcardFilters = {
+  labelIds?: string[];
+  labelMode?: LabelFilterMode;
 };
 
 type BackendResult<TData> = {
@@ -198,7 +233,10 @@ export async function getReviewDueBooks() {
   );
 }
 
-export async function getFlashcardsByBook(bookId: string) {
+export async function getFlashcardsByBook(
+  bookId: string,
+  filters: FlashcardFilters = {}
+) {
   const statuses: FlashcardStatus[] = [
     "new",
     "learning",
@@ -207,17 +245,28 @@ export async function getFlashcardsByBook(bookId: string) {
   ];
 
   const groups = await Promise.all(
-    statuses.map((status) =>
-      backendGet<Flashcard[]>(
-        `/api/v1/flashcards?bookId=${encodeURIComponent(
-          bookId
-        )}&status=${status}`
-      )
-    )
+    statuses.map((status) => {
+      const params = new URLSearchParams({ bookId, status });
+
+      if (filters.labelIds?.length) {
+        params.set("labelIds", filters.labelIds.join(","));
+        params.set("labelMode", filters.labelMode ?? "any");
+      }
+
+      return backendGet<Flashcard[]>(`/api/v1/flashcards?${params.toString()}`);
+    })
   );
 
   const flashcards = groups.flatMap((group) => group ?? []);
   return Array.from(new Map(flashcards.map((card) => [card.id, card])).values());
+}
+
+export async function getLabels(includeCounts = false) {
+  const params = new URLSearchParams();
+  if (includeCounts) params.set("includeCounts", "true");
+
+  const query = params.size ? `?${params.toString()}` : "";
+  return (await backendGet<LabelCatalogItem[]>(`/api/v1/labels${query}`)) ?? [];
 }
 
 export async function getDashboardShellData() {

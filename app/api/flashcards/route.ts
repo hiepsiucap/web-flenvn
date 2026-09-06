@@ -13,6 +13,8 @@ type CreateFlashcardRequest = {
   exampleAudioUrl?: string;
   exampleTranslation?: string;
   bookId?: string;
+  labelIds?: string[];
+  autoLabel?: boolean;
 };
 
 async function getAccessToken(request: Request) {

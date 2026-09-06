@@ -13,6 +13,8 @@ type UpdateFlashcardRequest = Partial<{
   exampleAudioUrl: string;
   exampleTranslation: string;
   bookId: string;
+  labelIds: string[];
+  autoLabel: boolean;
 }>;
 
 async function getAccessToken(request: Request) {
@@ -32,6 +34,29 @@ async function parseBackendResponse(response: Response) {
   }
 
   return { message: await response.text() };
+}
+
+export async function GET(request: Request, ctx: RouteContext<"/api/flashcards/[id]">) {
+  const token = await getAccessToken(request);
+  const { id } = await ctx.params;
+
+  if (!token) {
+    return Response.json({ message: "Please sign in again" }, { status: 401 });
+  }
+
+  const backendResponse = await fetch(
+    new URL(
+      `/api/v1/flashcards/${encodeURIComponent(id)}`,
+      process.env.API_BASE_URL ?? "http://localhost:5000"
+    ),
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }
+  );
+  const data = await parseBackendResponse(backendResponse);
+
+  return Response.json(data, { status: backendResponse.status });
 }
 
 export async function PUT(request: Request, ctx: RouteContext<"/api/flashcards/[id]">) {

@@ -2,8 +2,8 @@
 
 import {
   CaretDown as ChevronDown,
+  GearSix as Settings,
   SignOut as LogOut,
-  User,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 
@@ -84,11 +84,11 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator className="mx-0 my-0 bg-brand-100" />
         <DropdownMenuItem
-          render={<Link href="/dashboard/profile" />}
+          render={<Link href="/settings" />}
           className="h-11 cursor-pointer rounded-none px-4 text-base font-medium"
         >
-          <Icon icon={User} className="size-5" />
-          User profile
+          <Icon icon={Settings} className="size-5" />
+          Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator className="mx-0 my-0 bg-brand-100" />
         <DropdownMenuItem

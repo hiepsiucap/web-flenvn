@@ -47,3 +47,27 @@ export async function GET(request: Request) {
 
   return Response.json(data, { status: backendResponse.status });
 }
+
+export async function PUT(request: Request) {
+  const token = await getAccessToken(request);
+
+  if (!token) {
+    return Response.json({ message: "Please sign in again" }, { status: 401 });
+  }
+
+  const backendResponse = await fetch(
+    new URL("/api/v1/users/profile", process.env.API_BASE_URL ?? "http://localhost:5000"),
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: await request.text(),
+      cache: "no-store",
+    }
+  );
+  const data = await parseBackendResponse(backendResponse);
+
+  return Response.json(data, { status: backendResponse.status });
+}

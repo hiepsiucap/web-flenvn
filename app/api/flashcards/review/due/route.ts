@@ -27,6 +27,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const bookId = url.searchParams.get("bookId");
   const limit = url.searchParams.get("limit");
+  const labelIds = url.searchParams.get("labelIds");
+  const labelMode = url.searchParams.get("labelMode");
 
   if (!token) {
     return Response.json({ message: "Please sign in again" }, { status: 401 });
@@ -45,6 +47,10 @@ export async function GET(request: Request) {
   );
   backendUrl.searchParams.set("bookId", bookId);
   backendUrl.searchParams.set("limit", limit);
+  if (labelIds) backendUrl.searchParams.set("labelIds", labelIds);
+  if (labelMode === "any" || labelMode === "all") {
+    backendUrl.searchParams.set("labelMode", labelMode);
+  }
 
   const backendResponse = await fetch(backendUrl, {
     headers: {

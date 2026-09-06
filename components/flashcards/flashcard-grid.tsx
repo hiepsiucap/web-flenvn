@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import {
   BookOpen,
   FloppyDisk as Save,
@@ -12,7 +12,6 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -34,8 +33,13 @@ import {
 } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
 import { HttpError, http } from "@/lib/http";
-import type { ApiErrorResponse } from "@/lib/auth-types";
-import type { Flashcard } from "@/lib/dashboard-data";
+import { FlashcardLabelBadges } from "@/components/flashcards/labels/flashcard-label-badges";
+import { LabelingStatus } from "@/components/flashcards/labels/labeling-status";
+import { useFlashcardLabelPolling } from "@/components/flashcards/labels/use-flashcard-label-polling";
+import { FlashcardLabelEditor } from "@/components/flashcards/labels/flashcard-label-editor";
+import { LearningStatusBadge } from "@/components/flashcards/learning-status-badge";
+import type { ApiEnvelope, ApiErrorResponse } from "@/lib/auth-types";
+import type { Flashcard, LabelCatalogItem } from "@/lib/dashboard-data";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
@@ -59,8 +63,16 @@ function isValidHttpUrl(value?: string | null): value is string {
   }
 }
 
-export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
+export function FlashcardGrid({
+  flashcards,
+  labels,
+}: {
+  flashcards: Flashcard[];
+  labels: LabelCatalogItem[];
+}) {
   const router = useRouter();
+  const [displayedFlashcards, setDisplayedFlashcards] = useState(flashcards);
+  const [labelCatalog, setLabelCatalog] = useState(labels);
   const [selectedCard, setSelectedCard] = useState<Flashcard | null>(null);
   const [word, setWord] = useState("");
   const [partOfSpeech, setPartOfSpeech] = useState("");
@@ -73,6 +85,16 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const replaceCard = useCallback((nextCard: Flashcard) => {
+    setDisplayedFlashcards((cards) =>
+      cards.map((card) => (card.id === nextCard.id ? nextCard : card))
+    );
+    setSelectedCard((card) => (card?.id === nextCard.id ? nextCard : card));
+  }, []);
+
+  const timedOutIds = useFlashcardLabelPolling(displayedFlashcards, replaceCard);
 
   function openCard(card: Flashcard) {
     setWord(card.word);
@@ -146,10 +168,34 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
     }
   }
 
+  async function handleRetry(card: Flashcard) {
+    setRetryingId(card.id);
+
+    try {
+      const response = await http.post<ApiEnvelope<Flashcard> | Flashcard>(
+        `/api/flashcards/${card.id}/labels/retry`
+      );
+      replaceCard("data" in response ? response.data : response);
+      toast.success("Labeling restarted");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to retry labeling"));
+      try {
+        const response = await http.get<ApiEnvelope<Flashcard> | Flashcard>(
+          `/api/flashcards/${card.id}`
+        );
+        replaceCard("data" in response ? response.data : response);
+      } catch {
+        // The original retry error is the actionable error for the user.
+      }
+    } finally {
+      setRetryingId(null);
+    }
+  }
+
   return (
     <>
       <section className="grid w-full grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-        {flashcards.map((card) => (
+        {displayedFlashcards.map((card) => (
           <button
             key={card.id}
             type="button"
@@ -176,23 +222,19 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                     {card.partOfSpeech || "Flashcard"}
                     {card.pronunciation ? ` - ${card.pronunciation}` : ""}
                   </Text>
+                  <div className="mt-2">
+                    <FlashcardLabelBadges labels={card.labels} limit={3} />
+                  </div>
                 </div>
-                <Badge variant="outline" className="shrink-0 rounded-2xl capitalize">
-                  {card.status}
-                </Badge>
+                <LearningStatusBadge status={card.status} className="shrink-0 rounded-2xl" />
               </div>
                   <Text className="line-clamp-2 min-h-10 leading-5" size="sm" tone="muted">
                     {card.definition || "No definition available."}
                   </Text>
-                  {isValidHttpUrl(card.exampleAudioUrl) ? (
-                    <span
-                      className="inline-flex size-8 items-center justify-center rounded-xl border border-border bg-background text-primary"
-                      title="Example audio available"
-                      aria-label="Example audio available"
-                    >
-                      <Icon icon={Volume2} />
-                    </span>
-                  ) : null}
+                  <LabelingStatus
+                    status={card.labelingStatus}
+                    timedOut={timedOutIds.has(card.id)}
+                  />
                 </div>
               </button>
         ))}
@@ -232,9 +274,7 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                     <Text as="div" size="3xl" weight="semibold">
                       {selectedCard.word}
                     </Text>
-                    <Badge variant="outline" className="rounded-2xl capitalize">
-                      {selectedCard.status}
-                    </Badge>
+                    <LearningStatusBadge status={selectedCard.status} className="rounded-2xl" />
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <span>
@@ -260,6 +300,35 @@ export function FlashcardGrid({ flashcards }: { flashcards: Flashcard[] }) {
                       {selectedCard.translation}
                     </Text>
                   ) : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <FlashcardLabelBadges labels={selectedCard.labels} />
+                    <FlashcardLabelEditor
+                      key={`${selectedCard.id}:${selectedCard.labels?.map((label) => label.id).join(",") ?? ""}`}
+                      card={selectedCard}
+                      labels={labelCatalog}
+                      onCardChange={replaceCard}
+                      onLabelCreated={(label) =>
+                        setLabelCatalog((current) =>
+                          current.some((item) => item.id === label.id)
+                            ? current
+                            : [...current, label]
+                        )
+                      }
+                      onCatalogChange={setLabelCatalog}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    <LabelingStatus
+                      status={selectedCard.labelingStatus}
+                      timedOut={timedOutIds.has(selectedCard.id)}
+                      retrying={retryingId === selectedCard.id}
+                      onRetry={
+                        selectedCard.labelingStatus === "failed"
+                          ? () => void handleRetry(selectedCard)
+                          : undefined
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 

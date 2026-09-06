@@ -297,6 +297,7 @@ export function CreateFlashcardDialog({
         imageUrl,
         example,
         bookId,
+        autoLabel: true,
       });
 
       toast.success("Flashcard created");
