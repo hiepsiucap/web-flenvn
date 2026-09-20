@@ -84,11 +84,13 @@ function persistTokens(response: LoginResponse) {
 export function AuthModal({
   children,
   defaultMode = "login",
+  openOnMount = false,
 }: {
   children: React.ReactNode;
   defaultMode?: AuthMode;
+  openOnMount?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openOnMount);
   const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -146,7 +148,7 @@ export function AuthModal({
 
         persistTokens(response);
         toast.success(response.message ?? "Signed in successfully");
-        window.location.assign("/dashboard");
+        window.location.assign("/");
         return;
       }
 

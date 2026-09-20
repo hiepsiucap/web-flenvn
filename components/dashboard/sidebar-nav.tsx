@@ -11,6 +11,7 @@ import {
   Lifebuoy,
   Stack as Layers3,
   SquaresFour as SquareStack,
+  Waveform,
 } from "@phosphor-icons/react";
 
 import { Icon } from "@/components/ui/icon";
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils";
 export type SidebarNavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "progress" | "support" | "settings";
+  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "shadowing" | "progress" | "support" | "settings";
 };
 
 const icons = {
@@ -28,6 +29,7 @@ const icons = {
   flashcards: SquareStack,
   flip: Cards,
   review: BookOpen,
+  shadowing: Waveform,
   progress: BarChart3,
   support: Lifebuoy,
   settings: Settings,
@@ -41,8 +43,8 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
       {items.map((item) => {
         const ItemIcon = icons[item.icon];
         const isActive =
-          pathname === item.href ||
-          (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          (item.href === "/" && (pathname === "/" || pathname === "/dashboard")) ||
+          (item.href !== "/" && pathname.startsWith(item.href));
 
         return (
           <Link

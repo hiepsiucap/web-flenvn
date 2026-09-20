@@ -94,7 +94,8 @@ export function LoginForm() {
       window.localStorage.setItem("refreshToken", response.data.refreshToken);
       setSuccess(response.message ?? "Signed in successfully");
       toast.success(response.message ?? "Signed in successfully");
-      window.location.assign("/dashboard");
+
+      window.location.assign("/");
     } catch (requestError) {
       const message = getErrorMessage(requestError);
       const nextFieldErrors = getFieldErrors(requestError);

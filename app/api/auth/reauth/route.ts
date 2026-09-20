@@ -30,7 +30,7 @@ function clearSessionCookies(response: NextResponse) {
 export async function GET(request: Request) {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
-  const loginUrl = new URL("/login?reason=session-expired", request.url);
+  const loginUrl = new URL("/?auth=login", request.url);
 
   if (!refreshToken) {
     const response = NextResponse.redirect(loginUrl);
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const response = NextResponse.redirect(new URL("/dashboard", request.url));
+  const response = NextResponse.redirect(new URL("/", request.url));
   const cookieOptions = {
     httpOnly: true,
     path: "/",

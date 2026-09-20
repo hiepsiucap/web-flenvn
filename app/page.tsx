@@ -24,6 +24,8 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { AuthModal } from "@/components/auth/auth-modal";
+import DashboardPage from "@/app/dashboard/page";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
@@ -45,6 +47,7 @@ const navLinks = [
   { label: "Games", href: "#games" },
   { label: "Pricing", href: "#pricing" },
   { label: "Blog", href: "#blog" },
+  { label: "Shadowing", href: "/shadowing" },
   { label: "Support", href: "/support" },
   { label: "Privacy", href: "/privacy" },
 ];
@@ -166,7 +169,25 @@ const games = [
   },
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ auth?: string }>;
+}) {
+  const params = await searchParams;
+
+  if (params.auth === "login") {
+    return <MarketingHome showLogin />;
+  }
+
+  return (
+    <DashboardShell>
+      <DashboardPage />
+    </DashboardShell>
+  );
+}
+
+export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
   return (
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_72%_12%,var(--landing-blue-highlight),transparent_28%),radial-gradient(circle_at_12%_52%,rgba(115,126,250,0.22),transparent_30%),linear-gradient(180deg,var(--landing-blue-start)_0%,var(--landing-blue-mid)_42%,var(--landing-blue-end)_100%)] text-white">
       <section className="relative min-h-screen px-6 py-7 sm:px-10 lg:px-16 xl:px-20">
@@ -196,7 +217,10 @@ export default function Home() {
             ))}
           </nav>
 
-          <AuthModal defaultMode="register">
+          <AuthModal
+            defaultMode={showLogin ? "login" : "register"}
+            openOnMount={showLogin}
+          >
             <Button className="h-11 rounded-full bg-white px-6 text-sm font-extrabold text-blue-700 hover:bg-white/90 sm:h-12 sm:px-8">
               Get Started
               <Icon icon={ArrowRight} className="size-5" weight="bold" />
