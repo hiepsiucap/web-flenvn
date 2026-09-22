@@ -77,7 +77,7 @@ export function getBookClient(bookId: string) {
 }
 
 export function getReviewDueBooksClient() {
-  return get<ReviewDueBooksResponse>("/api/flashcards/review/due");
+  return get<ReviewDueBooksResponse>("/api/books/review/due");
 }
 
 export async function getFlashcardsByBookClient(
