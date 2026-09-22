@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { FlipFlashcardReviewer } from "@/components/flashcards/flip-flashcard-reviewer";
@@ -9,6 +9,14 @@ import { CLIENT_DATA_CHANGED_EVENT, getBooksClient, getFlashcardsByBookClient } 
 import type { Book, Flashcard } from "@/lib/dashboard-data";
 
 export default function FlipFlashcardsPage() {
+  return (
+    <Suspense fallback={<LoadingState title="Loading study cards" description="Preparing your flashcards." />}>
+      <FlipFlashcardsPageContent />
+    </Suspense>
+  );
+}
+
+function FlipFlashcardsPageContent() {
   const bookId = useSearchParams().get("bookId") ?? undefined;
   const [data, setData] = useState<{
     books: Book[];

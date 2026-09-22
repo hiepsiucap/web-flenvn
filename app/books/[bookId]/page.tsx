@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import { FlashcardBookView } from "@/components/flashcards/flashcard-book-view";
@@ -15,6 +15,14 @@ import {
 import type { Book, Flashcard, LabelCatalogItem, LabelFilterMode } from "@/lib/dashboard-data";
 
 export default function BookFlashcardsPage() {
+  return (
+    <Suspense fallback={<LoadingState title="Loading flashcards" description="Loading this book and its cards." />}>
+      <BookFlashcardsPageContent />
+    </Suspense>
+  );
+}
+
+function BookFlashcardsPageContent() {
   const { bookId } = useParams<{ bookId: string }>();
   const searchParams = useSearchParams();
   const labelIds = searchParams.get("labelIds") ?? undefined;

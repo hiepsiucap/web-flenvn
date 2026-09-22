@@ -6,7 +6,6 @@ import { MagnifyingGlass as Search } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { LoadingState } from "@/components/ui/loading-state";
 import { Text } from "@/components/ui/text";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
@@ -23,12 +22,26 @@ import {
 } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
 
+const initialUser: ClientDashboardShellData = {
+  name: "FLEN learner",
+  email: "",
+  avatar: null,
+  initials: "FL",
+  progress: 0,
+  exp: 0,
+  level: 1,
+  rank: null,
+  streak: 0,
+  streakStatus: null,
+  error: null,
+};
+
 export function DashboardShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<ClientDashboardShellData | null>(null);
+  const [user, setUser] = useState<ClientDashboardShellData>(initialUser);
   const [books, setBooks] = useState<Book[]>([]);
 
   useEffect(() => {
@@ -57,15 +70,6 @@ export function DashboardShell({
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
   }, []);
-
-  if (!user) {
-    return (
-      <LoadingState
-        title="Loading your library"
-        description="Getting your learning dashboard ready."
-      />
-    );
-  }
 
   return (
     <StreakProvider initialStatus={user.streakStatus}>

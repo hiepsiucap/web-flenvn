@@ -25,6 +25,7 @@ export function StreakProvider({ initialStatus, children }: { initialStatus: Str
   const [status, setStatus] = useState(initialStatus);
   const [isLoading, setIsLoading] = useState(false);
   const localDateRef = useRef("");
+  const effectiveStatus = status ?? initialStatus;
 
   const refreshStreak = useCallback(async () => {
     setIsLoading(true);
@@ -39,16 +40,19 @@ export function StreakProvider({ initialStatus, children }: { initialStatus: Str
   }, []);
 
   const applyStreakProgress = useCallback((progress: StreakProgress) => {
-    setStatus((current) => current ? {
-      ...current,
+    setStatus((current) => {
+      const base = current ?? initialStatus;
+      return base ? {
+      ...base,
       currentStreak: progress.currentStreak,
       todayScore: progress.todayScore,
       dailyTarget: progress.dailyTarget,
       remainingScore: progress.remainingScore,
       progressPercent: progress.progressPercent,
       completedToday: progress.completedToday,
-    } : null);
-  }, []);
+    } : null;
+    });
+  }, [initialStatus]);
 
   useEffect(() => {
     function refreshWhenVisible() {
@@ -59,9 +63,9 @@ export function StreakProvider({ initialStatus, children }: { initialStatus: Str
   }, [refreshStreak]);
 
   useEffect(() => {
-    if (!status?.timezone) return;
+    if (!effectiveStatus?.timezone) return;
     const getLocalDate = () => new Intl.DateTimeFormat("en-CA", {
-      timeZone: status.timezone,
+      timeZone: effectiveStatus.timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -75,9 +79,9 @@ export function StreakProvider({ initialStatus, children }: { initialStatus: Str
       }
     }, 60_000);
     return () => window.clearInterval(interval);
-  }, [refreshStreak, status?.timezone]);
+  }, [effectiveStatus?.timezone, refreshStreak]);
 
-  const value = useMemo(() => ({ status, isLoading, refreshStreak, applyStreakProgress }), [status, isLoading, refreshStreak, applyStreakProgress]);
+  const value = useMemo(() => ({ status: effectiveStatus, isLoading, refreshStreak, applyStreakProgress }), [effectiveStatus, isLoading, refreshStreak, applyStreakProgress]);
   return <StreakContext.Provider value={value}>{children}</StreakContext.Provider>;
 }
 

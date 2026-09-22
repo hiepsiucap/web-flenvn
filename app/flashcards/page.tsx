@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react";
 
@@ -17,6 +17,14 @@ import type { Book, Flashcard, LabelCatalogItem, LabelFilterMode } from "@/lib/d
 import emptyFolderImage from "@/img/empty-folder.png";
 
 export default function FlashcardPage() {
+  return (
+    <Suspense fallback={<LoadingState title="Loading flashcards" description="Loading your books and cards." />}>
+      <FlashcardPageContent />
+    </Suspense>
+  );
+}
+
+function FlashcardPageContent() {
   const searchParams = useSearchParams();
   const bookId = searchParams.get("bookId") ?? undefined;
   const labelIds = searchParams.get("labelIds") ?? undefined;
