@@ -24,7 +24,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { AuthModal } from "@/components/auth/auth-modal";
-import DashboardPage from "@/app/dashboard/page";
+import DashboardPage from "@/app/(authenticated)/dashboard/page";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
