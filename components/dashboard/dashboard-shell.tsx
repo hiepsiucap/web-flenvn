@@ -17,6 +17,8 @@ import penguinTopbar from "@/img/peguin-topbar.png";
 import {
   CLIENT_DATA_CHANGED_EVENT,
   getBooksClient,
+  getCachedBooksClient,
+  getCachedDashboardShellDataClient,
   getDashboardShellDataClient,
   type ClientDashboardShellData,
 } from "@/lib/client-api";
@@ -41,8 +43,10 @@ export function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<ClientDashboardShellData>(initialUser);
-  const [books, setBooks] = useState<Book[]>([]);
+  const [user, setUser] = useState<ClientDashboardShellData>(
+    () => getCachedDashboardShellDataClient() ?? initialUser
+  );
+  const [books, setBooks] = useState<Book[]>(() => getCachedBooksClient() ?? []);
 
   useEffect(() => {
     if (!window.localStorage.getItem("accessToken")) {

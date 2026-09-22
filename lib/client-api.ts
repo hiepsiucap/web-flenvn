@@ -16,9 +16,18 @@ import type { StreakStatus } from "@/lib/streak-types";
 
 type AuthProfileData = { user?: UserProfile | null };
 
+let booksCache: Book[] | null = null;
+let booksPromise: Promise<Book[]> | null = null;
+let dashboardShellCache: ClientDashboardShellData | null = null;
+let dashboardShellPromise: Promise<ClientDashboardShellData> | null = null;
+
 export const CLIENT_DATA_CHANGED_EVENT = "flen:client-data-changed";
 
 export function notifyClientDataChanged() {
+  booksCache = null;
+  booksPromise = null;
+  dashboardShellCache = null;
+  dashboardShellPromise = null;
   window.dispatchEvent(new Event(CLIENT_DATA_CHANGED_EVENT));
 }
 
@@ -44,7 +53,23 @@ async function get<TData>(path: string, query?: Record<string, string | boolean>
 }
 
 export function getBooksClient() {
-  return get<Book[]>("/api/books");
+  if (booksCache) return Promise.resolve(booksCache);
+  if (booksPromise) return booksPromise;
+
+  booksPromise = get<Book[]>("/api/books")
+    .then((books) => {
+      booksCache = books;
+      return books;
+    })
+    .finally(() => {
+      booksPromise = null;
+    });
+
+  return booksPromise;
+}
+
+export function getCachedBooksClient() {
+  return booksCache;
 }
 
 export function getBookClient(bookId: string) {
@@ -95,6 +120,26 @@ function getInitials(value: string) {
 }
 
 export async function getDashboardShellDataClient() {
+  if (dashboardShellCache) return dashboardShellCache;
+  if (dashboardShellPromise) return dashboardShellPromise;
+
+  dashboardShellPromise = loadDashboardShellDataClient()
+    .then((data) => {
+      if (!data.error) dashboardShellCache = data;
+      return data;
+    })
+    .finally(() => {
+      dashboardShellPromise = null;
+    });
+
+  return dashboardShellPromise;
+}
+
+export function getCachedDashboardShellDataClient() {
+  return dashboardShellCache;
+}
+
+async function loadDashboardShellDataClient() {
   const [userProfile, authProfile, flashcards, streak] = await Promise.all([
     get<UserProfile>("/api/users/profile").catch(() => null),
     get<AuthProfileData>("/api/auth/profile").catch(() => null),
@@ -154,5 +199,5 @@ export type ClientDashboardPageData = Awaited<
   ReturnType<typeof getDashboardPageDataClient>
 >;
 export type ClientDashboardShellData = Awaited<
-  ReturnType<typeof getDashboardShellDataClient>
+  ReturnType<typeof loadDashboardShellDataClient>
 >;
