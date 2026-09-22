@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 async function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
   const cookieToken = cookie
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       "/api/v1/words/suggest-topic",
       process.env.API_BASE_URL ?? "http://localhost:5000"

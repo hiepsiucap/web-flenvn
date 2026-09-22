@@ -3,6 +3,7 @@ import type {
   BackendErrorResponse,
   TokenResponse,
 } from "@/lib/auth-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     return response;
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       "/api/v1/auth/refresh",
       process.env.API_BASE_URL ?? "http://localhost:5000"

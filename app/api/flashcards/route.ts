@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { Flashcard } from "@/lib/dashboard-data";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 type CreateFlashcardRequest = {
   word?: string;
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       "/api/v1/flashcards",
       process.env.API_BASE_URL ?? "http://localhost:5000"

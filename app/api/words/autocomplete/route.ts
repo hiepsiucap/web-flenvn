@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 async function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
   return cookie
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
   backendUrl.searchParams.set("q", query);
   backendUrl.searchParams.set("limit", requestUrl.searchParams.get("limit") ?? "5");
 
-  const backendResponse = await fetch(backendUrl, {
+  const backendResponse = await fetchWithTimeout(backendUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

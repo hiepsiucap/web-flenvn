@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { Flashcard } from "@/lib/dashboard-data";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 async function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
     backendUrl.searchParams.set("labelMode", labelMode);
   }
 
-  const backendResponse = await fetch(backendUrl, {
+  const backendResponse = await fetchWithTimeout(backendUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

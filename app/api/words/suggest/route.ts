@@ -1,4 +1,5 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 type WordSuggestion = {
   word?: string;
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
     requestUrl.searchParams.get("imageLimit") ?? "3"
   );
 
-  const backendResponse = await fetch(backendUrl, {
+  const backendResponse = await fetchWithTimeout(backendUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 type QueryValue = string | number | boolean | null | undefined;
 
 type RequestOptions<TBody = unknown> = Omit<RequestInit, "body"> & {
@@ -86,7 +88,7 @@ export async function request<TData, TBody = unknown>(
     requestHeaders.set("content-type", "application/json");
   }
 
-  const response = await fetch(buildUrl(path, query), {
+  const response = await fetchWithTimeout(buildUrl(path, query), {
     ...init,
     body: shouldStringify ? JSON.stringify(body) : (body as BodyInit),
     headers: requestHeaders,

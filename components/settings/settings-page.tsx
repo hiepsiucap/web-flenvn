@@ -16,6 +16,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { Text } from "@/components/ui/text";
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { UserProfile } from "@/lib/dashboard-data";
+import { API_TIMEOUT_MS, fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { HttpError, http } from "@/lib/http";
 import type { StreakStatus, UpdateStreakSettingsResponse } from "@/lib/streak-types";
 
@@ -191,11 +192,13 @@ export function SettingsPage() {
     await new Promise<void>((resolve, reject) => {
       const request = new XMLHttpRequest();
       request.open("PUT", presign.uploadUrl);
+      request.timeout = API_TIMEOUT_MS;
       request.setRequestHeader("Content-Type", file.type);
       Object.entries(presign.headers ?? {}).forEach(([key, value]) => request.setRequestHeader(key, value));
       request.upload.onprogress = (event) => { if (event.lengthComputable) setUploadProgress(Math.round((event.loaded / event.total) * 100)); };
       request.onload = () => request.status >= 200 && request.status < 300 ? resolve() : reject(new Error("Avatar upload failed."));
       request.onerror = () => reject(new Error("Avatar upload failed."));
+      request.ontimeout = () => reject(new Error("Avatar upload timed out."));
       request.send(file);
     });
     return presign.fileUrl;
@@ -274,7 +277,7 @@ export function SettingsPage() {
     window.localStorage.removeItem("refreshToken");
     window.sessionStorage.removeItem("accessToken");
     window.sessionStorage.removeItem("refreshToken");
-    await fetch("/api/auth/logout", { method: "POST", cache: "no-store", credentials: "same-origin" }).catch(() => null);
+    await fetchWithTimeout("/api/auth/logout", { method: "POST", cache: "no-store", credentials: "same-origin" }).catch(() => null);
     window.location.replace("/");
   }
 

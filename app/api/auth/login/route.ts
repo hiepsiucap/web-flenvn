@@ -4,6 +4,7 @@ import type {
   LoginRequest,
   LoginResponse,
 } from "@/lib/auth-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { NextResponse } from "next/server";
 
 function json<TData>(data: TData, init?: ResponseInit) {
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const backendResponse = await fetch(
+    const backendResponse = await fetchWithTimeout(
       new URL("/api/v1/auth/login", apiBaseUrl),
       {
         method: "POST",

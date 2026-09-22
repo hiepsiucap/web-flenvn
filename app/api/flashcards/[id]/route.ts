@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { Flashcard } from "@/lib/dashboard-data";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 type UpdateFlashcardRequest = Partial<{
   word: string;
@@ -44,7 +45,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/flashcards/[
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       `/api/v1/flashcards/${encodeURIComponent(id)}`,
       process.env.API_BASE_URL ?? "http://localhost:5000"
@@ -76,7 +77,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/flashcards/[
     );
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       `/api/v1/flashcards/${encodeURIComponent(id)}`,
       process.env.API_BASE_URL ?? "http://localhost:5000"
@@ -111,7 +112,7 @@ export async function DELETE(
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       `/api/v1/flashcards/${encodeURIComponent(id)}`,
       process.env.API_BASE_URL ?? "http://localhost:5000"

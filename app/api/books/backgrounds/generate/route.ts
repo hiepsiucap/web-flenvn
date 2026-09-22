@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 type GenerateBackgroundsRequest = {
   title?: string;
   description?: string;
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   const count = Math.min(6, Math.max(1, Math.trunc(body.count ?? 3)));
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       "/api/v1/books/backgrounds/generate",
       process.env.API_BASE_URL ?? "http://localhost:5000"

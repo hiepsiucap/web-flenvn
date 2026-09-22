@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
   const cookieToken = cookie
@@ -31,7 +33,7 @@ export async function proxyAuthenticatedRequest(
   headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(path, process.env.API_BASE_URL ?? "http://localhost:5000"),
     { ...init, headers, cache: "no-store" }
   );

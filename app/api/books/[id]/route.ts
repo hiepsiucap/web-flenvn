@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
 async function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
   return cookie
@@ -28,7 +30,7 @@ export async function DELETE(
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       `/api/v1/books/${encodeURIComponent(id)}`,
       process.env.API_BASE_URL ?? "http://localhost:5000"

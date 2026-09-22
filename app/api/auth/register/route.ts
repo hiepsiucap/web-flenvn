@@ -4,6 +4,7 @@ import type {
   RegisterRequest,
   RegisterResponse,
 } from "@/lib/auth-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 function json<TData>(data: TData, init?: ResponseInit) {
   return Response.json(data, init);
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const backendResponse = await fetch(
+    const backendResponse = await fetchWithTimeout(
       new URL("/api/v1/auth/register", apiBaseUrl),
       {
         method: "POST",

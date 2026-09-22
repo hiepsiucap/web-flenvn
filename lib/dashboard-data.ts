@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { ApiEnvelope } from "@/lib/auth-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import type { StreakStatus } from "@/lib/streak-types";
 
 export type UserRank = {
@@ -182,7 +183,7 @@ async function backendGetResult<TData>(path: string): Promise<BackendResult<TDat
   }
 
   try {
-    const response = await fetch(new URL(path, getApiBaseUrl()), {
+    const response = await fetchWithTimeout(new URL(path, getApiBaseUrl()), {
       headers: {
         Authorization: `Bearer ${token}`,
       },

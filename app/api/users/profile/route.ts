@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { UserProfile } from "@/lib/dashboard-data";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 async function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL(
       "/api/v1/users/profile",
       process.env.API_BASE_URL ?? "http://localhost:5000"
@@ -55,7 +56,7 @@ export async function PUT(request: Request) {
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL("/api/v1/users/profile", process.env.API_BASE_URL ?? "http://localhost:5000"),
     {
       method: "PUT",

@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/lib/auth-types";
 import type { RankCatalogResponse } from "@/lib/rank-types";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 function getAccessToken(request: Request) {
   const cookie = request.headers.get("cookie") ?? "";
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
     return Response.json({ message: "Please sign in again" }, { status: 401 });
   }
 
-  const backendResponse = await fetch(
+  const backendResponse = await fetchWithTimeout(
     new URL("/api/v1/ranks", process.env.API_BASE_URL ?? "http://localhost:5000"),
     { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
   );
