@@ -148,7 +148,7 @@ export function AuthModal({
 
         persistTokens(response);
         toast.success(response.message ?? "Signed in successfully");
-        window.location.assign("/");
+        window.location.assign("/dashboard");
         return;
       }
 

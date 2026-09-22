@@ -1,28 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
 import { FlipFlashcardReviewer } from "@/components/flashcards/flip-flashcard-reviewer";
-import { getBooks, getFlashcardsByBook } from "@/lib/dashboard-data";
+import { LoadingState } from "@/components/ui/loading-state";
+import { CLIENT_DATA_CHANGED_EVENT, getBooksClient, getFlashcardsByBookClient } from "@/lib/client-api";
+import type { Book, Flashcard } from "@/lib/dashboard-data";
 
-type FlipFlashcardsPageProps = {
-  searchParams: Promise<{
-    bookId?: string;
-  }>;
-};
+export default function FlipFlashcardsPage() {
+  const bookId = useSearchParams().get("bookId") ?? undefined;
+  const [data, setData] = useState<{
+    books: Book[];
+    selectedBook: Book | null;
+    flashcards: Flashcard[];
+  } | null>(null);
 
-export default async function FlipFlashcardsPage({
-  searchParams,
-}: FlipFlashcardsPageProps) {
-  const [{ bookId }, books] = await Promise.all([searchParams, getBooks()]);
-  const selectedBook =
-    books.find((book) => book.id === bookId) ?? books[0] ?? null;
-  const flashcards = selectedBook
-    ? await getFlashcardsByBook(selectedBook.id)
-    : [];
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      void getBooksClient().then(async (books) => {
+        const selectedBook = books.find((book) => book.id === bookId) ?? books[0] ?? null;
+        const flashcards = selectedBook
+          ? await getFlashcardsByBookClient(selectedBook.id)
+          : [];
+        if (active) setData({ books, selectedBook, flashcards });
+      });
+    };
+    load();
+    window.addEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+    return () => {
+      active = false;
+      window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+    };
+  }, [bookId]);
+
+  if (!data) {
+    return <LoadingState title="Loading study cards" description="Preparing your flashcards." />;
+  }
 
   return (
     <FlipFlashcardReviewer
-      key={selectedBook?.id ?? "no-book"}
-      books={books}
-      flashcards={flashcards}
-      selectedBook={selectedBook}
+      key={data.selectedBook?.id ?? "no-book"}
+      books={data.books}
+      flashcards={data.flashcards}
+      selectedBook={data.selectedBook}
     />
   );
 }

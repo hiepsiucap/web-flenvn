@@ -7,7 +7,6 @@ import {
   Sparkle as Sparkles,
   Spinner as Loader2,
 } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
   ModalTrigger,
 } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import { cn } from "@/lib/utils";
@@ -92,7 +92,6 @@ function getGeneratedBackgroundUrls(response: GeneratedBackgroundResponse) {
 }
 
 export function CreateBookDialog() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -169,7 +168,7 @@ export function CreateBookDialog() {
       setBookFileName("");
       setGeneratedBackgrounds([]);
       setSelectedBackground("");
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {

@@ -43,8 +43,8 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
       {items.map((item) => {
         const ItemIcon = icons[item.icon];
         const isActive =
-          (item.href === "/" && (pathname === "/" || pathname === "/dashboard")) ||
-          (item.href !== "/" && pathname.startsWith(item.href));
+          pathname === item.href ||
+          (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
         return (
           <Link

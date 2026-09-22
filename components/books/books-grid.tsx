@@ -7,7 +7,6 @@ import {
   Stack as Layers3,
   Trash as Trash2,
 } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useState } from "react";
 
@@ -21,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
@@ -35,7 +35,6 @@ function getErrorMessage(error: unknown) {
 }
 
 export function BooksGrid({ books }: { books: Book[] }) {
-  const router = useRouter();
   const [deletingBookId, setDeletingBookId] = useState("");
 
   async function handleDelete(book: Book) {
@@ -52,7 +51,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
     try {
       await http.delete(`/api/books/${book.id}`);
       toast.success("Book deleted");
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {

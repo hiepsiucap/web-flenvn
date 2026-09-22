@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
-import { MagnifyingGlass as Search } from "@phosphor-icons/react/ssr";
+import { useEffect, useState } from "react";
+import { MagnifyingGlass as Search } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Text } from "@/components/ui/text";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
@@ -11,14 +15,57 @@ import { StreakProvider } from "@/components/streak/streak-provider";
 import { StreakTopbar } from "@/components/streak/streak-topbar";
 import { SuggestVocabularyDialog } from "@/components/vocabulary/suggest-vocabulary-dialog";
 import penguinTopbar from "@/img/peguin-topbar.png";
-import { getBooks, getDashboardShellData } from "@/lib/dashboard-data";
+import {
+  CLIENT_DATA_CHANGED_EVENT,
+  getBooksClient,
+  getDashboardShellDataClient,
+  type ClientDashboardShellData,
+} from "@/lib/client-api";
+import type { Book } from "@/lib/dashboard-data";
 
-export async function DashboardShell({
+export function DashboardShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, books] = await Promise.all([getDashboardShellData(), getBooks()]);
+  const [user, setUser] = useState<ClientDashboardShellData | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
+
+  useEffect(() => {
+    if (!window.localStorage.getItem("accessToken")) {
+      window.location.replace("/?auth=login");
+      return;
+    }
+
+    let active = true;
+    const load = () => {
+      void Promise.all([getDashboardShellDataClient(), getBooksClient()])
+        .then(([nextUser, nextBooks]) => {
+        if (!active) return;
+        setUser(nextUser);
+        setBooks(nextBooks);
+      })
+      .catch(() => {
+        if (active) window.location.replace("/?auth=login");
+      });
+    };
+    load();
+    window.addEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+
+    return () => {
+      active = false;
+      window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+    };
+  }, []);
+
+  if (!user) {
+    return (
+      <LoadingState
+        title="Loading your library"
+        description="Getting your learning dashboard ready."
+      />
+    );
+  }
 
   return (
     <StreakProvider initialStatus={user.streakStatus}>

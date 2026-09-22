@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   Cards,
@@ -9,7 +12,7 @@ import {
   Stack as Layers3,
   Star,
   Target,
-} from "@phosphor-icons/react/ssr";
+} from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -20,16 +23,54 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Text } from "@/components/ui/text";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { StreakCard } from "@/components/streak/streak-card";
-import { getDashboardPageData } from "@/lib/dashboard-data";
+import {
+  CLIENT_DATA_CHANGED_EVENT,
+  getDashboardPageDataClient,
+  type ClientDashboardPageData,
+} from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 import emptyFolderImage from "@/img/empty-folder.png";
 import penguinTopbar from "@/img/peguin-topbar.png";
 
-export default async function DashboardPage() {
-  const dashboard = await getDashboardPageData();
+export default function DashboardPage() {
+  const [dashboard, setDashboard] = useState<ClientDashboardPageData | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      void getDashboardPageDataClient()
+        .then((data) => {
+        if (active) setDashboard(data);
+      })
+      .catch(() => {
+        if (active) setLoadError("Unable to load dashboard data.");
+      });
+    };
+    load();
+    window.addEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+    return () => {
+      active = false;
+      window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
+    };
+  }, []);
+
+  if (loadError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Dashboard data unavailable</AlertTitle>
+        <AlertDescription>{loadError}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!dashboard) {
+    return <LoadingState title="Loading dashboard" description="Loading your latest learning progress." />;
+  }
   const remainingPercent = Math.max(0, 100 - dashboard.masteredPercent);
   const remainingCards = Math.max(0, dashboard.totalCards - dashboard.masteredCards);
   const hasDashboardData = dashboard.activeDecks > 0 || dashboard.totalCards > 0;

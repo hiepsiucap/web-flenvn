@@ -95,7 +95,7 @@ export function LoginForm() {
       setSuccess(response.message ?? "Signed in successfully");
       toast.success(response.message ?? "Signed in successfully");
 
-      window.location.assign("/");
+      window.location.assign("/dashboard");
     } catch (requestError) {
       const message = getErrorMessage(requestError);
       const nextFieldErrors = getFieldErrors(requestError);

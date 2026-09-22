@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 type ProfileMenuProps = {
   user: {
@@ -37,17 +36,9 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
     window.sessionStorage.removeItem("refreshToken");
   }
 
-  async function handleLogout() {
+  function handleLogout() {
     clearBrowserTokens();
-
-    await fetchWithTimeout("/api/auth/logout", {
-      method: "POST",
-      cache: "no-store",
-      credentials: "same-origin",
-    }).catch(() => null);
-
-    clearBrowserTokens();
-    window.location.replace("/");
+    window.location.replace("/?auth=login");
   }
 
   return (

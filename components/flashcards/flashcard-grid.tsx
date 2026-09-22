@@ -9,7 +9,6 @@ import {
   Spinner as Loader2,
   Trash as Trash2,
 } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import { FlashcardLabelBadges } from "@/components/flashcards/labels/flashcard-label-badges";
 import { LabelingStatus } from "@/components/flashcards/labels/labeling-status";
@@ -70,7 +70,6 @@ export function FlashcardGrid({
   flashcards: Flashcard[];
   labels: LabelCatalogItem[];
 }) {
-  const router = useRouter();
   const [displayedFlashcards, setDisplayedFlashcards] = useState(flashcards);
   const [labelCatalog, setLabelCatalog] = useState(labels);
   const [selectedCard, setSelectedCard] = useState<Flashcard | null>(null);
@@ -141,7 +140,7 @@ export function FlashcardGrid({
 
       toast.success("Flashcard updated");
       setSelectedCard(null);
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to update flashcard"));
     } finally {
@@ -160,7 +159,7 @@ export function FlashcardGrid({
       await http.delete(`/api/flashcards/${selectedCard.id}`);
       toast.success("Flashcard deleted");
       setSelectedCard(null);
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to delete flashcard"));
     } finally {

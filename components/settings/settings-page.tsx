@@ -2,7 +2,6 @@
 
 import { CheckCircle, Eye, EyeSlash, Flag, LockKey, SignOut, UserCircle } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,8 +14,9 @@ import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Text } from "@/components/ui/text";
 import type { ApiEnvelope } from "@/lib/auth-types";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import type { UserProfile } from "@/lib/dashboard-data";
-import { API_TIMEOUT_MS, fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { API_TIMEOUT_MS } from "@/lib/fetch-with-timeout";
 import { HttpError, http } from "@/lib/http";
 import type { StreakStatus, UpdateStreakSettingsResponse } from "@/lib/streak-types";
 
@@ -80,7 +80,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export function SettingsPage() {
-  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [streak, setStreak] = useState<StreakStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,7 +223,7 @@ export function SettingsPage() {
       setAvatarFile(null);
       setAvatarPreview(null);
       setProfileNotice({ kind: "success", message: saved.email !== profile?.email ? "Profile saved. Please verify your new email address." : "Your profile has been updated." });
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       setProfileNotice({ kind: "error", message: errorMessage(error, "Unable to update your profile.") });
     } finally {
@@ -277,8 +276,7 @@ export function SettingsPage() {
     window.localStorage.removeItem("refreshToken");
     window.sessionStorage.removeItem("accessToken");
     window.sessionStorage.removeItem("refreshToken");
-    await fetchWithTimeout("/api/auth/logout", { method: "POST", cache: "no-store", credentials: "same-origin" }).catch(() => null);
-    window.location.replace("/");
+    window.location.replace("/?auth=login");
   }
 
   if (loading) return <LoadingState title="Loading settings" description="Getting your profile and learning goal ready." />;

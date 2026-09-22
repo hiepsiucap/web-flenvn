@@ -21,7 +21,6 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +51,7 @@ import {
   type ProgressTransition,
 } from "@/lib/progress-transition";
 import { cn } from "@/lib/utils";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import penguinPlayGame from "@/img/penguin-playgame.png";
 import practiceCompletePenguin from "@/img/practice-complete-penguin.png";
 import {
@@ -131,7 +131,6 @@ export function PracticeRunner({
   books: ReviewDueBook[];
   flashcardPool: Flashcard[];
 }) {
-  const router = useRouter();
   const { applyStreakProgress, refreshStreak } = useStreak();
   const firstBook = books.find((book) => book.dueForReview > 0) ?? books[0];
   const [bookId, setBookId] = useState(getReviewBookId(firstBook) ?? "");
@@ -385,7 +384,7 @@ export function PracticeRunner({
     setSummary(nextSummary);
     setProgressTransition(shouldCelebrate ? nextTransition : null);
     setIsSubmitting(false);
-    router.refresh();
+    notifyClientDataChanged();
   }
 
   async function submitAnswer(value: string, skipped = false) {

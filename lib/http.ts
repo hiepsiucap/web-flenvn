@@ -24,7 +24,10 @@ export class HttpError<TData = unknown> extends Error {
 let refreshPromise: Promise<boolean> | null = null;
 
 function buildUrl(path: string, query?: RequestOptions["query"]) {
-  const url = new URL(path, getBaseUrl());
+  const apiPath = path.startsWith("/api/v1/")
+    ? path
+    : path.replace(/^\/api\//, "/api/v1/");
+  const url = new URL(apiPath, getBaseUrl());
 
   if (!query) {
     return url.toString();
@@ -44,11 +47,7 @@ function buildUrl(path: string, query?: RequestOptions["query"]) {
 }
 
 function getBaseUrl() {
-  if (typeof window !== "undefined") {
-    return window.location.origin;
-  }
-
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.flenvn.app";
 }
 
 function isJsonBody(body: unknown) {
@@ -88,6 +87,11 @@ export async function request<TData, TBody = unknown>(
     requestHeaders.set("content-type", "application/json");
   }
 
+  if (typeof window !== "undefined" && !requestHeaders.has("authorization")) {
+    const accessToken = window.localStorage.getItem("accessToken");
+    if (accessToken) requestHeaders.set("authorization", `Bearer ${accessToken}`);
+  }
+
   const response = await fetchWithTimeout(buildUrl(path, query), {
     ...init,
     body: shouldStringify ? JSON.stringify(body) : (body as BodyInit),
@@ -118,12 +122,16 @@ export async function request<TData, TBody = unknown>(
 
 async function refreshSession() {
   try {
+    const refreshToken = window.localStorage.getItem("refreshToken");
+    if (!refreshToken) return false;
+
     const response = await request<{
       data: { accessToken: string; refreshToken: string };
     }>(
       "/api/auth/refresh",
       {
         method: "POST",
+        headers: { "x-refresh-token": refreshToken },
       },
       false
     );

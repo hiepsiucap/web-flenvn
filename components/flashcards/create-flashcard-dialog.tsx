@@ -10,7 +10,6 @@ import {
   Spinner as Loader2,
   MagicWand as Wand2,
 } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +38,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { HttpError, http } from "@/lib/http";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
@@ -106,7 +106,6 @@ export function CreateFlashcardDialog({
   books: Book[];
   defaultBookId?: string;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [bookId, setBookId] = useState(defaultBookId ?? books[0]?.id ?? "");
   const [word, setWord] = useState("");
@@ -303,7 +302,7 @@ export function CreateFlashcardDialog({
       toast.success("Flashcard created");
       clearForm();
       setOpen(false);
-      router.refresh();
+      notifyClientDataChanged();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {

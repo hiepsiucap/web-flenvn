@@ -9,7 +9,6 @@ import {
   Spinner as Loader2,
   X,
 } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { HttpError, http } from "@/lib/http";
+import { notifyClientDataChanged } from "@/lib/client-api";
 import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
 
@@ -109,7 +109,6 @@ function unwrapData<TData>(response: ApiEnvelope<TData> | TData) {
 }
 
 export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState<TopicLevel>("beginner");
@@ -216,7 +215,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
     }
 
     if (created) {
-      router.refresh();
+      notifyClientDataChanged();
     }
 
     toast.success(

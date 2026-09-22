@@ -13,7 +13,7 @@ import { Text } from "@/components/ui/text";
 import logo from "@/img/new-logo.png";
 
 const navItems: SidebarNavItem[] = [
-  { label: "Dashboard", href: "/", icon: "dashboard" },
+  { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
   { label: "Books", href: "/books", icon: "books" },
   { label: "Flip cards", href: "/flip-flashcards", icon: "flip" },
   { label: "Review", href: "/review", icon: "review" },
@@ -25,7 +25,7 @@ const navItems: SidebarNavItem[] = [
 export function DashboardSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground lg:flex lg:flex-col">
-      <Link href="/" className="flex items-center gap-3 px-2">
+      <Link href="/dashboard" className="flex items-center gap-3 px-2">
         <Image src={logo} alt="FLEN logo" className="size-14" priority />
         <div>
           <Text size="lg" weight="bold" leading="none">
