@@ -166,16 +166,16 @@ export function ShadowingPlayer() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[1280px] gap-5 sm:gap-6">
-      <header className="flex min-h-28 items-center justify-between overflow-hidden">
-        <div className="max-w-3xl py-2">
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">YouTube shadowing</h1>
-          <Text className="mt-2 text-base text-muted-foreground sm:text-lg" weight="semibold">Listen to short caption segments, repeat them aloud, and move at your own pace.</Text>
+    <div className="mx-auto grid w-full max-w-[1280px] gap-4 sm:gap-5">
+      <header className="flex min-h-20 items-center justify-between overflow-hidden">
+        <div className="max-w-3xl py-1">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
+          <Text className="mt-1 text-sm text-muted-foreground sm:text-base" weight="semibold">Listen to short caption segments, repeat them aloud, and move at your own pace.</Text>
         </div>
-        <Image src={mascot} alt="FLEN penguin ready to practice" className="hidden h-32 w-auto shrink-0 object-contain sm:block lg:h-36" priority />
+        <Image src={mascot} alt="FLEN penguin ready to practice" className="hidden h-24 w-auto shrink-0 object-contain sm:block lg:h-28" priority />
       </header>
 
-      <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
+      <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]">
         <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
         <CardContent>
           <Form onSubmit={prepareVideo} className="gap-5">
