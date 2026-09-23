@@ -245,16 +245,16 @@ export function ShadowingPlayer() {
 
   return (
     <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5">
-      <header className="flex min-h-16 items-center motion-enter">
-        <div className="max-w-3xl py-1">
+      <header className="relative flex min-h-28 items-center motion-enter sm:min-h-32 lg:min-h-36">
+        <div className="max-w-3xl py-1 sm:pr-56 lg:pr-72">
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
         </div>
+        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute right-0 top-0 hidden h-32 w-auto object-contain object-top motion-mascot-enter sm:block lg:h-36" priority />
       </header>
 
-      {!result && !isPreparing ? <div className="relative pb-28 motion-enter motion-delay-1 sm:pb-32">
-        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]">
-          <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
-          <CardContent>
+      {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
+        <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
+        <CardContent>
           <Form onSubmit={prepareVideo} className="gap-5">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_218px]">
               <div className="relative">
@@ -290,10 +290,8 @@ export function ShadowingPlayer() {
             </div>
             {error ? <FormMessage id="shadowing-error" variant="error" role="alert">{error}</FormMessage> : null}
           </Form>
-          </CardContent>
-        </Card>
-        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="pointer-events-none absolute bottom-0 right-4 h-24 w-auto object-contain object-bottom motion-mascot-enter sm:h-28" priority />
-      </div> : null}
+        </CardContent>
+      </Card> : null}
 
       {!result && !isPreparing ? <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
@@ -326,7 +324,7 @@ export function ShadowingPlayer() {
       {!isPreparing && error && !result ? <Alert variant="destructive" className="rounded-2xl p-4"><WarningCircle /><AlertTitle>Couldn’t prepare this video</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
 
       {!isPreparing && result && currentSentence ? (
-        <section key={result.videoId} ref={practiceRef} className="relative scroll-mt-28 grid gap-5 pb-28 motion-enter sm:pb-32 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]" aria-labelledby="practice-title">
+        <section key={result.videoId} ref={practiceRef} className="scroll-mt-28 grid gap-5 motion-enter xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]" aria-labelledby="practice-title">
           <Card className="rounded-3xl [--card-spacing:--spacing(4)]">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
@@ -353,7 +351,6 @@ export function ShadowingPlayer() {
               <div className="grid grid-cols-2 gap-3"><Button type="button" variant="outline" disabled={currentIndex === 0} onClick={() => playSentence(currentIndex - 1)}><Icon icon={CaretLeft} />Previous</Button><Button type="button" variant="outline" disabled={currentIndex === result.sentences.length - 1} onClick={() => playSentence(currentIndex + 1)}>Next<Icon icon={CaretRight} /></Button></div>
             </CardContent>
           </Card>
-          <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="pointer-events-none absolute bottom-0 right-4 h-24 w-auto object-contain object-bottom motion-mascot-enter sm:h-28" priority />
         </section>
       ) : null}
     </div>
