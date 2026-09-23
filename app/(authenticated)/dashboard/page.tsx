@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const hasDashboardData = dashboard.activeDecks > 0 || dashboard.totalCards > 0;
 
   return (
-    <div className="grid gap-10">
+    <div className="grid gap-10 motion-reduce-safe">
       {dashboard.error ? (
         <Alert variant="destructive">
           <AlertTitle>Dashboard data unavailable</AlertTitle>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         </Alert>
       ) : null}
 
-      <section className="relative px-2 pt-2">
+      <section className="relative px-2 pt-2 motion-enter">
         <div className="relative z-(--z-dashboard-content) flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -110,9 +110,9 @@ export default function DashboardPage() {
 
       {hasDashboardData ? (
         <>
-        <section className="grid gap-5 xl:grid-cols-2">
+        <section className="grid gap-5 motion-enter motion-delay-1 xl:grid-cols-2">
           <div className="grid content-start gap-5">
-          <Card className="relative min-h-[360px] justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(5)]">
+          <Card interactive className="relative min-h-[360px] justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(5)]">
             <CardHeader className="relative z-(--z-dashboard-content) gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <ColoredBookBadge />
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-brand-100">
                   <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--secondary)_0%,var(--brand-400)_45%,var(--primary)_100%)]"
+                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--secondary)_0%,var(--brand-400)_45%,var(--primary)_100%)] motion-progress-enter"
                     style={{ width: `${dashboard.masteredPercent}%` }}
                   />
                 </div>
@@ -190,8 +190,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
-          <Card className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
+        <section className="grid gap-5 motion-enter motion-delay-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
+          <Card interactive className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle className="text-lg font-extrabold tracking-normal">
                 Jump back in
@@ -225,7 +225,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
+          <Card interactive className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle className="text-lg font-extrabold tracking-normal">
                 Learning snapshot
@@ -243,7 +243,7 @@ export default function DashboardPage() {
         </section>
         </>
       ) : (
-        <section className="grid min-h-[520px] place-items-center rounded-3xl border border-brand-200 bg-white px-6 py-12 text-center shadow-xl shadow-brand-800/8">
+        <section className="grid min-h-[520px] place-items-center rounded-3xl border border-brand-200 bg-white px-6 py-12 text-center shadow-xl shadow-brand-800/8 motion-enter">
           <div className="flex max-w-sm flex-col items-center">
             <Image
               src={emptyFolderImage}
@@ -282,7 +282,7 @@ function QuickAction({
   cta: string;
 }) {
   return (
-    <article className="flex min-h-36 flex-col justify-between rounded-2xl border border-brand-200 bg-card p-4">
+    <article className="flex min-h-36 flex-col justify-between rounded-2xl border border-brand-200 bg-card p-4 transition-[transform,box-shadow,border-color] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-brand-800/10 motion-reduce:transform-none">
       <div>
         <Icon icon={icon} className="size-6 text-primary" weight="duotone" />
         <Text as="div" className="mt-4 text-base font-extrabold tracking-normal">
@@ -346,6 +346,7 @@ function DashboardStatCard({
 
   return (
     <Card
+      interactive
       className={cn(
         "relative justify-between rounded-3xl border-0 shadow-xl shadow-brand-800/8 [--card-spacing:--spacing(4)]",
         styles[variant],

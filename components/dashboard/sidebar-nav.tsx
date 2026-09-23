@@ -50,13 +50,14 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
           <Link
             key={item.label}
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex h-10 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "group/nav flex h-10 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-muted-foreground transition-[background-color,color,transform,box-shadow] [transition-duration:var(--motion-quick)] [transition-timing-function:var(--ease-motion-out)] hover:translate-x-0.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:translate-x-0 motion-reduce:transform-none",
               isActive &&
-                "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm shadow-primary/20 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
             )}
           >
-            <Icon icon={ItemIcon} />
+            <Icon icon={ItemIcon} className="transition-transform duration-200 group-hover/nav:scale-110 motion-reduce:transform-none" />
             {item.label}
           </Link>
         );

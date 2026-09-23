@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import shadowingMascot from "@/img/penguin-shadowing.png";
 import { HttpError, http } from "@/lib/http";
+import { cn } from "@/lib/utils";
 
 type Sentence = { id: number; text: string; startSeconds: number; endSeconds: number; durationSeconds: number };
 type Result = { videoId: string; url: string; title: string; language: string; sentenceCount: number; sentences: Sentence[] };
@@ -118,6 +119,7 @@ function recentPrepareError(error: unknown) {
 export function ShadowingPlayer() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const practiceRef = useRef<HTMLElement>(null);
   const [url, setUrl] = useState("");
   const [maxWords, setMaxWords] = useState("12");
@@ -127,6 +129,7 @@ export function ShadowingPlayer() {
   const [isRecentLoading, setIsRecentLoading] = useState(true);
   const [recentError, setRecentError] = useState(false);
   const [reopeningVideoId, setReopeningVideoId] = useState<string | null>(null);
+  const [recentlyOpenedVideoId, setRecentlyOpenedVideoId] = useState<string | null>(null);
   const [reopenError, setReopenError] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -161,6 +164,7 @@ export function ShadowingPlayer() {
     return () => {
       window.clearTimeout(recentTimer);
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     };
   }, [loadRecentVideos]);
 
@@ -216,6 +220,9 @@ export function ShadowingPlayer() {
       setResult(response.data);
       setCurrentIndex(0);
       setRecent((items) => [video, ...items.filter((item) => item.videoId !== video.videoId)]);
+      setRecentlyOpenedVideoId(video.videoId);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => setRecentlyOpenedVideoId(null), 700);
       void loadRecentVideos();
       window.setTimeout(() => practiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch (requestError) {
@@ -226,16 +233,16 @@ export function ShadowingPlayer() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[1280px] gap-4 sm:gap-5">
-      <header className="relative flex min-h-20 items-center">
+    <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5">
+      <header className="relative flex min-h-20 items-center motion-enter">
         <div className="max-w-3xl py-1 sm:pr-56 lg:pr-72">
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
           <Text className="mt-1 text-sm text-muted-foreground sm:text-base" weight="semibold">Listen to short caption segments, repeat them aloud, and move at your own pace.</Text>
         </div>
-        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute bottom-0 right-0 hidden h-32 w-auto object-contain object-bottom sm:block lg:h-36" priority />
+        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute bottom-0 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:block lg:h-36" priority />
       </header>
 
-      <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]">
+      <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
         <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
         <CardContent>
           <Form onSubmit={prepareVideo} className="gap-5">
@@ -276,7 +283,7 @@ export function ShadowingPlayer() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-lg font-extrabold tracking-normal">Recent videos</CardTitle><Text size="xs" className="text-brand-700" weight="bold">Your last 10 videos</Text></CardHeader>
           <CardContent aria-busy={isRecentLoading || Boolean(reopeningVideoId)}>
@@ -284,8 +291,8 @@ export function ShadowingPlayer() {
               <div className="grid gap-3" role="status" aria-label="Loading recent videos">
                 {[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3"><Skeleton className="h-16 w-28 shrink-0 rounded-xl" /><div className="grid flex-1 gap-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="size-10 shrink-0 rounded-full" /></div>)}
               </div>
-            ) : recent.length ? <div className="divide-y divide-border">{recent.map((video) => (
-              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} className="group flex w-full items-center gap-3 py-3 text-left outline-none first:pt-0 last:pb-0 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-70">
+            ) : recent.length ? <div className="divide-y divide-border">{recent.map((video, index) => (
+              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} style={{ animationDelay: `${Math.min(index, 5) * 35}ms` }} className={cn("group flex w-full items-center gap-3 py-3 text-left outline-none transition-[background-color,transform] [transition-duration:var(--motion-quick)] first:pt-0 last:pb-0 hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:translate-x-0 disabled:opacity-70 motion-reduce:transform-none", recentlyOpenedVideoId === video.videoId ? "motion-highlight" : "motion-enter")}>
                 <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl bg-brand-100 bg-cover bg-center" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)` }} aria-hidden="true"><span className="absolute inset-0 grid place-items-center bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100"><span className="grid size-8 place-items-center rounded-full bg-white text-primary shadow-sm"><Play weight="fill" /></span></span></span>
                 <span className="min-w-0 flex-1"><Text as="span" className="block truncate font-bold">{video.title}</Text><Text as="span" size="xs" tone="muted" className="mt-1 block truncate"><span>{languageName(video.language)}</span><span aria-hidden="true"> · </span><span title={fullLocalDate(video.lastOpenedAt)} aria-hidden="true">{recentDate(video.lastOpenedAt)}</span>{fullLocalDate(video.lastOpenedAt) ? <span className="sr-only">Last opened {fullLocalDate(video.lastOpenedAt)}</span> : null}</Text></span>
                 <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
@@ -307,7 +314,7 @@ export function ShadowingPlayer() {
       {!isPreparing && error && !result ? <Alert variant="destructive" className="rounded-2xl p-4"><WarningCircle /><AlertTitle>Couldn’t prepare this video</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
 
       {!isPreparing && result && currentSentence ? (
-        <section ref={practiceRef} className="scroll-mt-28 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]" aria-labelledby="practice-title">
+        <section key={result.videoId} ref={practiceRef} className="scroll-mt-28 grid gap-5 motion-enter xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]" aria-labelledby="practice-title">
           <Card className="rounded-3xl [--card-spacing:--spacing(4)]">
             <CardHeader><CardTitle id="practice-title" className="text-lg font-extrabold tracking-normal">{result.title}</CardTitle><CardDescription>{result.sentenceCount} practice segments</CardDescription></CardHeader>
             <CardContent><div className="aspect-video overflow-hidden rounded-2xl bg-foreground"><iframe ref={iframeRef} src={`https://www.youtube-nocookie.com/embed/${result.videoId}?enablejsapi=1&playsinline=1`} title={result.title} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div></CardContent>
@@ -315,8 +322,8 @@ export function ShadowingPlayer() {
           <Card className="justify-between rounded-3xl [--card-spacing:--spacing(5)]">
             <CardHeader>
               <div className="flex items-center justify-between gap-4"><CardDescription className="font-bold text-brand-700" aria-live="polite">{currentIndex + 1} of {result.sentenceCount}</CardDescription><span className="text-xs font-bold text-muted-foreground">{formatTime(currentSentence.startSeconds)}–{formatTime(currentSentence.endSeconds)}</span></div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-100" aria-hidden="true"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${((currentIndex + 1) / result.sentenceCount) * 100}%` }} /></div>
-              <CardTitle className="mt-5 text-xl font-extrabold leading-relaxed tracking-normal sm:text-2xl">{currentSentence.text}</CardTitle>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-100" aria-hidden="true"><div className="h-full rounded-full bg-primary transition-[width] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] motion-reduce:transition-none" style={{ width: `${((currentIndex + 1) / result.sentenceCount) * 100}%` }} /></div>
+              <CardTitle key={currentSentence.id} className="mt-5 rounded-lg text-xl font-extrabold leading-relaxed tracking-normal motion-highlight sm:text-2xl">{currentSentence.text}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <Button type="button" size="lg" onClick={() => playSentence(currentIndex)}><Icon icon={ArrowCounterClockwise} />Replay segment</Button>

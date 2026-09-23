@@ -21,6 +21,13 @@
   --landing-blue-highlight: rgba(59, 130, 246, 0.42);
   --brand-yellow: #ffd83d;
   --brand-yellow-soft: #fff2a8;
+  --motion-instant: 120ms;
+  --motion-quick: 180ms;
+  --motion-standard: 280ms;
+  --motion-celebration: 600ms;
+  --ease-motion-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-motion-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --z-dashboard-base: 0;
   --z-dashboard-content: 10;
   --z-layout-topbar: 40;
@@ -380,4 +387,123 @@
 
 .animate-error-shake {
   animation: error-shake 180ms ease-in-out;
+}
+
+@keyframes flen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flen-page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes flen-pop {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.94);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.025);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes flen-highlight {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  35% {
+    background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+}
+
+@keyframes flen-mascot-enter {
+  from {
+    opacity: 0;
+    transform: translate(10px, 10px) rotate(2deg) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes flen-progress-enter {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.motion-enter {
+  animation: flen-enter var(--motion-standard) var(--ease-motion-out) both;
+}
+
+.motion-page-enter {
+  animation: flen-page-enter var(--motion-quick) var(--ease-motion-out) both;
+}
+
+.motion-pop {
+  animation: flen-pop var(--motion-standard) var(--ease-motion-spring) both;
+}
+
+.motion-highlight {
+  animation: flen-highlight var(--motion-celebration) var(--ease-motion-standard) both;
+}
+
+.motion-mascot-enter {
+  animation: flen-mascot-enter 480ms var(--ease-motion-out) both;
+}
+
+.motion-progress-enter {
+  transform-origin: left center;
+  animation: flen-progress-enter var(--motion-celebration) var(--ease-motion-out) both;
+}
+
+.motion-delay-1 {
+  animation-delay: 50ms;
+}
+
+.motion-delay-2 {
+  animation-delay: 100ms;
+}
+
+.motion-delay-3 {
+  animation-delay: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-enter,
+  .motion-page-enter,
+  .motion-pop,
+  .motion-highlight,
+  .motion-mascot-enter,
+  .motion-progress-enter,
+  .animate-error-shake {
+    animation: none;
+  }
+
+  .motion-reduce-safe {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+  }
 }
