@@ -244,24 +244,24 @@ export function ShadowingPlayer() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5">
-      <header className="relative flex min-h-28 items-center motion-enter sm:min-h-32 lg:min-h-36">
+    <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5 lg:-mt-4 lg:gap-3">
+      <header className="relative flex min-h-28 items-center motion-enter sm:min-h-32 lg:min-h-24">
         <div className="max-w-3xl py-1 sm:pr-56 lg:pr-72">
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
         </div>
-        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute -bottom-4 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:-bottom-5 sm:block lg:h-36" priority />
+        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute -bottom-11 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:-bottom-12 sm:block lg:h-36" priority />
       </header>
 
-      {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
+      {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
         <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
         <CardContent>
-          <Form onSubmit={prepareVideo} className="gap-5">
+          <Form onSubmit={prepareVideo} className="gap-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_218px]">
               <div className="relative">
                 <Icon icon={LinkSimple} className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-brand-700" />
-                <Input id="shadowing-url" type="url" inputMode="url" maxLength={500} value={url} onChange={(event) => { setUrl(event.target.value); if (error) setError(""); }} placeholder="Paste a YouTube link (e.g. https://www.youtube.com/watch?v=...)" className="h-14 rounded-2xl bg-background/40 pl-12 text-base" aria-label="YouTube video URL" aria-invalid={Boolean(error)} aria-describedby={error ? "shadowing-error" : undefined} />
+                <Input id="shadowing-url" type="url" inputMode="url" maxLength={500} value={url} onChange={(event) => { setUrl(event.target.value); if (error) setError(""); }} placeholder="Paste a YouTube link (e.g. https://www.youtube.com/watch?v=...)" className="h-14 rounded-2xl bg-background/40 pl-12 text-base lg:h-12" aria-label="YouTube video URL" aria-invalid={Boolean(error)} aria-describedby={error ? "shadowing-error" : undefined} />
               </div>
-              <Button type="submit" size="lg" disabled={isPreparing} className="h-14 rounded-2xl text-base font-bold"><Play weight="fill" />{isPreparing ? "Preparing…" : "Prepare video"}</Button>
+              <Button type="submit" size="lg" disabled={isPreparing} className="h-14 rounded-2xl text-base font-bold lg:h-12"><Play weight="fill" />{isPreparing ? "Preparing…" : "Prepare video"}</Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.25fr] lg:items-end">
@@ -269,7 +269,7 @@ export function ShadowingPlayer() {
                 <FormLabel htmlFor="caption-language">Caption language</FormLabel>
                 <div className="relative">
                   <Icon icon={GlobeHemisphereWest} className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-brand-700" />
-                  <Select value="en" disabled><SelectTrigger id="caption-language" className="h-12 w-full rounded-xl bg-background/40 pl-12"><SelectValue>English</SelectValue></SelectTrigger></Select>
+                  <Select value="en" disabled><SelectTrigger id="caption-language" className="h-12 w-full rounded-xl bg-background/40 pl-12 lg:h-11"><SelectValue>English</SelectValue></SelectTrigger></Select>
                 </div>
               </FormField>
               <FormField>
@@ -277,12 +277,12 @@ export function ShadowingPlayer() {
                 <div className="relative">
                   <Icon icon={TextAlignLeft} className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-brand-700" />
                   <Select value={maxWords} onValueChange={(value) => value && setMaxWords(value)}>
-                    <SelectTrigger id="segment-size" className="h-12 w-full rounded-xl bg-background/40 pl-12"><SelectValue>{maxWords === "12" ? "8–12 words" : `Up to ${maxWords} words`}</SelectValue></SelectTrigger>
+                    <SelectTrigger id="segment-size" className="h-12 w-full rounded-xl bg-background/40 pl-12 lg:h-11"><SelectValue>{maxWords === "12" ? "8–12 words" : `Up to ${maxWords} words`}</SelectValue></SelectTrigger>
                     <SelectContent><SelectItem value="8">Up to 8 words</SelectItem><SelectItem value="12">8–12 words</SelectItem><SelectItem value="15">Up to 15 words</SelectItem><SelectItem value="20">Up to 20 words</SelectItem></SelectContent>
                   </Select>
                 </div>
               </FormField>
-              <div className="flex min-h-12 items-center gap-3 rounded-xl px-1 md:col-span-2 lg:col-span-1">
+              <div className="flex min-h-12 items-center gap-3 rounded-xl px-1 md:col-span-2 lg:col-span-1 lg:min-h-11">
                 <Checkbox id="auto-play" checked={autoPlay} onCheckedChange={setAutoPlay} className="size-5" />
                 <FormLabel htmlFor="auto-play" className="cursor-pointer text-sm font-bold">Auto-play next segment</FormLabel>
                 <Icon icon={Info} className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -293,8 +293,8 @@ export function ShadowingPlayer() {
         </CardContent>
       </Card> : null}
 
-      {!result && !isPreparing ? <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
+      {!result && !isPreparing ? <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr] lg:gap-3">
+        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-lg font-extrabold tracking-normal">Recent videos</CardTitle><Text size="xs" className="text-brand-700" weight="bold">Your last 10 videos</Text></CardHeader>
           <CardContent aria-busy={isRecentLoading || Boolean(reopeningVideoId)}>
             {isRecentLoading ? (
@@ -302,8 +302,8 @@ export function ShadowingPlayer() {
                 {[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3"><Skeleton className="h-16 w-28 shrink-0 rounded-xl" /><div className="grid flex-1 gap-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="size-10 shrink-0 rounded-full" /></div>)}
               </div>
             ) : recent.length ? <div className="divide-y divide-border">{recent.map((video, index) => (
-              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} style={{ animationDelay: `${Math.min(index, 5) * 35}ms` }} className={cn("group flex w-full items-center gap-3 py-3 text-left outline-none transition-[background-color,transform] [transition-duration:var(--motion-quick)] first:pt-0 last:pb-0 hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:translate-x-0 disabled:opacity-70 motion-reduce:transform-none", recentlyOpenedVideoId === video.videoId ? "motion-highlight" : "motion-enter")}>
-                <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl bg-brand-100 bg-cover bg-center" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)` }} aria-hidden="true"><span className="absolute inset-0 grid place-items-center bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100"><span className="grid size-8 place-items-center rounded-full bg-white text-primary shadow-sm"><Play weight="fill" /></span></span></span>
+              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} style={{ animationDelay: `${Math.min(index, 5) * 35}ms` }} className={cn("group flex w-full items-center gap-3 py-3 text-left outline-none transition-[background-color,transform] [transition-duration:var(--motion-quick)] first:pt-0 last:pb-0 hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:translate-x-0 disabled:opacity-70 motion-reduce:transform-none lg:py-2", recentlyOpenedVideoId === video.videoId ? "motion-highlight" : "motion-enter")}>
+                <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl bg-brand-100 bg-cover bg-center lg:h-14 lg:w-24" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)` }} aria-hidden="true"><span className="absolute inset-0 grid place-items-center bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100"><span className="grid size-8 place-items-center rounded-full bg-white text-primary shadow-sm"><Play weight="fill" /></span></span></span>
                 <span className="min-w-0 flex-1"><Text as="span" className="block truncate font-bold">{video.title}</Text><Text as="span" size="xs" tone="muted" className="mt-1 block truncate"><span>{languageName(video.language)}</span><span aria-hidden="true"> · </span><span title={fullLocalDate(video.lastOpenedAt)} aria-hidden="true">{recentDate(video.lastOpenedAt)}</span>{fullLocalDate(video.lastOpenedAt) ? <span className="sr-only">Last opened {fullLocalDate(video.lastOpenedAt)}</span> : null}</Text></span>
                 <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
               </button>
@@ -314,9 +314,9 @@ export function ShadowingPlayer() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
+        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
           <CardHeader className="flex-row items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-brand-yellow-soft"><Lightbulb weight="fill" className="size-5" /></span><CardTitle className="text-lg font-extrabold tracking-normal">Tips for better shadowing</CardTitle></CardHeader>
-          <CardContent><ol className="divide-y divide-border">{tips.map((tip, index) => <li key={tip} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-extrabold text-brand-700">{index + 1}</span><Text size="sm" tone="muted">{tip}</Text></li>)}</ol></CardContent>
+          <CardContent><ol className="divide-y divide-border">{tips.map((tip, index) => <li key={tip} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 lg:py-2"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-extrabold text-brand-700">{index + 1}</span><Text size="sm" tone="muted">{tip}</Text></li>)}</ol></CardContent>
         </Card>
       </div> : null}
 
