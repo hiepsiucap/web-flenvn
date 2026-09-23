@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowClockwise, ArrowCounterClockwise, CaretLeft, CaretRight, GlobeHemisphereWest, Info, Lightbulb, LinkSimple, Play, Spinner as Loader2, TextAlignLeft, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretLeft, CaretRight, GlobeHemisphereWest, Info, Lightbulb, LinkSimple, Plus, Play, Spinner as Loader2, TextAlignLeft, WarningCircle } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -232,6 +232,17 @@ export function ShadowingPlayer() {
     }
   }
 
+  function chooseAnotherVideo() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    playerCommand("pauseVideo");
+    setResult(null);
+    setUrl("");
+    setCurrentIndex(0);
+    setError("");
+    setReopenError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5">
       <header className="relative flex min-h-20 items-center motion-enter">
@@ -242,7 +253,7 @@ export function ShadowingPlayer() {
         <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute bottom-0 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:block lg:h-36" priority />
       </header>
 
-      <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
+      {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
         <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
         <CardContent>
           <Form onSubmit={prepareVideo} className="gap-5">
@@ -281,9 +292,9 @@ export function ShadowingPlayer() {
             {error ? <FormMessage id="shadowing-error" variant="error" role="alert">{error}</FormMessage> : null}
           </Form>
         </CardContent>
-      </Card>
+      </Card> : null}
 
-      <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr]">
+      {!result && !isPreparing ? <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-lg font-extrabold tracking-normal">Recent videos</CardTitle><Text size="xs" className="text-brand-700" weight="bold">Your last 10 videos</Text></CardHeader>
           <CardContent aria-busy={isRecentLoading || Boolean(reopeningVideoId)}>
@@ -308,7 +319,7 @@ export function ShadowingPlayer() {
           <CardHeader className="flex-row items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-brand-yellow-soft"><Lightbulb weight="fill" className="size-5" /></span><CardTitle className="text-lg font-extrabold tracking-normal">Tips for better shadowing</CardTitle></CardHeader>
           <CardContent><ol className="divide-y divide-border">{tips.map((tip, index) => <li key={tip} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-extrabold text-brand-700">{index + 1}</span><Text size="sm" tone="muted">{tip}</Text></li>)}</ol></CardContent>
         </Card>
-      </div>
+      </div> : null}
 
       {isPreparing ? <Card className="rounded-3xl"><LoadingState title="Preparing your practice" description="Loading captions and creating short segments." /></Card> : null}
       {!isPreparing && error && !result ? <Alert variant="destructive" className="rounded-2xl p-4"><WarningCircle /><AlertTitle>Couldn’t prepare this video</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
@@ -316,7 +327,18 @@ export function ShadowingPlayer() {
       {!isPreparing && result && currentSentence ? (
         <section key={result.videoId} ref={practiceRef} className="scroll-mt-28 grid gap-5 motion-enter xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]" aria-labelledby="practice-title">
           <Card className="rounded-3xl [--card-spacing:--spacing(4)]">
-            <CardHeader><CardTitle id="practice-title" className="text-lg font-extrabold tracking-normal">{result.title}</CardTitle><CardDescription>{result.sentenceCount} practice segments</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <CardTitle id="practice-title" className="text-lg font-extrabold tracking-normal">{result.title}</CardTitle>
+                  <CardDescription className="mt-1">{result.sentenceCount} practice segments</CardDescription>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={chooseAnotherVideo} className="shrink-0">
+                  <Icon icon={Plus} />
+                  Choose another video
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent><div className="aspect-video overflow-hidden rounded-2xl bg-foreground"><iframe ref={iframeRef} src={`https://www.youtube-nocookie.com/embed/${result.videoId}?enablejsapi=1&playsinline=1`} title={result.title} className="size-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div></CardContent>
           </Card>
           <Card className="justify-between rounded-3xl [--card-spacing:--spacing(5)]">
