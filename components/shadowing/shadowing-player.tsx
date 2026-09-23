@@ -245,12 +245,11 @@ export function ShadowingPlayer() {
 
   return (
     <div className="mx-auto grid w-full max-w-[1280px] gap-4 motion-reduce-safe sm:gap-5">
-      <header className="relative flex min-h-20 items-center motion-enter">
+      <header className="relative flex min-h-28 items-center motion-enter sm:min-h-32 lg:min-h-36">
         <div className="max-w-3xl py-1 sm:pr-56 lg:pr-72">
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
-          <Text className="mt-1 text-sm text-muted-foreground sm:text-base" weight="semibold">Listen to short caption segments, repeat them aloud, and move at your own pace.</Text>
         </div>
-        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute bottom-0 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:block lg:h-36" priority />
+        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute right-0 top-0 hidden h-32 w-auto object-contain object-top motion-mascot-enter sm:block lg:h-36" priority />
       </header>
 
       {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
