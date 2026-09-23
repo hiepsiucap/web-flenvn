@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowCounterClockwise, CaretLeft, CaretRight, GlobeHemisphereWest, Info, Lightbulb, LinkSimple, Play, TextAlignLeft, WarningCircle, Waveform } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, CaretLeft, CaretRight, GlobeHemisphereWest, Info, Lightbulb, LinkSimple, Play, Spinner as Loader2, TextAlignLeft, WarningCircle } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,14 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import shadowingMascot from "@/img/penguin-shadowing.png";
 import { HttpError, http } from "@/lib/http";
 
 type Sentence = { id: number; text: string; startSeconds: number; endSeconds: number; durationSeconds: number };
 type Result = { videoId: string; url: string; title: string; language: string; sentenceCount: number; sentences: Sentence[] };
-type RecentVideo = Pick<Result, "videoId" | "url" | "title" | "language"> & { maxWords: string; openedAt: string };
+type RecentShadowingVideo = Pick<Result, "videoId" | "url" | "title" | "language"> & { lastOpenedAt: string };
 type ApiResponse<T> = { success: boolean; data: T };
 
 const youtubeUrl = /^https:\/\/(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{11}(?:[?&#/].*)?$/i;
@@ -35,8 +36,38 @@ function formatTime(seconds: number) {
 }
 
 function recentDate(value: string) {
-  const days = Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000);
-  return days < 1 ? "Today" : days === 1 ? "Yesterday" : `${days} days ago`;
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "Recently";
+
+  const elapsedSeconds = Math.round((timestamp - Date.now()) / 1000);
+  const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const intervals = [
+    { unit: "year", seconds: 31_536_000 },
+    { unit: "month", seconds: 2_592_000 },
+    { unit: "week", seconds: 604_800 },
+    { unit: "day", seconds: 86_400 },
+    { unit: "hour", seconds: 3_600 },
+    { unit: "minute", seconds: 60 },
+  ] as const;
+  const interval = intervals.find(({ seconds }) => Math.abs(elapsedSeconds) >= seconds);
+
+  return interval
+    ? relativeTime.format(Math.round(elapsedSeconds / interval.seconds), interval.unit)
+    : "just now";
+}
+
+function fullLocalDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function languageName(code: string) {
+  try {
+    return new Intl.DisplayNames(undefined, { type: "language" }).of(code) ?? code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
 }
 
 function getErrorMessage(error: unknown) {
@@ -48,7 +79,7 @@ function getErrorMessage(error: unknown) {
   return "The video could not be loaded right now.";
 }
 
-function normalizeRecentVideos(response: unknown): RecentVideo[] {
+function normalizeRecentVideos(response: unknown): RecentShadowingVideo[] {
   if (!response || typeof response !== "object") return [];
   const envelope = response as Record<string, unknown>;
   const data = envelope.data ?? response;
@@ -64,17 +95,24 @@ function normalizeRecentVideos(response: unknown): RecentVideo[] {
     const videoId = video.videoId ?? video.youtubeVideoId;
     const url = video.url ?? video.videoUrl ?? video.youtubeUrl;
     if (typeof videoId !== "string" || typeof url !== "string") return [];
-    const words = video.maxWordsPerSentence ?? video.maxWords ?? video.wordsPerSegment ?? 12;
-    const openedAt = video.lastPracticedAt ?? video.openedAt ?? video.updatedAt ?? video.createdAt;
+    const lastOpenedAt = video.lastOpenedAt;
+    if (typeof lastOpenedAt !== "string") return [];
     return [{
       videoId,
       url,
       title: typeof video.title === "string" ? video.title : "YouTube video",
       language: typeof video.language === "string" ? video.language : "en",
-      maxWords: String(words),
-      openedAt: typeof openedAt === "string" ? openedAt : new Date().toISOString(),
+      lastOpenedAt,
     }];
   }).slice(0, 10);
+}
+
+function recentPrepareError(error: unknown) {
+  if (!(error instanceof HttpError)) return "Couldn’t reopen this video. Check your connection and try again.";
+  if (error.status === 404) return "This video no longer has usable captions.";
+  if (error.status === 429) return "Too many requests. Wait briefly and try again.";
+  if (error.status === 502 || error.status === 503) return "This video is temporarily unavailable. Please try again.";
+  return getErrorMessage(error);
 }
 
 export function ShadowingPlayer() {
@@ -85,20 +123,29 @@ export function ShadowingPlayer() {
   const [maxWords, setMaxWords] = useState("12");
   const [autoPlay, setAutoPlay] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
-  const [recent, setRecent] = useState<RecentVideo[]>([]);
+  const [recent, setRecent] = useState<RecentShadowingVideo[]>([]);
   const [isRecentLoading, setIsRecentLoading] = useState(true);
   const [recentError, setRecentError] = useState(false);
+  const [reopeningVideoId, setReopeningVideoId] = useState<string | null>(null);
+  const [reopenError, setReopenError] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPreparing, setIsPreparing] = useState(false);
   const [error, setError] = useState("");
   const currentSentence = result?.sentences[currentIndex];
 
-  const loadRecentVideos = useCallback(async () => {
+  const loadRecentVideos = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsRecentLoading(true);
     try {
-      const response = await http.get<unknown>("/api/shadowing/recent", {
-        cache: "no-store",
-        query: { limit: 10 },
-      });
+      let response: unknown;
+      try {
+        response = await http.get<unknown>("/api/shadowing/recent", {
+          cache: "no-store",
+          query: { limit: 10 },
+        });
+      } catch (requestError) {
+        if (!(requestError instanceof HttpError) || requestError.status !== 400) throw requestError;
+        response = await http.get<unknown>("/api/shadowing/recent", { cache: "no-store" });
+      }
       setRecent(normalizeRecentVideos(response));
       setRecentError(false);
     } catch {
@@ -151,18 +198,31 @@ export function ShadowingPlayer() {
       void loadRecentVideos();
       window.setTimeout(() => practiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch (requestError) {
-      setResult(null);
       setError(getErrorMessage(requestError));
     } finally {
       setIsPreparing(false);
     }
   }
 
-  function selectRecent(video: RecentVideo) {
-    setUrl(video.url);
-    setMaxWords(video.maxWords);
-    setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  async function selectRecent(video: RecentShadowingVideo) {
+    setReopeningVideoId(video.videoId);
+    setReopenError("");
+
+    try {
+      const response = await http.post<ApiResponse<Result>, { url: string; language: string }>(
+        "/api/shadowing/prepare",
+        { url: video.url, language: video.language }
+      );
+      setResult(response.data);
+      setCurrentIndex(0);
+      setRecent((items) => [video, ...items.filter((item) => item.videoId !== video.videoId)]);
+      void loadRecentVideos();
+      window.setTimeout(() => practiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    } catch (requestError) {
+      setReopenError(recentPrepareError(requestError));
+    } finally {
+      setReopeningVideoId(null);
+    }
   }
 
   return (
@@ -219,18 +279,21 @@ export function ShadowingPlayer() {
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)]">
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-lg font-extrabold tracking-normal">Recent videos</CardTitle><Text size="xs" className="text-brand-700" weight="bold">Your last 10 videos</Text></CardHeader>
-          <CardContent>
+          <CardContent aria-busy={isRecentLoading || Boolean(reopeningVideoId)}>
             {isRecentLoading ? (
-              <LoadingState title="Loading recent videos" description="Finding your latest shadowing practice." />
+              <div className="grid gap-3" role="status" aria-label="Loading recent videos">
+                {[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3"><Skeleton className="h-16 w-28 shrink-0 rounded-xl" /><div className="grid flex-1 gap-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="size-10 shrink-0 rounded-full" /></div>)}
+              </div>
             ) : recent.length ? <div className="divide-y divide-border">{recent.map((video) => (
-              <button key={video.videoId} type="button" onClick={() => selectRecent(video)} className="group flex w-full items-center gap-3 py-3 text-left outline-none first:pt-0 last:pb-0 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50">
+              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} className="group flex w-full items-center gap-3 py-3 text-left outline-none first:pt-0 last:pb-0 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-70">
                 <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl bg-brand-100 bg-cover bg-center" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)` }} aria-hidden="true"><span className="absolute inset-0 grid place-items-center bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100"><span className="grid size-8 place-items-center rounded-full bg-white text-primary shadow-sm"><Play weight="fill" /></span></span></span>
-                <span className="min-w-0 flex-1"><Text as="span" className="block truncate font-bold">{video.title}</Text><Text as="span" size="xs" tone="muted" className="mt-1 block truncate">English · up to {video.maxWords} words · {recentDate(video.openedAt)}</Text></span>
-                <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary"><Play weight="fill" /></span>
+                <span className="min-w-0 flex-1"><Text as="span" className="block truncate font-bold">{video.title}</Text><Text as="span" size="xs" tone="muted" className="mt-1 block truncate"><span>{languageName(video.language)}</span><span aria-hidden="true"> · </span><span title={fullLocalDate(video.lastOpenedAt)} aria-hidden="true">{recentDate(video.lastOpenedAt)}</span>{fullLocalDate(video.lastOpenedAt) ? <span className="sr-only">Last opened {fullLocalDate(video.lastOpenedAt)}</span> : null}</Text></span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
               </button>
             ))}</div> : (
-              <div className="flex min-h-48 flex-col items-center justify-center px-4 text-center"><span className="grid size-12 place-items-center rounded-full bg-brand-50 text-brand-700"><Waveform className="size-6" /></span><Text className="mt-3 font-bold">{recentError ? "Recent videos unavailable" : "No recent videos yet"}</Text><Text size="sm" tone="muted" className="mt-1 max-w-sm">{recentError ? "We couldn't load your recent videos. Please try again later." : "Prepare your first YouTube video and it will appear here for quick access."}</Text></div>
+              <div className="flex min-h-32 flex-col items-center justify-center px-4 text-center"><Text className="font-bold">{recentError ? "Recent videos unavailable" : "No recent videos yet"}</Text><Text size="sm" tone="muted" className="mt-1 max-w-sm">{recentError ? "We couldn’t load your recent videos." : "Videos you prepare will appear here."}</Text>{recentError ? <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void loadRecentVideos(true)}><Icon icon={ArrowClockwise} />Retry</Button> : null}</div>
             )}
+            {reopenError ? <div className="mt-4 flex items-start gap-2 text-sm font-semibold text-destructive" role="alert"><WarningCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span>{reopenError}</span></div> : null}
           </CardContent>
         </Card>
 
