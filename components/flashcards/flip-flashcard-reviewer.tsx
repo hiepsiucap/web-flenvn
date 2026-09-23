@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowCounterClockwise,
@@ -47,6 +47,7 @@ export function FlipFlashcardReviewer({
   selectedBook: Book | null;
 }) {
   const router = useRouter();
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [isPending, startTransition] = useTransition();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -110,9 +111,10 @@ export function FlipFlashcardReviewer({
   }
 
   function playAudio() {
-    if (!currentCard?.audioUrl) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const audio = new Audio(currentCard.audioUrl);
+    audio.currentTime = 0;
     void audio.play().catch(() => undefined);
   }
 
@@ -209,17 +211,26 @@ export function FlipFlashcardReviewer({
 
             <div className="relative">
               {currentCard.audioUrl ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="absolute right-4 top-4 z-20 rounded-full bg-background/90 shadow-sm"
-                  aria-label={`Play pronunciation for ${currentCard.word}`}
-                  title="Play pronunciation"
-                  onClick={playAudio}
-                >
-                  <Icon icon={SpeakerHigh} />
-                </Button>
+                <>
+                  <audio
+                    key={currentCard.id}
+                    ref={audioRef}
+                    src={currentCard.audioUrl}
+                    autoPlay
+                    preload="auto"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute right-4 top-4 z-20 rounded-full bg-background/90 shadow-sm"
+                    aria-label={`Play pronunciation for ${currentCard.word}`}
+                    title="Play pronunciation"
+                    onClick={playAudio}
+                  >
+                    <Icon icon={SpeakerHigh} />
+                  </Button>
+                </>
               ) : null}
 
               <button

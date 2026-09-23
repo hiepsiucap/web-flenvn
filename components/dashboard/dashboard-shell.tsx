@@ -2,10 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { MagnifyingGlass as Search } from "@phosphor-icons/react";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
@@ -113,11 +110,6 @@ export function DashboardShell({
                     <Skeleton className="h-11 w-12 rounded-xl xl:w-40" />
                   </>
                 )}
-
-                <Button variant="outline" size="icon-sm" className="size-9 rounded-xl border-brand-200 bg-white">
-                  <Icon icon={Search} className="size-4" />
-                  <span className="sr-only">Search</span>
-                </Button>
 
                 {user ? (
                   <ProfileMenu user={user} />

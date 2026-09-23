@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://flenvn.app"),
   title: {
-    default: "FLENVN — Learn English Vocabulary with Flashcards",
+    default: "FLENVN",
     template: "%s | FLENVN",
   },
   description:
@@ -35,13 +35,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "FLENVN",
-    title: "FLENVN — Learn English Vocabulary with Flashcards",
+    title: "FLENVN",
     description:
       "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
   },
   twitter: {
     card: "summary",
-    title: "FLENVN — Learn English Vocabulary with Flashcards",
+    title: "FLENVN",
     description:
       "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
   },
