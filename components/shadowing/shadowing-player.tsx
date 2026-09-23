@@ -249,7 +249,7 @@ export function ShadowingPlayer() {
         <div className="max-w-3xl py-1 sm:pr-56 lg:pr-72">
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">YouTube shadowing</h1>
         </div>
-        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute right-0 top-0 hidden h-32 w-auto object-contain object-top motion-mascot-enter sm:block lg:h-36" priority />
+        <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute -bottom-4 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:-bottom-5 sm:block lg:h-36" priority />
       </header>
 
       {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)]">
