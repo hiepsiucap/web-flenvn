@@ -9,9 +9,11 @@ import {
   Sparkle as Sparkles,
   Spinner as Loader2,
   MagicWand as Wand2,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -90,13 +92,28 @@ type AutocompleteResponse =
       };
     };
 
-function getErrorMessage(error: unknown) {
+function formatApiMessage(message: ApiErrorResponse["message"] | undefined) {
+  if (Array.isArray(message)) return message.filter(Boolean).join(" ");
+  return message?.trim() || "Unable to create flashcard";
+}
+
+function getErrorDetails(error: unknown) {
   if (error instanceof HttpError) {
     const data = error.data as ApiErrorResponse | null;
-    return data?.message || "Unable to create flashcard";
+    return {
+      message: formatApiMessage(data?.message),
+      fieldErrors: data?.errors ?? {},
+    };
   }
 
-  return "Unable to create flashcard";
+  return {
+    message: "Unable to create flashcard",
+    fieldErrors: {} as Record<string, string>,
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  return getErrorDetails(error).message;
 }
 
 export function CreateFlashcardDialog({
@@ -122,6 +139,8 @@ export function CreateFlashcardDialog({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isCorrectingExample, setIsCorrectingExample] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const selectedBook = books.find((book) => book.id === bookId);
   const suggestedImages =
@@ -139,6 +158,8 @@ export function CreateFlashcardDialog({
     setAudioUrl("");
     setWordOptions([]);
     setSuggestion(null);
+    setSubmitError("");
+    setFieldErrors({});
   }
 
   useEffect(() => {
@@ -283,6 +304,18 @@ export function CreateFlashcardDialog({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const validationErrors: Record<string, string> = {};
+    if (!bookId) validationErrors.bookId = "Choose a book.";
+    if (!word.trim()) validationErrors.word = "Enter a word.";
+
+    if (Object.keys(validationErrors).length) {
+      setFieldErrors(validationErrors);
+      setSubmitError("Check the highlighted fields and try again.");
+      return;
+    }
+
+    setSubmitError("");
+    setFieldErrors({});
     setIsSubmitting(true);
 
     try {
@@ -304,7 +337,10 @@ export function CreateFlashcardDialog({
       setOpen(false);
       notifyClientDataChanged();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const details = getErrorDetails(error);
+      setSubmitError(details.message);
+      setFieldErrors(details.fieldErrors);
+      toast.error(details.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -345,10 +381,21 @@ export function CreateFlashcardDialog({
             onSubmit={handleSubmit}
           >
             <div className="grid gap-4 pb-1">
+            {submitError ? (
+              <Alert variant="destructive">
+                <WarningCircle />
+                <AlertTitle>Couldn’t create flashcard</AlertTitle>
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
+            ) : null}
             <div className="grid gap-2">
               <Label>Book</Label>
-              <Select value={bookId} onValueChange={(value) => value && setBookId(value)}>
-                <SelectTrigger className="h-10 w-full">
+              <Select value={bookId} onValueChange={(value) => {
+                if (!value) return;
+                setBookId(value);
+                setFieldErrors((current) => ({ ...current, bookId: "" }));
+              }}>
+                <SelectTrigger className="h-10 w-full" aria-invalid={Boolean(fieldErrors.bookId)} aria-describedby={fieldErrors.bookId ? "flashcard-book-error" : undefined}>
                   <span className="truncate text-left">
                     {selectedBook?.title ?? "Choose a book"}
                   </span>
@@ -361,6 +408,7 @@ export function CreateFlashcardDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.bookId ? <p id="flashcard-book-error" className="text-sm font-medium text-destructive" role="alert">{fieldErrors.bookId}</p> : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -373,9 +421,14 @@ export function CreateFlashcardDialog({
                       required
                       className="h-10"
                       value={word}
+                      aria-invalid={Boolean(fieldErrors.word)}
+                      aria-describedby={fieldErrors.word ? "flashcard-word-error" : undefined}
                       onChange={(event) => {
                         const value = event.target.value;
                         setWord(value);
+                        if (fieldErrors.word) {
+                          setFieldErrors((current) => ({ ...current, word: "" }));
+                        }
 
                         if (value.trim().length < 2) {
                           setWordOptions([]);
@@ -422,6 +475,7 @@ export function CreateFlashcardDialog({
                     </div>
                   ) : null}
                 </div>
+                {fieldErrors.word ? <p id="flashcard-word-error" className="text-sm font-medium text-destructive" role="alert">{fieldErrors.word}</p> : null}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="flashcard-part">Part of speech</Label>
