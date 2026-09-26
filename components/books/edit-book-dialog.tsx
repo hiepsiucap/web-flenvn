@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { PencilSimple, Spinner } from "@phosphor-icons/react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, PencilSimple, Spinner, X } from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
@@ -54,14 +54,44 @@ export function EditBookDialog({ book }: { book: Book }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(book.title);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [coverPreview]);
+
+  function clearCoverFile() {
+    setCoverFile(null);
+    setCoverPreview(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  }
+
+  function handleCoverChange(file: File | null) {
+    if (!file) return;
+    if (!allowedImageTypes.includes(file.type)) {
+      toast.error("Choose a JPEG, PNG, or WebP image.");
+      clearCoverFile();
+      return;
+    }
+    if (file.size > maxImageBytes) {
+      toast.error("Cover image must be 5 MB or smaller.");
+      clearCoverFile();
+      return;
+    }
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  }
 
   function handleOpenChange(nextOpen: boolean) {
     if (saving) return;
     setOpen(nextOpen);
     if (!nextOpen) {
       setTitle(book.title);
-      setCoverFile(null);
+      clearCoverFile();
     }
   }
 
@@ -89,7 +119,7 @@ export function EditBookDialog({ book }: { book: Book }) {
       await http.put(`/api/books/${encodeURIComponent(book.id)}`, buildBookEditPayload(validatedTitle, coverImage));
       toast.success("Book updated");
       setOpen(false);
-      setCoverFile(null);
+      clearCoverFile();
       notifyClientDataChanged();
     } catch (error) {
       toast.error(errorMessage(error));
@@ -125,18 +155,54 @@ export function EditBookDialog({ book }: { book: Book }) {
             </FormField>
             <FormField>
               <FormLabel htmlFor={`edit-book-cover-${book.id}`}>Cover photo</FormLabel>
-              {book.coverImage ? (
-                // The cover URL can come from the existing book or the managed image service.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={book.coverImage} alt="Current book cover" className="h-28 w-28 rounded-xl object-cover" />
-              ) : null}
-              <FormInput
-                id={`edit-book-cover-${book.id}`}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)}
-              />
-              <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP. Up to 5 MB. Leave empty to keep the current cover.</p>
+              <div className="flex items-center gap-4">
+                <div className="grid size-28 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-secondary text-muted-foreground">
+                  {coverPreview || book.coverImage ? (
+                    // The cover URL can come from the existing book or the managed image service.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={coverPreview ?? book.coverImage ?? ""}
+                      alt={coverFile ? "New book cover preview" : "Current book cover"}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Icon icon={ImageIcon} className="size-8" />
+                  )}
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <p className="text-sm font-medium">
+                    {coverFile ? "New cover selected" : book.coverImage ? "Current cover" : "No cover yet"}
+                  </p>
+                  <FormInput
+                    ref={coverInputRef}
+                    id={`edit-book-cover-${book.id}`}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    tabIndex={-1}
+                    onChange={(event) => handleCoverChange(event.target.files?.[0] ?? null)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving}
+                      onClick={() => coverInputRef.current?.click()}
+                    >
+                      {book.coverImage || coverFile ? "Replace image" : "Choose image"}
+                    </Button>
+                    {coverFile ? (
+                      <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={clearCoverFile}>
+                        <Icon icon={X} />
+                        Undo
+                      </Button>
+                    ) : null}
+                  </div>
+                  {coverFile ? <p className="truncate text-xs text-muted-foreground" title={coverFile.name}>{coverFile.name}</p> : null}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP · Up to 5 MB</p>
             </FormField>
           </Form>
         </ModalBody>
