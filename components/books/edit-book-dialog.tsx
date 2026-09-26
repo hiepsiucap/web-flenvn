@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField, FormInput, FormLabel } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import {
   Modal,
   ModalActionButton,
   ModalBody,
@@ -50,13 +56,18 @@ async function uploadCover(file: File) {
   return presign.fileUrl;
 }
 
-export function EditBookDialog({ book }: { book: Book }) {
+export function EditBookDialog({ book, books }: { book: Book; books: Book[] }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(book.title);
+  const [parentBookId, setParentBookId] = useState(book.parentBookId ?? "");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const hasSubBooks = books.some((item) => item.parentBookId === book.id);
+  const availableParents = books.filter(
+    (item) => !item.parentBookId && item.id !== book.id
+  );
 
   useEffect(() => {
     return () => {
@@ -89,8 +100,10 @@ export function EditBookDialog({ book }: { book: Book }) {
   function handleOpenChange(nextOpen: boolean) {
     if (saving) return;
     setOpen(nextOpen);
+    if (nextOpen) setParentBookId(book.parentBookId ?? "");
     if (!nextOpen) {
       setTitle(book.title);
+      setParentBookId(book.parentBookId ?? "");
       clearCoverFile();
     }
   }
@@ -116,7 +129,10 @@ export function EditBookDialog({ book }: { book: Book }) {
     setSaving(true);
     try {
       const coverImage = coverFile ? await uploadCover(coverFile) : undefined;
-      await http.put(`/api/books/${encodeURIComponent(book.id)}`, buildBookEditPayload(validatedTitle, coverImage));
+      await http.put(
+        `/api/books/${encodeURIComponent(book.id)}`,
+        buildBookEditPayload(validatedTitle, coverImage, parentBookId || null)
+      );
       toast.success("Book updated");
       setOpen(false);
       clearCoverFile();
@@ -138,7 +154,7 @@ export function EditBookDialog({ book }: { book: Book }) {
       <ModalContent className="sm:max-w-md">
         <ModalHeader>
           <ModalTitle>Edit book</ModalTitle>
-          <ModalDescription>Change the title or cover photo of this book.</ModalDescription>
+          <ModalDescription>Change the title, cover photo, or location of this book.</ModalDescription>
         </ModalHeader>
         <ModalBody>
           <Form id={`edit-book-${book.id}`} className="gap-4" onSubmit={handleSubmit}>
@@ -152,6 +168,40 @@ export function EditBookDialog({ book }: { book: Book }) {
                 minLength={3}
                 maxLength={255}
               />
+            </FormField>
+            <FormField>
+              {hasSubBooks ? (
+                <>
+                  <p className="text-sm font-medium">Location</p>
+                  <p className="text-sm text-muted-foreground">
+                    Top level · Move its sub-books before moving this book.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <FormLabel htmlFor={`edit-book-parent-${book.id}`}>Location</FormLabel>
+                  <Select
+                    value={parentBookId || "top-level"}
+                    onValueChange={(value) =>
+                      setParentBookId(value === "top-level" ? "" : value ?? "")
+                    }
+                  >
+                    <SelectTrigger id={`edit-book-parent-${book.id}`} className="h-10 w-full">
+                      <span className="truncate text-left">
+                        {books.find((item) => item.id === parentBookId)?.title ?? "Top level"}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top-level">Top level</SelectItem>
+                      {availableParents.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          Inside {item.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </FormField>
             <FormField>
               <FormLabel htmlFor={`edit-book-cover-${book.id}`}>Cover photo</FormLabel>
