@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import {
   Check,
   Plus,
@@ -31,9 +31,16 @@ import {
   ModalTrigger,
 } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
+import type { Book } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
 
 type GeneratedBackground =
@@ -91,8 +98,18 @@ function getGeneratedBackgroundUrls(response: GeneratedBackgroundResponse) {
   );
 }
 
-export function CreateBookDialog() {
+export function CreateBookDialog({
+  books = [],
+  defaultParentBookId,
+  triggerLabel = "Create book",
+}: {
+  books?: Book[];
+  defaultParentBookId?: string;
+  triggerLabel?: string;
+}) {
+  const formId = useId();
   const [open, setOpen] = useState(false);
+  const [parentBookId, setParentBookId] = useState(defaultParentBookId ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [useCoverUpload, setUseCoverUpload] = useState(false);
@@ -145,6 +162,7 @@ export function CreateBookDialog() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    if (parentBookId) formData.set("parentBookId", parentBookId);
 
     if (!useCoverUpload && !selectedBackground) {
       formData.delete("coverImage");
@@ -161,6 +179,7 @@ export function CreateBookDialog() {
       toast.success("Book created");
       setOpen(false);
       setTitle("");
+      setParentBookId(defaultParentBookId ?? "");
       setDescription("");
       setUseCoverUpload(false);
       setUseBookUpload(false);
@@ -177,12 +196,23 @@ export function CreateBookDialog() {
   }
 
   return (
-    <Modal open={open} onOpenChange={setOpen}>
+    <Modal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setParentBookId(defaultParentBookId ?? "");
+      }}
+    >
       <ModalTrigger
         render={
-          <Button className="h-10 rounded-2xl" type="button">
+          <Button
+            className={defaultParentBookId ? "h-8 rounded-2xl" : "h-10 rounded-2xl"}
+            type="button"
+            variant={defaultParentBookId ? "outline" : "default"}
+            size={defaultParentBookId ? "sm" : "default"}
+          >
             <Icon icon={Plus} />
-            Create book
+            {triggerLabel}
           </Button>
         }
       />
@@ -192,11 +222,11 @@ export function CreateBookDialog() {
           <ModalDescription>Add a book for grouping flashcards.</ModalDescription>
         </ModalHeader>
         <ModalBody>
-        <Form id="create-book-form" className="gap-4" onSubmit={handleSubmit}>
+        <Form id={formId} className="gap-4" onSubmit={handleSubmit}>
           <FormField>
-            <FormLabel htmlFor="book-title">Title</FormLabel>
+            <FormLabel htmlFor={`${formId}-title`}>Title</FormLabel>
             <FormInput
-              id="book-title"
+              id={`${formId}-title`}
               name="title"
               required
               className="h-10"
@@ -205,13 +235,36 @@ export function CreateBookDialog() {
             />
           </FormField>
           <FormField>
-            <FormLabel htmlFor="book-description">Description</FormLabel>
+            <FormLabel htmlFor={`${formId}-description`}>Description</FormLabel>
             <FormTextarea
-              id="book-description"
+              id={`${formId}-description`}
               name="description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
+          </FormField>
+          <FormField>
+            <FormLabel htmlFor={`${formId}-parent`}>Location</FormLabel>
+            <Select
+              value={parentBookId || "top-level"}
+              onValueChange={(value) =>
+                setParentBookId(value === "top-level" ? "" : value ?? "")
+              }
+            >
+              <SelectTrigger id={`${formId}-parent`} className="h-10 w-full">
+                <span className="truncate text-left">
+                  {books.find((book) => book.id === parentBookId)?.title ?? "Top level"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top-level">Top level</SelectItem>
+                {books.filter((book) => !book.parentBookId).map((book) => (
+                  <SelectItem key={book.id} value={book.id}>
+                    Inside {book.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
 
           <FormField>
@@ -284,7 +337,7 @@ export function CreateBookDialog() {
 
             {useCoverUpload ? (
               <FileInput
-                id="book-cover"
+                id={`${formId}-cover`}
                 name="coverImage"
                 accept="image/*"
                 label="Choose image"
@@ -310,7 +363,7 @@ export function CreateBookDialog() {
             {useBookUpload ? (
               <div className="grid gap-3">
                 <FileInput
-                  id="book-file"
+                  id={`${formId}-file`}
                   name="file"
                   accept=".txt,.pdf,.doc,.docx,.epub,text/plain,application/pdf"
                   label="Choose file"
@@ -318,9 +371,9 @@ export function CreateBookDialog() {
                   onFileNameChange={setBookFileName}
                 />
                 <FormField>
-                  <FormLabel htmlFor="book-content">Fallback content</FormLabel>
+                  <FormLabel htmlFor={`${formId}-content`}>Fallback content</FormLabel>
                   <FormTextarea
-                    id="book-content"
+                    id={`${formId}-content`}
                     name="content"
                     placeholder="Paste text here if the file cannot be extracted"
                   />
@@ -335,7 +388,7 @@ export function CreateBookDialog() {
         </Form>
         </ModalBody>
         <ModalFooter>
-          <ModalActionButton form="create-book-form" disabled={isSubmitting}>
+          <ModalActionButton form={formId} disabled={isSubmitting}>
             {isSubmitting ? (
               <Icon icon={Loader2} className="animate-spin" />
             ) : (

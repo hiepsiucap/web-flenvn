@@ -25,6 +25,8 @@ import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
 import { EditBookDialog } from "@/components/books/edit-book-dialog";
+import { CreateBookDialog } from "@/components/books/create-book-dialog";
+import { listBookGroups } from "@/lib/book-hierarchy";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof HttpError) {
@@ -39,6 +41,10 @@ export function BooksGrid({ books }: { books: Book[] }) {
   const [deletingBookId, setDeletingBookId] = useState("");
 
   async function handleDelete(book: Book) {
+    if (books.some((item) => item.parentBookId === book.id)) {
+      toast.error("Move or delete this book's sub-books first.");
+      return;
+    }
     const shouldDelete = window.confirm(
       `Delete "${book.title}"? This cannot be undone.`
     );
@@ -60,12 +66,11 @@ export function BooksGrid({ books }: { books: Book[] }) {
     }
   }
 
-  return (
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {books.map((book) => (
+  function renderBookCard(book: Book) {
+    return (
         <Card
           key={book.id}
-          className="group relative h-full overflow-hidden rounded-3xl transition-colors hover:border-primary/60"
+          className="group relative overflow-hidden rounded-3xl transition-colors hover:border-primary/60"
         >
           <Link
             href={`/books/${encodeURIComponent(book.id)}`}
@@ -95,7 +100,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
               <CardContent className="flex items-center justify-between gap-3 p-0 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <Icon icon={Layers3} size="sm" />
-                  {book.totalCards ?? 0} cards
+                  {book.totalCards ?? 0} direct cards
                 </span>
                 {book.wordCount ? (
                   <Text as="span" size="xs" tone="muted">
@@ -107,7 +112,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
           </Link>
 
           <div className="absolute right-3 top-3 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-            <EditBookDialog book={book} />
+            <EditBookDialog book={book} books={books} />
             <Button
               type="button"
               variant="destructive"
@@ -125,6 +130,30 @@ export function BooksGrid({ books }: { books: Book[] }) {
             </Button>
           </div>
         </Card>
+    );
+  }
+
+  return (
+    <section className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {listBookGroups(books).map(({ book, subBooks }) => (
+        <div key={book.id} className="grid gap-2">
+          {renderBookCard(book)}
+          {subBooks.length ? (
+            <div className="ml-4 grid gap-2 border-l-2 border-border pl-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                {subBooks.length} sub-{subBooks.length === 1 ? "book" : "books"}
+              </p>
+              {subBooks.map(renderBookCard)}
+            </div>
+          ) : null}
+          <div className="ml-4">
+            <CreateBookDialog
+              books={books}
+              defaultParentBookId={book.id}
+              triggerLabel="Add sub-book"
+            />
+          </div>
+        </div>
       ))}
     </section>
   );

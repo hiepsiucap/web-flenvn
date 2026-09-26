@@ -54,7 +54,7 @@ export default function BooksPage() {
             <Icon icon={Library} className="text-primary" />
             {books.length} books
           </Badge>
-          <CreateBookDialog />
+          <CreateBookDialog books={books} />
         </div>
       </section>
 
@@ -76,7 +76,7 @@ export default function BooksPage() {
               Create or import a book to start building flashcards.
             </Text>
             <div className="mt-6 flex justify-center">
-              <CreateBookDialog />
+              <CreateBookDialog books={books} />
             </div>
           </div>
         </section>

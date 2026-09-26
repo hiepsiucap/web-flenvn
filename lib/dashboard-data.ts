@@ -51,6 +51,7 @@ export type StudyStats = {
 
 export type Book = {
   id: string;
+  parentBookId?: string | null;
   title: string;
   description?: string | null;
   coverImage?: string | null;

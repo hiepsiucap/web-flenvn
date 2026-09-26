@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Stack as Layers3 } from "@phosphor-icons/react";
+import { ArrowLeft, BookOpen, Stack as Layers3 } from "@phosphor-icons/react";
 
+import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { CreateFlashcardDialog } from "@/components/flashcards/create-flashcard-dialog";
 import { FlashcardGrid } from "@/components/flashcards/flashcard-grid";
 import { LabelFilter } from "@/components/flashcards/labels/label-filter";
@@ -37,6 +38,9 @@ export function FlashcardBookView({
 }) {
   const [selectedLabelIds, setSelectedLabelIds] = useState(initialLabelIds);
   const [labelMode, setLabelMode] = useState(initialLabelMode);
+  const parentBook = books.find((item) => item.id === book?.parentBookId);
+  const subBooks = books.filter((item) => item.parentBookId === book?.id);
+  const isOwnedBook = books.some((item) => item.id === book?.id);
 
   const filteredFlashcards = useMemo(() => {
     if (!selectedLabelIds.length) return flashcards;
@@ -69,16 +73,24 @@ export function FlashcardBookView({
       <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <Button
-            render={<Link href="/books" />}
+            render={<Link href={parentBook ? `/books/${encodeURIComponent(parentBook.id)}` : "/books"} />}
             nativeButton={false}
             variant="outline"
             size="icon-lg"
             className="mt-1 shrink-0 rounded-2xl"
           >
             <Icon icon={ArrowLeft} />
-            <span className="sr-only">Books</span>
+            <span className="sr-only">{parentBook ? parentBook.title : "Books"}</span>
           </Button>
           <div className="min-w-0">
+            {parentBook ? (
+              <Link
+                href={`/books/${encodeURIComponent(parentBook.id)}`}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {parentBook.title} / Sub-book
+              </Link>
+            ) : null}
             <Text as="div" className="truncate" size="3xl" weight="semibold">
               {book?.title ?? "Selected book"}
             </Text>
@@ -95,11 +107,49 @@ export function FlashcardBookView({
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="h-8 w-fit rounded-2xl px-3">
             <Icon icon={Layers3} className="text-primary" />
-            {filteredFlashcards.length} cards
+            {subBooks.length ? `${filteredFlashcards.length} direct cards` : `${filteredFlashcards.length} cards`}
           </Badge>
           <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
         </div>
       </section>
+
+      {book && !book.parentBookId && isOwnedBook ? (
+        <section className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2><Text as="span" size="lg" weight="semibold">Sub-books</Text></h2>
+            <CreateBookDialog
+              books={books}
+              defaultParentBookId={book.id}
+              triggerLabel="Add sub-book"
+            />
+          </div>
+          {subBooks.length ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {subBooks.map((child) => (
+                <Link
+                  key={child.id}
+                  href={`/books/${encodeURIComponent(child.id)}`}
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                    <Icon icon={BookOpen} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{child.title}</span>
+                    <span className="text-xs text-muted-foreground">{child.totalCards ?? 0} direct cards</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No sub-books yet.</p>
+          )}
+        </section>
+      ) : null}
+
+      {subBooks.length ? (
+        <h2><Text as="span" size="lg" weight="semibold">Flashcards</Text></h2>
+      ) : null}
 
       {filteredFlashcards.length ? (
         <FlashcardGrid
@@ -108,11 +158,11 @@ export function FlashcardBookView({
           labels={labels}
         />
       ) : (
-        <section className="grid min-h-[calc(100vh-16rem)] w-full place-items-center px-6 py-12 text-center">
+        <section className={`grid w-full place-items-center px-6 py-12 text-center ${subBooks.length ? "min-h-60" : "min-h-[calc(100vh-16rem)]"}`}>
           <div className="flex max-w-sm flex-col items-center">
             <Image src={emptyFolderImage} alt="" className="h-auto w-52" priority />
             <Text as="div" className="mt-6" size="xl" weight="semibold">
-              {selectedLabelIds.length ? "No matching flashcards" : "No flashcards found"}
+              {selectedLabelIds.length ? "No matching flashcards" : "No flashcards in this book"}
             </Text>
             <Text className="mt-2" size="sm" tone="muted">
               {selectedLabelIds.length
