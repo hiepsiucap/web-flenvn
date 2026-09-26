@@ -114,36 +114,32 @@ export function FlashcardBookView({
       </section>
 
       {book && !book.parentBookId && isOwnedBook ? (
-        <section className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2><Text as="span" size="lg" weight="semibold">Sub-books</Text></h2>
-            <CreateBookDialog
-              books={books}
-              defaultParentBookId={book.id}
-              triggerLabel="Add sub-book"
-            />
-          </div>
-          {subBooks.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {subBooks.map((child) => (
-                <Link
-                  key={child.id}
-                  href={`/books/${encodeURIComponent(child.id)}`}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
-                    <Icon icon={BookOpen} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{child.title}</span>
-                    <span className="text-xs text-muted-foreground">{child.totalCards ?? 0} direct cards</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No sub-books yet.</p>
-          )}
+        <section aria-label="Sub-books" className="flex flex-wrap items-center gap-2">
+          {subBooks.map((child) => (
+            <Link
+              key={child.id}
+              href={`/books/${encodeURIComponent(child.id)}`}
+              className="flex min-w-0 max-w-48 items-center gap-2 rounded-xl border border-border bg-card p-1 pr-3 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-primary">
+                {child.coverImage ? (
+                  <span
+                    className="size-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${child.coverImage})` }}
+                  />
+                ) : (
+                  <Icon icon={BookOpen} />
+                )}
+              </span>
+              <span className="min-w-0 truncate text-sm font-medium">{child.title}</span>
+            </Link>
+          ))}
+          <CreateBookDialog
+            books={books}
+            defaultParentBookId={book.id}
+            triggerLabel="Add sub-book"
+            iconOnly
+          />
         </section>
       ) : null}
 
