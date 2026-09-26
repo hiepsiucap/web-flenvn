@@ -25,7 +25,6 @@ import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
 import { EditBookDialog } from "@/components/books/edit-book-dialog";
-import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { listBookGroups } from "@/lib/book-hierarchy";
 
 function getErrorMessage(error: unknown) {
@@ -135,26 +134,7 @@ export function BooksGrid({ books }: { books: Book[] }) {
 
   return (
     <section className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {listBookGroups(books).map(({ book, subBooks }) => (
-        <div key={book.id} className="grid gap-2">
-          {renderBookCard(book)}
-          {subBooks.length ? (
-            <div className="ml-4 grid gap-2 border-l-2 border-border pl-3">
-              <p className="text-xs font-medium text-muted-foreground">
-                {subBooks.length} sub-{subBooks.length === 1 ? "book" : "books"}
-              </p>
-              {subBooks.map(renderBookCard)}
-            </div>
-          ) : null}
-          <div className="ml-4">
-            <CreateBookDialog
-              books={books}
-              defaultParentBookId={book.id}
-              triggerLabel="Add sub-book"
-            />
-          </div>
-        </div>
-      ))}
+      {listBookGroups(books).map(({ book }) => renderBookCard(book))}
     </section>
   );
 }
