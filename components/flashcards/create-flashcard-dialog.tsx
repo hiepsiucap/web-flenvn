@@ -45,6 +45,24 @@ import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
 
+const PARTS_OF_SPEECH = [
+  "noun",
+  "verb",
+  "adjective",
+  "adverb",
+  "pronoun",
+  "preposition",
+  "conjunction",
+  "interjection",
+  "determiner",
+  "phrase",
+] as const;
+
+function supportedPartOfSpeech(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return PARTS_OF_SPEECH.find((part) => part === normalized) ?? "";
+}
+
 type SuggestedDefinition = {
   text?: string;
   partOfSpeech?: string;
@@ -245,7 +263,8 @@ export function CreateFlashcardDialog({
       setSuggestion(nextSuggestion);
       setWord(nextSuggestion.word || word);
       setPartOfSpeech(
-        nextSuggestion.partOfSpeech || firstDefinition?.partOfSpeech || ""
+        supportedPartOfSpeech(nextSuggestion.partOfSpeech) ||
+          supportedPartOfSpeech(firstDefinition?.partOfSpeech)
       );
       setPronunciation(nextSuggestion.pronunciation || "");
       setTranslation(
@@ -321,7 +340,7 @@ export function CreateFlashcardDialog({
     try {
       await http.post("/api/flashcards", {
         word,
-        partOfSpeech,
+        partOfSpeech: partOfSpeech || undefined,
         pronunciation,
         definition,
         translation,
@@ -479,12 +498,25 @@ export function CreateFlashcardDialog({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="flashcard-part">Part of speech</Label>
-                <Input
-                  id="flashcard-part"
-                  className="h-10"
-                  value={partOfSpeech}
-                  onChange={(event) => setPartOfSpeech(event.target.value)}
-                />
+                <Select
+                  value={partOfSpeech || null}
+                  onValueChange={(value) => setPartOfSpeech(value ?? "")}
+                >
+                  <SelectTrigger id="flashcard-part" className="h-10 w-full">
+                    <span className="truncate text-left">
+                      {partOfSpeech
+                        ? partOfSpeech.charAt(0).toUpperCase() + partOfSpeech.slice(1)
+                        : "Choose a part of speech"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PARTS_OF_SPEECH.map((part) => (
+                      <SelectItem key={part} value={part}>
+                        {part.charAt(0).toUpperCase() + part.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -636,7 +668,9 @@ export function CreateFlashcardDialog({
                             );
                             setExample(item.example?.text ?? "");
                             if (item.definition?.partOfSpeech) {
-                              setPartOfSpeech(item.definition.partOfSpeech);
+                              setPartOfSpeech(
+                                supportedPartOfSpeech(item.definition.partOfSpeech)
+                              );
                             }
                           }}
                         >
@@ -682,7 +716,9 @@ export function CreateFlashcardDialog({
                           className="rounded-xl border border-border bg-card p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => {
                             setDefinition(item.text ?? "");
-                            if (item.partOfSpeech) setPartOfSpeech(item.partOfSpeech);
+                            if (item.partOfSpeech) {
+                              setPartOfSpeech(supportedPartOfSpeech(item.partOfSpeech));
+                            }
                           }}
                         >
                           {item.text}
