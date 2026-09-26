@@ -24,6 +24,7 @@ import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse } from "@/lib/auth-types";
 import type { Book } from "@/lib/dashboard-data";
+import { EditBookDialog } from "@/components/books/edit-book-dialog";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof HttpError) {
@@ -105,21 +106,24 @@ export function BooksGrid({ books }: { books: Book[] }) {
             </div>
           </Link>
 
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon-sm"
-            className="absolute right-3 top-3 opacity-100 shadow-md sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
-            disabled={deletingBookId === book.id}
-            onClick={() => handleDelete(book)}
-          >
-            {deletingBookId === book.id ? (
-              <Icon icon={Loader2} className="animate-spin" />
-            ) : (
-              <Icon icon={Trash2} />
-            )}
-            <span className="sr-only">Delete book</span>
-          </Button>
+          <div className="absolute right-3 top-3 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+            <EditBookDialog book={book} />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon-sm"
+              className="shadow-md"
+              disabled={deletingBookId === book.id}
+              onClick={() => handleDelete(book)}
+            >
+              {deletingBookId === book.id ? (
+                <Icon icon={Loader2} className="animate-spin" />
+              ) : (
+                <Icon icon={Trash2} />
+              )}
+              <span className="sr-only">Delete book</span>
+            </Button>
+          </div>
         </Card>
       ))}
     </section>
