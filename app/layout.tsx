@@ -3,6 +3,7 @@ import { Geist_Mono, Nunito } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
+import "./notifications.css";
 
 const nunito = Nunito({
   variable: "--font-nunito",

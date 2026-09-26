@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, BookOpen, Stack as Layers3 } from "@phosphor-icons/react";
@@ -12,6 +11,7 @@ import { LabelFilter } from "@/components/flashcards/labels/label-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/text";
 import type {
   Book,
@@ -19,7 +19,6 @@ import type {
   LabelCatalogItem,
   LabelFilterMode,
 } from "@/lib/dashboard-data";
-import emptyFolderImage from "@/img/empty-folder.png";
 
 export function FlashcardBookView({
   book,
@@ -109,7 +108,9 @@ export function FlashcardBookView({
             <Icon icon={Layers3} className="text-primary" />
             {subBooks.length ? `${filteredFlashcards.length} direct cards` : `${filteredFlashcards.length} cards`}
           </Badge>
-          <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+          {filteredFlashcards.length || selectedLabelIds.length ? (
+            <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+          ) : null}
         </div>
       </section>
 
@@ -154,24 +155,18 @@ export function FlashcardBookView({
           labels={labels}
         />
       ) : (
-        <section className={`grid w-full place-items-center px-6 py-12 text-center ${subBooks.length ? "min-h-60" : "min-h-[calc(100vh-16rem)]"}`}>
-          <div className="flex max-w-sm flex-col items-center">
-            <Image src={emptyFolderImage} alt="" className="h-auto w-52" priority />
-            <Text as="div" className="mt-6" size="xl" weight="semibold">
-              {selectedLabelIds.length ? "No matching flashcards" : "No flashcards in this book"}
-            </Text>
-            <Text className="mt-2" size="sm" tone="muted">
-              {selectedLabelIds.length
-                ? "Try clearing or changing the selected label filters."
-                : "Add your first card to start reviewing this book."}
-            </Text>
-            {!selectedLabelIds.length ? (
-              <div className="mt-6 flex justify-center">
-                <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
-              </div>
-            ) : null}
-          </div>
-        </section>
+        <EmptyState
+          variant={subBooks.length ? "panel" : "page"}
+          title={selectedLabelIds.length ? "No matching flashcards" : "No flashcards in this book"}
+          description={selectedLabelIds.length
+            ? "Try clearing or changing the selected label filters."
+            : "Add a card to start reviewing this book."}
+          action={selectedLabelIds.length ? (
+            <Button type="button" variant="outline" onClick={() => updateFilters([], "any")}>Clear filters</Button>
+          ) : (
+            <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+          )}
+        />
       )}
     </div>
   );

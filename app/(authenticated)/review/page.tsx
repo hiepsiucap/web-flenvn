@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui/loading-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { PracticeRunner } from "@/components/practice/practice-runner";
 import { CLIENT_DATA_CHANGED_EVENT, getFlashcardsByBookClient, getReviewDueBooksClient } from "@/lib/client-api";
 import type { Flashcard, ReviewDueBooksResponse } from "@/lib/dashboard-data";
@@ -62,14 +64,11 @@ export default function ReviewPage() {
 
   if (!data.dueBooks.books.length) {
     return (
-      <Card className="max-w-3xl rounded-3xl">
-        <CardHeader>
-          <CardTitle>No books found</CardTitle>
-          <CardDescription>
-            Create a book and add flashcards before starting practice.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <EmptyState
+        title="No books yet"
+        description="Create a book and add flashcards before starting practice."
+        action={<CreateBookDialog />}
+      />
     );
   }
 

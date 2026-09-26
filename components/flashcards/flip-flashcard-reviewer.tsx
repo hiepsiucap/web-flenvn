@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowCounterClockwise,
   CaretLeft,
@@ -12,8 +13,9 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import {
   Select,
   SelectContent,
@@ -120,14 +122,11 @@ export function FlipFlashcardReviewer({
 
   if (!books.length) {
     return (
-      <Card className="max-w-3xl rounded-3xl">
-        <CardHeader>
-          <CardTitle>No books found</CardTitle>
-          <CardDescription>
-            Create a book and add flashcards before using flip-card study.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <EmptyState
+        title="No books yet"
+        description="Create a book and add flashcards before using flip-card study."
+        action={<CreateBookDialog />}
+      />
     );
   }
 
@@ -163,14 +162,16 @@ export function FlipFlashcardReviewer({
       </section>
 
       {!currentCard ? (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>No flashcards in {selectedBook?.title}</CardTitle>
-            <CardDescription>
-              Add flashcards to this book, then return here to study them.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <EmptyState
+          variant="panel"
+          title={`No flashcards in ${selectedBook?.title}`}
+          description="Add flashcards to this book, then return here to study them."
+          action={selectedBook ? (
+            <Button render={<Link href={`/books/${encodeURIComponent(selectedBook.id)}`} />} nativeButton={false}>
+              Open book
+            </Button>
+          ) : null}
+        />
       ) : (
         <>
           <section className="grid gap-2">
