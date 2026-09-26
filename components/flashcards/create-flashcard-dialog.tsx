@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Modal,
   ModalActionButton,
@@ -765,15 +766,12 @@ export function CreateFlashcardDialog({
                 ) : null}
               </div>
             ) : (
-              <div className="grid h-full min-h-[180px] place-items-center text-center">
-                <div>
-                  <Icon icon={Sparkles} className="mx-auto size-8 text-muted-foreground" />
-                  <p className="mt-3 text-sm font-medium">No suggestions yet</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Enter a word and click Suggest.
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                variant="compact"
+                title="No suggestions yet"
+                description="Enter a word and click Suggest."
+                className="h-full min-h-[180px]"
+              />
             )}
           </aside>
           </div>

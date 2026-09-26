@@ -161,7 +161,6 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
 
       if (!suggestions.length) {
         setMessage("No vocabulary found for this topic.");
-        toast.info("No vocabulary found for this topic");
       }
     } catch (error) {
       const nextMessage = getErrorMessage(error, "Unable to suggest vocabulary");
@@ -218,9 +217,13 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
       notifyClientDataChanged();
     }
 
-    toast.success(
-      failed ? `${created} created, ${failed} failed` : `${created} flashcards created`
-    );
+    if (failed && created) {
+      toast.warn(`${created} flashcards created; ${failed} failed`);
+    } else if (failed) {
+      toast.error("Unable to create flashcards. Try again.");
+    } else if (created) {
+      toast.success(`${created} flashcards created`);
+    }
     setIsCreating(false);
   }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -9,12 +8,11 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Text } from "@/components/ui/text";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { FlashcardBookView } from "@/components/flashcards/flashcard-book-view";
 import { CLIENT_DATA_CHANGED_EVENT, getBookClient, getBooksClient, getFlashcardsByBookClient, getLabelsClient } from "@/lib/client-api";
 import type { Book, Flashcard, LabelCatalogItem, LabelFilterMode } from "@/lib/dashboard-data";
-import emptyFolderImage from "@/img/empty-folder.png";
 
 export default function FlashcardPage() {
   return (
@@ -81,25 +79,11 @@ function FlashcardPageContent() {
           <Icon icon={ArrowLeft} />
           Books
         </Button>
-        <section className="grid min-h-[calc(100vh-14rem)] w-full place-items-center px-6 py-12 text-center">
-          <div className="flex max-w-sm flex-col items-center">
-            <Image
-              src={emptyFolderImage}
-              alt=""
-              className="h-auto w-52"
-              priority
-            />
-            <Text as="div" className="mt-6" size="xl" weight="semibold">
-              No books found
-            </Text>
-            <Text className="mt-2" size="sm" tone="muted">
-              Create or import a book before adding flashcards.
-            </Text>
-            <div className="mt-6 flex justify-center">
-              <CreateBookDialog />
-            </div>
-          </div>
-        </section>
+        <EmptyState
+          title="No books yet"
+          description="Create a book before adding flashcards."
+          action={<CreateBookDialog />}
+        />
       </div>
     );
   }

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { LoadingState } from "@/components/ui/loading-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/text";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { StreakCard } from "@/components/streak/streak-card";
@@ -33,7 +34,6 @@ import {
   type ClientDashboardPageData,
 } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
-import emptyFolderImage from "@/img/empty-folder.png";
 import penguinTopbar from "@/img/peguin-topbar.png";
 
 export default function DashboardPage() {
@@ -243,26 +243,11 @@ export default function DashboardPage() {
         </section>
         </>
       ) : (
-        <section className="grid min-h-[520px] place-items-center rounded-3xl border border-brand-200 bg-white px-6 py-12 text-center shadow-xl shadow-brand-800/8 motion-enter">
-          <div className="flex max-w-sm flex-col items-center">
-            <Image
-              src={emptyFolderImage}
-              alt=""
-              className="h-auto w-52"
-              priority
-            />
-            <Text as="div" className="mt-6" size="xl" weight="semibold">
-              No dashboard data yet
-            </Text>
-            <Text className="mt-2" size="sm" tone="muted">
-              Create your first book to start building flashcards and tracking
-              review progress.
-            </Text>
-            <div className="mt-6 flex justify-center">
-              <CreateBookDialog />
-            </div>
-          </div>
-        </section>
+        <EmptyState
+          title="No dashboard data yet"
+          description="Create your first book to build flashcards and track review progress."
+          action={<CreateBookDialog />}
+        />
       )}
     </div>
   );

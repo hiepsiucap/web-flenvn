@@ -12,6 +12,7 @@ import { Form, FormField, FormLabel, FormMessage } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
@@ -308,7 +309,15 @@ export function ShadowingPlayer() {
                 <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
               </button>
             ))}</div> : (
-              <div className="flex min-h-32 flex-col items-center justify-center px-4 text-center"><Text className="font-bold">{recentError ? "Recent videos unavailable" : "No recent videos yet"}</Text><Text size="sm" tone="muted" className="mt-1 max-w-sm">{recentError ? "We couldn’t load your recent videos." : "Videos you prepare will appear here."}</Text>{recentError ? <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void loadRecentVideos(true)}><Icon icon={ArrowClockwise} />Retry</Button> : null}</div>
+              recentError ? (
+                <div className="flex min-h-32 flex-col items-center justify-center px-4 text-center">
+                  <Text className="font-bold">Recent videos unavailable</Text>
+                  <Text size="sm" tone="muted" className="mt-1 max-w-sm">We couldn’t load your recent videos.</Text>
+                  <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void loadRecentVideos(true)}><Icon icon={ArrowClockwise} />Retry</Button>
+                </div>
+              ) : (
+                <EmptyState variant="compact" title="No recent videos yet" description="Videos you prepare will appear here." />
+              )
             )}
             {reopenError ? <div className="mt-4 flex items-start gap-2 text-sm font-semibold text-destructive" role="alert"><WarningCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span>{reopenError}</span></div> : null}
           </CardContent>
