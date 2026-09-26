@@ -102,10 +102,12 @@ export function CreateBookDialog({
   books = [],
   defaultParentBookId,
   triggerLabel = "Create book",
+  iconOnly = false,
 }: {
   books?: Book[];
   defaultParentBookId?: string;
   triggerLabel?: string;
+  iconOnly?: boolean;
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
@@ -206,13 +208,14 @@ export function CreateBookDialog({
       <ModalTrigger
         render={
           <Button
-            className={defaultParentBookId ? "h-8 rounded-2xl" : "h-10 rounded-2xl"}
+            className={iconOnly ? "size-10 rounded-xl" : defaultParentBookId ? "h-8 rounded-2xl" : "h-10 rounded-2xl"}
             type="button"
             variant={defaultParentBookId ? "outline" : "default"}
-            size={defaultParentBookId ? "sm" : "default"}
+            size={iconOnly ? "icon-lg" : defaultParentBookId ? "sm" : "default"}
+            title={iconOnly ? triggerLabel : undefined}
           >
             <Icon icon={Plus} />
-            {triggerLabel}
+            {iconOnly ? <span className="sr-only">{triggerLabel}</span> : triggerLabel}
           </Button>
         }
       />
