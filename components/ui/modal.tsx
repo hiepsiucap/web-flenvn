@@ -27,16 +27,84 @@ function ModalTrigger(props: React.ComponentProps<typeof DialogTrigger>) {
 
 function ModalContent({
   className,
+  children,
+  style,
   ...props
 }: React.ComponentProps<typeof DialogContent>) {
+  const closeRef = React.useRef<HTMLButtonElement>(null)
+  const dragStartY = React.useRef<number | null>(null)
+  const [dragOffset, setDragOffset] = React.useState(0)
+  const [isDragging, setIsDragging] = React.useState(false)
+
+  function handleDragStart(event: React.PointerEvent<HTMLDivElement>) {
+    if (!window.matchMedia("(max-width: 639px)").matches) return
+
+    dragStartY.current = event.clientY
+    setIsDragging(true)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handleDragMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (dragStartY.current === null) return
+    setDragOffset(Math.max(0, event.clientY - dragStartY.current))
+  }
+
+  function handleDragEnd(event: React.PointerEvent<HTMLDivElement>) {
+    if (dragStartY.current === null) return
+
+    const finalOffset = Math.max(0, event.clientY - dragStartY.current)
+    const shouldClose = finalOffset >= 96
+    dragStartY.current = null
+    setIsDragging(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    if (shouldClose) {
+      closeRef.current?.click()
+      return
+    }
+
+    setDragOffset(0)
+  }
+
+  function applyDragStyle(baseStyle?: React.CSSProperties): React.CSSProperties {
+    return {
+      ...baseStyle,
+      transform: isDragging || dragOffset > 0
+        ? `translateY(${dragOffset}px)`
+        : baseStyle?.transform,
+      transition: isDragging ? "none" : baseStyle?.transition,
+    }
+  }
+
+  const contentStyle: React.ComponentProps<typeof DialogContent>["style"] =
+    typeof style === "function"
+      ? (state) => applyDragStyle(style(state))
+      : applyDragStyle(style)
+
   return (
     <DialogContent
       className={cn(
-        "grid min-h-0 max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 pb-7 pt-8 max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:before:absolute max-sm:before:left-1/2 max-sm:before:top-2 max-sm:before:h-1 max-sm:before:w-10 max-sm:before:-translate-x-1/2 max-sm:before:rounded-full max-sm:before:bg-border sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:px-10 sm:py-8",
+        "grid min-h-0 max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 pb-7 pt-8 max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:px-10 sm:py-8",
         className
       )}
+      style={contentStyle}
       {...props}
-    />
+    >
+      <div
+        className="absolute inset-x-0 top-0 z-10 flex h-7 touch-none cursor-grab items-start justify-center pt-2 active:cursor-grabbing sm:hidden"
+        role="presentation"
+        onPointerDown={handleDragStart}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+        onPointerCancel={handleDragEnd}
+      >
+        <span className="h-1 w-10 rounded-full bg-border" />
+      </div>
+      {children}
+      <DialogClose ref={closeRef} className="hidden" tabIndex={-1} aria-hidden />
+    </DialogContent>
   )
 }
 
