@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -35,10 +36,13 @@ function FlashcardPageContent() {
     flashcards: Flashcard[];
     labels: LabelCatalogItem[];
   } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = () => {
+      setLoadError(false);
       void getBooksClient().then(async (books) => {
         const selectedBookId = bookId ?? books[0]?.id;
         if (!selectedBookId) {
@@ -51,6 +55,8 @@ function FlashcardPageContent() {
           getLabelsClient(true),
         ]);
         if (active) setData({ book, books, flashcards, labels });
+      }).catch(() => {
+        if (active) setLoadError(true);
       });
     };
     load();
@@ -59,7 +65,21 @@ function FlashcardPageContent() {
       active = false;
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
-  }, [bookId]);
+  }, [bookId, loadKey]);
+
+  if (loadError && !data) {
+    return (
+      <Card className="max-w-3xl rounded-3xl">
+        <CardHeader>
+          <CardTitle>Flashcards unavailable</CardTitle>
+          <CardDescription>Unable to load flashcards. Check your connection and try again.</CardDescription>
+          <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+            Try again
+          </Button>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   if (!data) {
     return <LoadingState title="Loading flashcards" description="Loading your books and cards." />;

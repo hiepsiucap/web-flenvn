@@ -44,7 +44,8 @@ function isCurrent(pathname: string, href: string) {
 export function MobileNav({ onSuggestVocabulary }: { onSuggestVocabulary: () => void }) {
   const pathname = usePathname();
   const secondary = dashboardNavItems.filter((item) => item.icon in secondaryIcons);
-  const moreIsCurrent = secondary.some((item) => isCurrent(pathname, item.href));
+  const currentSecondary = secondary.find((item) => isCurrent(pathname, item.href));
+  const moreIsCurrent = Boolean(currentSecondary);
 
   return (
     <nav
@@ -71,7 +72,7 @@ export function MobileNav({ onSuggestVocabulary }: { onSuggestVocabulary: () => 
         })}
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label="More destinations"
+            aria-label={currentSecondary ? `More destinations, current page ${currentSecondary.label}` : "More destinations"}
             className={cn(
               "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
               moreIsCurrent && "text-primary"

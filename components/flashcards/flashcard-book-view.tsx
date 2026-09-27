@@ -90,7 +90,7 @@ export function FlashcardBookView({
                 {parentBook.title} / Sub-book
               </Link>
             ) : null}
-            <Text as="div" className="truncate" size="3xl" weight="semibold">
+            <Text as="div" className="break-words" size="3xl" weight="semibold">
               {book?.title ?? "Selected book"}
             </Text>
             <div className="mt-3">

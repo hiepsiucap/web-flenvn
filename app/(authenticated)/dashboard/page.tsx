@@ -15,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -39,10 +40,12 @@ import penguinTopbar from "@/img/peguin-topbar.png";
 export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<ClientDashboardPageData | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = () => {
+      setLoadError("");
       void getDashboardPageDataClient()
         .then((data) => {
         if (active) setDashboard(data);
@@ -57,13 +60,18 @@ export default function DashboardPage() {
       active = false;
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
-  }, []);
+  }, [loadKey]);
 
   if (loadError) {
     return (
       <Alert variant="destructive">
         <AlertTitle>Dashboard data unavailable</AlertTitle>
-        <AlertDescription>{loadError}</AlertDescription>
+        <AlertDescription className="grid gap-3">
+          <span>{loadError}</span>
+          <Button type="button" className="w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+            Try again
+          </Button>
+        </AlertDescription>
       </Alert>
     );
   }
