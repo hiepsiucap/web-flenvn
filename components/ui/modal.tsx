@@ -61,11 +61,21 @@ function ModalContent({
     }
 
     if (shouldClose) {
+      setDragOffset(0)
       closeRef.current?.click()
       return
     }
 
     setDragOffset(0)
+  }
+
+  function handleDragCancel(event: React.PointerEvent<HTMLDivElement>) {
+    dragStartY.current = null
+    setIsDragging(false)
+    setDragOffset(0)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
   }
 
   function applyDragStyle(baseStyle?: React.CSSProperties): React.CSSProperties {
@@ -100,7 +110,7 @@ function ModalContent({
         onPointerDown={handleDragStart}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
-        onPointerCancel={handleDragEnd}
+        onPointerCancel={handleDragCancel}
       >
         <span className="h-1 w-10 rounded-full bg-border" />
       </div>
