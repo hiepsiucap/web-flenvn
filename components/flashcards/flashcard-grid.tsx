@@ -44,6 +44,7 @@ import { FlashcardLabelEditor } from "@/components/flashcards/labels/flashcard-l
 import { LearningStatusBadge } from "@/components/flashcards/learning-status-badge";
 import type { ApiEnvelope, ApiErrorResponse } from "@/lib/auth-types";
 import type { Book, Flashcard, LabelCatalogItem } from "@/lib/dashboard-data";
+import { cn } from "@/lib/utils";
 import {
   buildFlashcardUpdatePayload,
   DEFAULT_FLASHCARD_IMAGE_URL,
@@ -82,10 +83,12 @@ export function FlashcardGrid({
   flashcards,
   labels,
   books,
+  view = "grid",
 }: {
   flashcards: Flashcard[];
   labels: LabelCatalogItem[];
   books: Book[];
+  view?: "grid" | "list";
 }) {
   const [displayedFlashcards, setDisplayedFlashcards] = useState(flashcards);
   const [labelCatalog, setLabelCatalog] = useState(labels);
@@ -295,25 +298,40 @@ export function FlashcardGrid({
 
   return (
     <>
-      <section className="grid w-full grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+      <section
+        className={cn(
+          "grid w-full gap-3",
+          view === "grid" && "grid-cols-[repeat(auto-fill,minmax(220px,1fr))]"
+        )}
+        aria-label={`Flashcards in ${view} view`}
+      >
         {displayedFlashcards.map((card) => (
           <button
             key={card.id}
             type="button"
-            className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md hover:shadow-brand-800/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className={cn(
+              "group overflow-hidden rounded-2xl border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md hover:shadow-brand-800/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+              view === "list" && "flex items-stretch"
+            )}
             onClick={() => openCard(card)}
           >
             {card.imageUrl ? (
               <div
-                className="h-32 bg-secondary bg-cover bg-center transition-transform duration-300 group-hover:scale-105 sm:aspect-[5/3] sm:h-auto"
+                className={cn(
+                  "shrink-0 bg-secondary bg-cover bg-center transition-transform duration-300 group-hover:scale-105",
+                  view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "w-24 sm:w-32"
+                )}
                 style={{ backgroundImage: `url(${card.imageUrl})` }}
               />
             ) : (
-              <div className="grid h-32 place-items-center bg-secondary text-primary sm:aspect-[5/3] sm:h-auto">
+              <div className={cn(
+                "grid shrink-0 place-items-center bg-secondary text-primary",
+                view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "w-24 sm:w-32"
+              )}>
                 <Icon icon={BookOpen} className="size-7" />
               </div>
             )}
-            <div className="grid gap-2 p-3">
+            <div className={cn("grid min-w-0 flex-1 gap-2 p-3", view === "list" && "sm:grid-cols-[minmax(0,1fr)_minmax(220px,1fr)] sm:items-center sm:gap-6 sm:px-4")}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Text className="truncate" weight="semibold">
@@ -329,15 +347,17 @@ export function FlashcardGrid({
                 </div>
                 <LearningStatusBadge status={card.status} className="shrink-0 rounded-2xl" />
               </div>
-                  <Text className="line-clamp-2 min-h-10 leading-5" size="sm" tone="muted">
-                    {card.definition || "No definition available."}
-                  </Text>
-                  <LabelingStatus
-                    status={card.labelingStatus}
-                    timedOut={timedOutIds.has(card.id)}
-                  />
-                </div>
-              </button>
+              <div className="grid gap-2">
+                <Text className={cn("line-clamp-2 leading-5", view === "grid" && "min-h-10")} size="sm" tone="muted">
+                  {card.definition || "No definition available."}
+                </Text>
+                <LabelingStatus
+                  status={card.labelingStatus}
+                  timedOut={timedOutIds.has(card.id)}
+                />
+              </div>
+            </div>
+          </button>
         ))}
       </section>
 

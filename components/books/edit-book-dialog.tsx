@@ -56,7 +56,15 @@ async function uploadCover(file: File) {
   return presign.fileUrl;
 }
 
-export function EditBookDialog({ book, books }: { book: Book; books: Book[] }) {
+export function EditBookDialog({
+  book,
+  books,
+  showLabel = false,
+}: {
+  book: Book;
+  books: Book[];
+  showLabel?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(book.title);
   const [parentBookId, setParentBookId] = useState(book.parentBookId ?? "");
@@ -147,8 +155,15 @@ export function EditBookDialog({ book, books }: { book: Book; books: Book[] }) {
   return (
     <Modal open={open} onOpenChange={handleOpenChange}>
       <ModalTrigger render={
-        <Button type="button" variant="secondary" size="icon-sm" className="size-10 sm:size-8" aria-label={`Edit ${book.title}`}>
+        <Button
+          type="button"
+          variant={showLabel ? "outline" : "secondary"}
+          size={showLabel ? "default" : "icon-sm"}
+          className={showLabel ? undefined : "size-10 sm:size-8"}
+          aria-label={`Edit ${book.title}`}
+        >
           <Icon icon={PencilSimple} />
+          {showLabel ? "Edit" : null}
         </Button>
       } />
       <ModalContent className="sm:max-w-md">

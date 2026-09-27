@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowLeft, BookOpen, MagnifyingGlass } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  BookOpen,
+  ListBullets,
+  MagnifyingGlass,
+  ShareNetwork,
+  SquaresFour,
+} from "@phosphor-icons/react";
+import { toast } from "react-toastify";
 
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
+import { EditBookDialog } from "@/components/books/edit-book-dialog";
 import { CreateFlashcardDialog } from "@/components/flashcards/create-flashcard-dialog";
 import { FlashcardGrid } from "@/components/flashcards/flashcard-grid";
 import { LabelFilter } from "@/components/flashcards/labels/label-filter";
@@ -12,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import type {
   Book,
@@ -19,6 +29,10 @@ import type {
   LabelCatalogItem,
   LabelFilterMode,
 } from "@/lib/dashboard-data";
+
+const PAGE_SIZE = 12;
+type SortOrder = "newest" | "word-asc" | "word-desc";
+type ViewMode = "grid" | "list";
 
 export function FlashcardBookView({
   book,
@@ -38,6 +52,10 @@ export function FlashcardBookView({
   const [selectedLabelIds, setSelectedLabelIds] = useState(initialLabelIds);
   const [labelMode, setLabelMode] = useState(initialLabelMode);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const parentBook = books.find((item) => item.id === book?.parentBookId);
   const subBooks = books.filter((item) => item.parentBookId === book?.id);
   const isOwnedBook = books.some((item) => item.id === book?.id);
@@ -64,9 +82,39 @@ export function FlashcardBookView({
     });
   }, [flashcards, labelMode, searchQuery, selectedLabelIds]);
 
+  const sortedFlashcards = useMemo(() => {
+    if (sortOrder === "newest") return filteredFlashcards;
+
+    return [...filteredFlashcards].sort((left, right) => {
+      const comparison = left.word.localeCompare(right.word, undefined, { sensitivity: "base" });
+      return sortOrder === "word-asc" ? comparison : -comparison;
+    });
+  }, [filteredFlashcards, sortOrder]);
+
+  const visibleFlashcards = sortedFlashcards.slice(0, visibleCount);
+  const hasMoreFlashcards = visibleCount < sortedFlashcards.length;
+
+  useEffect(() => {
+    const loadMoreElement = loadMoreRef.current;
+    if (!loadMoreElement || !hasMoreFlashcards) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((count) => Math.min(count + PAGE_SIZE, sortedFlashcards.length));
+        }
+      },
+      { rootMargin: "240px 0px" }
+    );
+
+    observer.observe(loadMoreElement);
+    return () => observer.disconnect();
+  }, [hasMoreFlashcards, sortedFlashcards.length, visibleCount]);
+
   function updateFilters(ids: string[], mode: LabelFilterMode) {
     setSelectedLabelIds(ids);
     setLabelMode(mode);
+    setVisibleCount(PAGE_SIZE);
 
     const url = new URL(window.location.href);
     if (ids.length) {
@@ -79,68 +127,157 @@ export function FlashcardBookView({
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
   }
 
+  async function shareBook() {
+    const shareData = {
+      title: book?.title ?? "Flashcards",
+      text: book?.description ?? `Study ${book?.title ?? "this flashcard book"}.`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success("Book link copied");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("Unable to share this book");
+    }
+  }
+
   return (
     <div className="grid w-full gap-6">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+      <section className="grid gap-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
           <Button
             render={<Link href={parentBook ? `/books/${encodeURIComponent(parentBook.id)}` : "/books"} />}
             nativeButton={false}
             variant="outline"
             size="icon-lg"
-            className="mt-1 shrink-0 rounded-2xl"
+            className="shrink-0 rounded-2xl"
           >
             <Icon icon={ArrowLeft} />
             <span className="sr-only">{parentBook ? parentBook.title : "Books"}</span>
           </Button>
-          <div className="min-w-0 flex-1">
-            {parentBook ? (
-              <Link
-                href={`/books/${encodeURIComponent(parentBook.id)}`}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                {parentBook.title} / Sub-book
-              </Link>
-            ) : null}
-            <Text as="div" className="break-words" size="3xl" weight="semibold">
-              {book?.title ?? "Selected book"}
-            </Text>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="relative w-full max-w-md">
-                <Icon
-                  icon={MagnifyingGlass}
-                  size="sm"
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-2xl bg-secondary text-primary">
+              {book?.coverImage ? (
+                <span
+                  className="size-full bg-cover bg-center"
+                  style={{ backgroundImage: `url(${book.coverImage})` }}
                 />
-                <Input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search flashcards"
-                  aria-label="Search flashcards"
-                  className="h-9 rounded-full border-0 bg-card py-0.5 pl-10 pr-4 shadow-none dark:bg-card"
-                />
-              </div>
-              <LabelFilter
-                labels={labels}
-                selectedIds={selectedLabelIds}
-                mode={labelMode}
-                onChange={updateFilters}
-              />
+              ) : (
+                <Icon icon={BookOpen} className="size-6" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              {parentBook ? (
+                <Link
+                  href={`/books/${encodeURIComponent(parentBook.id)}`}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  {parentBook.title} / Sub-book
+                </Link>
+              ) : null}
+              <h1>
+                <Text as="span" className="break-words" size="3xl" weight="semibold">
+                  {book?.title ?? "Selected book"}
+                </Text>
+              </h1>
+              {book?.description ? (
+                <Text className="mt-1 line-clamp-2" size="sm" tone="muted">
+                  {book.description}
+                </Text>
+              ) : null}
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {book && isOwnedBook ? <EditBookDialog book={book} books={books} showLabel /> : null}
+            {book ? (
+              <Button type="button" variant="outline" onClick={() => void shareBook()}>
+                <Icon icon={ShareNetwork} />
+                Share
+              </Button>
+            ) : null}
+            {book && isOwnedBook ? (
+              <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {flashcards.length || selectedLabelIds.length ? (
-            <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
-          ) : null}
+
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Icon
+              icon={MagnifyingGlass}
+              size="sm"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              placeholder="Search flashcards (e.g. API, database, cloud...)"
+              aria-label="Search flashcards"
+              className="h-10 rounded-full bg-card py-1 pl-10 pr-4 shadow-none dark:bg-card"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <LabelFilter
+              labels={labels}
+              selectedIds={selectedLabelIds}
+              mode={labelMode}
+              onChange={updateFilters}
+            />
+            <Select value={sortOrder} onValueChange={(value) => {
+              setSortOrder((value ?? "newest") as SortOrder);
+              setVisibleCount(PAGE_SIZE);
+            }}>
+              <SelectTrigger className="h-9 rounded-full bg-card px-4 dark:bg-card">
+                {sortOrder === "newest" ? "Sort: Newest" : sortOrder === "word-asc" ? "Sort: A–Z" : "Sort: Z–A"}
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="word-asc">Word: A–Z</SelectItem>
+                <SelectItem value="word-desc">Word: Z–A</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="ml-auto inline-flex rounded-full border border-border bg-card p-0.5" aria-label="Flashcard view">
+              <Button
+                type="button"
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="icon-sm"
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
+                onClick={() => setViewMode("grid")}
+              >
+                <Icon icon={SquaresFour} />
+              </Button>
+              <Button
+                type="button"
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="icon-sm"
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
+                onClick={() => setViewMode("list")}
+              >
+                <Icon icon={ListBullets} />
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
       {book && !book.parentBookId && isOwnedBook ? (
         <section aria-labelledby="sub-books-title" className="grid gap-3">
           <h2 id="sub-books-title">
-            <Text as="span" size="lg" weight="semibold">Sub-books</Text>
+            <Text as="span" size="lg" weight="semibold">
+              Sub-books <span className="text-muted-foreground">({subBooks.length})</span>
+            </Text>
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             {subBooks.map((child) => (
@@ -171,16 +308,26 @@ export function FlashcardBookView({
         </section>
       ) : null}
 
-      {subBooks.length ? (
-        <h2><Text as="span" size="lg" weight="semibold">Flashcards</Text></h2>
-      ) : null}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2>
+          <Text as="span" size="lg" weight="semibold">
+            Flashcards <span className="text-muted-foreground">({sortedFlashcards.length})</span>
+          </Text>
+        </h2>
+        {sortedFlashcards.length ? (
+          <Text size="xs" tone="muted">
+            Showing {visibleFlashcards.length} of {sortedFlashcards.length}
+          </Text>
+        ) : null}
+      </div>
 
-      {filteredFlashcards.length ? (
+      {visibleFlashcards.length ? (
         <FlashcardGrid
-          key={filteredFlashcards.map((card) => card.id).join(",")}
-          flashcards={filteredFlashcards}
+          key={`${viewMode}:${visibleFlashcards.map((card) => card.id).join(",")}`}
+          flashcards={visibleFlashcards}
           books={books}
           labels={labels}
+          view={viewMode}
         />
       ) : (
         <EmptyState
@@ -199,6 +346,12 @@ export function FlashcardBookView({
           )}
         />
       )}
+
+      {hasMoreFlashcards ? (
+        <div ref={loadMoreRef} className="flex h-8 items-center justify-center" aria-hidden="true">
+          <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/50" />
+        </div>
+      ) : null}
     </div>
   );
 }
