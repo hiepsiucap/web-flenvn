@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const hasDashboardData = dashboard.activeDecks > 0 || dashboard.totalCards > 0;
 
   return (
-    <div className="grid gap-10 motion-reduce-safe">
+    <div className="grid gap-5 motion-reduce-safe sm:gap-10">
       {dashboard.error ? (
         <Alert variant="destructive">
           <AlertTitle>Dashboard data unavailable</AlertTitle>
@@ -110,10 +110,10 @@ export default function DashboardPage() {
 
       {hasDashboardData ? (
         <>
-        <section className="grid gap-5 motion-enter motion-delay-1 xl:grid-cols-2">
+        <section className="order-2 grid gap-5 motion-enter motion-delay-1 xl:order-none xl:grid-cols-2">
           <div className="grid content-start gap-5">
-          <Card interactive className="relative min-h-[360px] justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(5)]">
-            <CardHeader className="relative z-(--z-dashboard-content) gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <Card interactive className="relative justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(4)] sm:min-h-[360px] sm:[--card-spacing:--spacing(5)]">
+            <CardHeader className="relative z-(--z-dashboard-content) gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
               <div className="min-w-0">
                 <ColoredBookBadge />
                 <CardDescription className="text-sm font-bold text-brand-700">
@@ -159,7 +159,7 @@ export default function DashboardPage() {
           <StreakCard />
           </div>
 
-          <div className="relative grid gap-5 sm:grid-cols-2">
+          <div className="relative grid grid-cols-2 gap-3 sm:gap-5">
             <ReviewMascot />
             <DashboardStatCard
               label="Cards due"
@@ -190,7 +190,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 motion-enter motion-delay-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
+        <section className="order-1 grid gap-5 motion-enter motion-delay-2 xl:order-none xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
           <Card interactive className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle className="text-lg font-extrabold tracking-normal">
@@ -267,19 +267,21 @@ function QuickAction({
   cta: string;
 }) {
   return (
-    <article className="flex min-h-36 flex-col justify-between rounded-2xl border border-brand-200 bg-card p-4 transition-[transform,box-shadow,border-color] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-brand-800/10 motion-reduce:transform-none">
-      <div>
-        <Icon icon={icon} className="size-6 text-primary" weight="duotone" />
-        <Text as="div" className="mt-4 text-base font-extrabold tracking-normal">
-          {title}
-        </Text>
-        <Text className="mt-1 text-sm text-muted-foreground" weight="semibold">
-          {description}
-        </Text>
+    <article className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-card p-3 transition-[transform,box-shadow,border-color] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-brand-800/10 motion-reduce:transform-none sm:min-h-36 sm:flex-col sm:items-stretch sm:p-4">
+      <div className="flex min-w-0 items-center gap-3 sm:block">
+        <Icon icon={icon} className="size-6 shrink-0 text-primary" weight="duotone" />
+        <div className="min-w-0">
+          <Text as="div" className="text-sm font-extrabold tracking-normal sm:mt-4 sm:text-base">
+            {title}
+          </Text>
+          <Text className="mt-0.5 text-xs text-muted-foreground sm:mt-1 sm:text-sm" weight="semibold">
+            {description}
+          </Text>
+        </div>
       </div>
       <Link
         href={href}
-        className="mt-4 inline-flex h-8 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 sm:mt-4 sm:min-h-8"
       >
         {cta}
       </Link>
@@ -317,10 +319,10 @@ function DashboardStatCard({
 }) {
   const styles = {
     primary:
-      "min-h-44 bg-[linear-gradient(135deg,var(--primary),var(--brand-700))] text-primary-foreground ring-primary/20",
-    cool: "min-h-44 bg-[linear-gradient(135deg,#ffffff,var(--brand-100))] text-foreground ring-brand-200",
-    soft: "min-h-44 bg-[linear-gradient(135deg,var(--brand-50),#ffffff)] text-foreground ring-brand-200",
-    warm: "min-h-44 bg-[linear-gradient(135deg,#fff7f7,#ffdfe3)] text-foreground ring-destructive/15",
+      "bg-[linear-gradient(135deg,var(--primary),var(--brand-700))] text-primary-foreground ring-primary/20",
+    cool: "bg-[linear-gradient(135deg,#ffffff,var(--brand-100))] text-foreground ring-brand-200",
+    soft: "bg-[linear-gradient(135deg,var(--brand-50),#ffffff)] text-foreground ring-brand-200",
+    warm: "bg-[linear-gradient(135deg,#fff7f7,#ffdfe3)] text-foreground ring-destructive/15",
   };
   const iconStyles = {
     primary: "text-white",
@@ -333,7 +335,7 @@ function DashboardStatCard({
     <Card
       interactive
       className={cn(
-        "relative justify-between rounded-3xl border-0 shadow-xl shadow-brand-800/8 [--card-spacing:--spacing(4)]",
+        "relative min-h-32 min-w-0 justify-between rounded-2xl border-0 shadow-sm shadow-brand-800/8 [--card-spacing:--spacing(3)] sm:min-h-44 sm:rounded-3xl sm:shadow-xl sm:[--card-spacing:--spacing(4)]",
         styles[variant],
         className
       )}
@@ -341,7 +343,7 @@ function DashboardStatCard({
       <CardHeader className="relative z-(--z-dashboard-content)">
         <CardDescription
           className={cn(
-            "text-sm font-bold",
+            "text-xs font-bold sm:text-sm",
             variant === "primary" ? "text-white/90" : "text-brand-700"
           )}
         >
@@ -349,17 +351,17 @@ function DashboardStatCard({
         </CardDescription>
         <CardTitle
           className={cn(
-            "mt-2 text-2xl font-extrabold tracking-normal",
+            "mt-1 text-xl font-extrabold tracking-normal sm:mt-2 sm:text-2xl",
             variant === "primary" ? "text-white" : "text-foreground"
           )}
         >
           {value}
         </CardTitle>
       </CardHeader>
-      <CardContent className="relative z-(--z-dashboard-content) flex items-end justify-between gap-4">
-        <Icon icon={icon} className={cn("size-7", iconStyles[variant])} weight="duotone" />
+      <CardContent className="relative z-(--z-dashboard-content) flex items-end justify-between gap-2 sm:gap-4">
+        <Icon icon={icon} className={cn("size-5 shrink-0 sm:size-7", iconStyles[variant])} weight="duotone" />
         {caption ? (
-          <Text className="max-w-48 text-brand-700" size="sm" weight="semibold">
+          <Text className="max-w-48 text-right text-[11px] leading-4 text-brand-700 sm:text-left sm:text-sm" weight="semibold">
             {caption}
           </Text>
         ) : null}

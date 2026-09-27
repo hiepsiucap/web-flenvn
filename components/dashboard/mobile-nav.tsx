@@ -11,6 +11,7 @@ import {
   Waveform,
   GearSix,
   Lifebuoy,
+  Sparkle,
 } from "@phosphor-icons/react";
 
 import { dashboardNavItems } from "@/components/dashboard/dashboard-nav-items";
@@ -40,7 +41,7 @@ function isCurrent(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 }
 
-export function MobileNav() {
+export function MobileNav({ onSuggestVocabulary }: { onSuggestVocabulary: () => void }) {
   const pathname = usePathname();
   const secondary = dashboardNavItems.filter((item) => item.icon in secondaryIcons);
   const moreIsCurrent = secondary.some((item) => isCurrent(pathname, item.href));
@@ -59,11 +60,11 @@ export function MobileNav() {
               href={href}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
                 current && "text-primary"
               )}
             >
-              <Icon icon={icon} className="size-5" weight={current ? "fill" : "regular"} />
+              <Icon icon={icon} className="size-5.5" weight={current ? "fill" : "regular"} />
               <span>{label}</span>
             </Link>
           );
@@ -72,14 +73,23 @@ export function MobileNav() {
           <DropdownMenuTrigger
             aria-label="More destinations"
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+              "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
               moreIsCurrent && "text-primary"
             )}
           >
-            <Icon icon={DotsThree} className="size-5" weight="bold" />
+            <Icon icon={DotsThree} className="size-5.5" weight="bold" />
             <span>More</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-44 bg-card p-1">
+            <DropdownMenuItem
+              render={<button type="button" />}
+              nativeButton
+              onClick={onSuggestVocabulary}
+              className="min-h-11 w-full gap-2 px-3 text-sm"
+            >
+              <Icon icon={Sparkle} className="size-5" />
+              Suggest vocabulary
+            </DropdownMenuItem>
             {secondary.map((item) => {
               const ItemIcon = secondaryIcons[item.icon as keyof typeof secondaryIcons];
               return (

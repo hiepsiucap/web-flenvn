@@ -147,7 +147,7 @@ export function EditBookDialog({ book, books }: { book: Book; books: Book[] }) {
   return (
     <Modal open={open} onOpenChange={handleOpenChange}>
       <ModalTrigger render={
-        <Button type="button" variant="secondary" size="icon-sm" aria-label={`Edit ${book.title}`}>
+        <Button type="button" variant="secondary" size="icon-sm" className="size-10 sm:size-8" aria-label={`Edit ${book.title}`}>
           <Icon icon={PencilSimple} />
         </Button>
       } />
