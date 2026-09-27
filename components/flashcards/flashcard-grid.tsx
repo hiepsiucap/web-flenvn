@@ -200,9 +200,10 @@ export function FlashcardGrid({
         if (!response.ok) throw new Error("Unable to upload image");
         selectedImageUrl = presign.fileUrl;
       }
-      await http.put(`/api/flashcards/${selectedCard.id}`, buildFlashcardUpdatePayload(
+      const response = await http.put<ApiEnvelope<Flashcard> | Flashcard>(`/api/flashcards/${selectedCard.id}`, buildFlashcardUpdatePayload(
         selectedCard, draft, imageChoice, selectedImageUrl, keepExistingAssets
       ));
+      replaceCard("data" in response ? response.data : response);
 
       toast.success("Flashcard updated");
       setSelectedCard(null);
