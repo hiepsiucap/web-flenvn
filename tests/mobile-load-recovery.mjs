@@ -59,6 +59,25 @@ try {
   assert.equal(await dashboard.getByText("Dashboard data unavailable").last().locator("..").getByRole("button", { name: "Try again" }).count(), 1);
   dashboard.assertNoErrors();
   await dashboard.close();
+
+  const longTitle = "A very long vocabulary book title that needs to remain readable on a small phone screen";
+  const book = { id: "test-book", title: longTitle, description: "Study words", totalCards: 0 };
+  const longTitlePage = await browser.newPage({ viewport: { width: 320, height: 700 } });
+  await longTitlePage.addInitScript(() => localStorage.setItem("accessToken", "test-token"));
+  await longTitlePage.route("**/api/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body = path === "/api/v1/books" ? [book]
+      : path === "/api/v1/books/test-book" ? book
+      : path === "/api/v1/flashcards" || path === "/api/v1/labels" ? []
+      : path === "/api/v1/users/profile" ? { username: "Learner" }
+      : {};
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  });
+  await longTitlePage.goto(`${baseUrl}/books/test-book`);
+  const title = longTitlePage.getByText(longTitle, { exact: true });
+  await title.waitFor({ timeout: 10000 });
+  assert.notEqual(await title.evaluate((element) => getComputedStyle(element).whiteSpace), "nowrap");
+  await longTitlePage.close();
 } finally {
   await browser.close();
 }
