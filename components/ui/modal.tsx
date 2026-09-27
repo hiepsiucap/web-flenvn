@@ -32,7 +32,7 @@ function ModalContent({
   return (
     <DialogContent
       className={cn(
-        "grid min-h-0 max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 py-7 sm:max-w-lg sm:px-10 sm:py-8",
+        "grid min-h-0 max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 pb-7 pt-8 max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:before:absolute max-sm:before:left-1/2 max-sm:before:top-2 max-sm:before:h-1 max-sm:before:w-10 max-sm:before:-translate-x-1/2 max-sm:before:rounded-full max-sm:before:bg-border sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:px-10 sm:py-8",
         className
       )}
       {...props}
