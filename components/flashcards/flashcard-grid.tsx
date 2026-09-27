@@ -218,12 +218,12 @@ export function FlashcardGrid({
     }
     setIsSuggesting(true);
     try {
-      const response = await http.get<{ data: { images?: { url?: string }[] } }>("/api/words/suggest", {
-        query: { word: word.trim(), targetLanguage: "vi", imageLimit: 6 },
+      const response = await http.get<{ data: { images?: { url?: string }[] } }>("/api/flashcards/images/suggest", {
+        query: { word: word.trim(), limit: 6 },
       });
-      const images = response.data.images?.map((item) => item.url).filter((url): url is string => Boolean(url)) ?? [];
+      const images = response.data.images?.map((item) => item.url).filter((url): url is string => Boolean(url) && url !== DEFAULT_FLASHCARD_IMAGE_URL) ?? [];
       setSuggestedImages(images);
-      if (!images.length) toast.info("No images found for this word");
+      if (!images.length) toast.info("No new images found for this word");
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to suggest images"));
     } finally {
@@ -583,8 +583,12 @@ export function FlashcardGrid({
                   {imageChoice !== "current" ? <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
                     setImageChoice("current"); setImageUrl(selectedCard.imageUrl ?? ""); setImageFile(null); setImagePreview("");
                   }}>Keep current image</Button> : null}
-                  <Button type="button" variant="outline" disabled={isSuggesting || isSaving} onClick={() => void suggestImages()}>
-                    {isSuggesting ? <Icon icon={Loader2} className="animate-spin" /> : <Icon icon={Sparkles} />} Suggest images
+                  <Button type="button" variant="outline" disabled={isSuggesting || isSaving} onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void suggestImages();
+                  }}>
+                    {isSuggesting ? <Icon icon={Loader2} className="animate-spin" /> : <Icon icon={Sparkles} />} Find new images
                   </Button>
                   <Button type="button" variant="outline" disabled={isSaving} onClick={() => { setImageChoice("default"); setImageFile(null); setImagePreview(""); }}>
                     Use default image
