@@ -10,19 +10,24 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/text";
 import { BooksGrid } from "@/components/books/books-grid";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CLIENT_DATA_CHANGED_EVENT, getBooksClient } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
 
 export default function BooksPage() {
   const [books, setBooks] = useState<Book[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = () => {
+      setLoadError(false);
       void getBooksClient().then((data) => {
         if (active) setBooks(data);
       }).catch(() => {
-        if (active) setBooks([]);
+        if (active) setLoadError(true);
       });
     };
     load();
@@ -31,7 +36,21 @@ export default function BooksPage() {
       active = false;
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
-  }, []);
+  }, [loadKey]);
+
+  if (loadError && !books) {
+    return (
+      <Card className="max-w-3xl rounded-3xl">
+        <CardHeader>
+          <CardTitle>Books unavailable</CardTitle>
+          <CardDescription>Unable to load your books. Check your connection and try again.</CardDescription>
+          <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+            Try again
+          </Button>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   if (!books) {
     return <LoadingState title="Loading books" description="Loading your vocabulary library." />;
