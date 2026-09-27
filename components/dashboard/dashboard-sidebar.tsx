@@ -4,23 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { DailyGoalCarousel } from "@/components/dashboard/daily-goal-carousel";
-import {
-  SidebarNav,
-  type SidebarNavItem,
-} from "@/components/dashboard/sidebar-nav";
+import { dashboardNavItems } from "@/components/dashboard/dashboard-nav-items";
+import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import logo from "@/img/new-logo.png";
-
-const navItems: SidebarNavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { label: "Books", href: "/books", icon: "books" },
-  { label: "Flip cards", href: "/flip-flashcards", icon: "flip" },
-  { label: "Review", href: "/review", icon: "review" },
-  { label: "Shadowing", href: "/shadowing", icon: "shadowing" },
-  { label: "Support", href: "/support", icon: "support" },
-  { label: "Settings", href: "/settings", icon: "settings" },
-];
 
 export function DashboardSidebar() {
   return (
@@ -38,7 +26,7 @@ export function DashboardSidebar() {
       </Link>
 
       <Separator className="my-5" />
-      <SidebarNav items={navItems} />
+      <SidebarNav items={dashboardNavItems} />
       <DailyGoalCarousel />
     </aside>
   );

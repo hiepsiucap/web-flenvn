@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Nunito } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   description:
     "Build English vocabulary with smart flashcards, contextual explanations, focused review, and quick learning games.",
   applicationName: "FLENVN",
+  appleWebApp: {
+    capable: true,
+    title: "FLENVN",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/pwa-icon-192.png",
+  },
   keywords: [
     "English vocabulary",
     "flashcards",
@@ -52,6 +60,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2131dc",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

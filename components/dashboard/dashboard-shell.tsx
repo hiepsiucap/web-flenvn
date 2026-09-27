@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
 import { RankProgressDialog } from "@/components/dashboard/rank-progress-dialog";
 import { StreakProvider } from "@/components/streak/streak-provider";
@@ -20,6 +23,7 @@ import {
   type ClientDashboardShellData,
 } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
+import { HttpError } from "@/lib/http";
 
 export function DashboardShell({
   children,
@@ -28,6 +32,8 @@ export function DashboardShell({
 }) {
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
   const [books, setBooks] = useState<Book[]>(() => getCachedBooksClient() ?? []);
+  const [loadError, setLoadError] = useState("");
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     if (!window.localStorage.getItem("accessToken")) {
@@ -42,9 +48,15 @@ export function DashboardShell({
         if (!active) return;
         setUser(nextUser);
         setBooks(nextBooks);
+        setLoadError(nextUser.error ?? "");
       })
-      .catch(() => {
-        if (active) window.location.replace("/?auth=login");
+      .catch((error: unknown) => {
+        if (!active) return;
+        if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+          window.location.replace("/login?reason=session-expired");
+          return;
+        }
+        setLoadError("Unable to refresh your learning data. Check your connection and try again.");
       });
     };
     load();
@@ -54,7 +66,7 @@ export function DashboardShell({
       active = false;
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
-  }, []);
+  }, [loadKey]);
 
   return (
     <StreakProvider initialStatus={user?.streakStatus ?? null}>
@@ -62,7 +74,7 @@ export function DashboardShell({
       <DashboardSidebar />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 backdrop-blur">
+        <header className="sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 pt-[env(safe-area-inset-top)] backdrop-blur">
           <div className="relative border border-brand-200/80 bg-white">
             <div className="relative flex min-h-16 items-center justify-between gap-4 px-5 py-2.5 sm:px-6 lg:min-h-18">
               <div className="flex min-w-0 items-center gap-3">
@@ -121,8 +133,22 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-6">
+          {loadError ? (
+            <Alert className="mb-4">
+              <AlertTitle>Learning data unavailable</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center gap-3">
+                {loadError}
+                <Button type="button" size="sm" variant="outline" onClick={() => setLoadKey((key) => key + 1)}>
+                  Try again
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {children}
+        </main>
       </div>
+      <MobileNav />
       <SuggestVocabularyDialog books={books} />
     </div>
     </StreakProvider>
