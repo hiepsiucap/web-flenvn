@@ -56,10 +56,13 @@ import penguinPlayGame from "@/img/penguin-playgame.png";
 import practiceCompletePenguin from "@/img/practice-complete-penguin.png";
 import {
   blankWord,
+  calculateGameScore,
   calculateQuality,
   createPracticeGames,
+  GAME_TIME_LIMIT_MS,
   isCorrectAnswer,
   isCorrectSentence,
+  mixPracticeSteps,
   type PracticeFlashcardResult,
   type PracticeGame,
   type PracticeGameResult,
@@ -86,10 +89,7 @@ type AnswerFeedback = {
   canRetry?: boolean;
 };
 
-const GAME_TIME_LIMIT_MS = 10000;
 const ANSWER_FEEDBACK_MS = 1400;
-const MAX_GAME_SCORE = 100;
-const SCORE_LOSS_PER_SECOND = 10;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
@@ -234,8 +234,10 @@ export function PracticeRunner({
       ]);
       const dueCards = getCardList(response) ?? [];
       const pool = mergeCards(dueCards, flashcardPool);
-      const nextSteps = dueCards.flatMap((card) =>
-        createPracticeGames(card, pool).map((game) => ({ card, game }))
+      const nextSteps = mixPracticeSteps(
+        dueCards.flatMap((card) =>
+          createPracticeGames(card, pool).map((game) => ({ card, game }))
+        )
       );
 
       if (!dueCards.length) {
@@ -1344,14 +1346,6 @@ function summarizeResults(results: Record<string, PracticeGameResult[]>): Practi
     score,
     accuracy,
   };
-}
-
-function calculateGameScore(responseTime: number) {
-  const elapsedSeconds = Math.floor(Math.max(0, responseTime) / 1000);
-  return Math.max(
-    0,
-    MAX_GAME_SCORE - elapsedSeconds * SCORE_LOSS_PER_SECOND
-  );
 }
 
 function getFinishTitle(accuracy: number) {
