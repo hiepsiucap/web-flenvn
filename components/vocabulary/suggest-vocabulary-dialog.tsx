@@ -314,7 +314,7 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
           <Button
             type="button"
             size="icon-lg"
-            className="fixed bottom-5 right-5 z-40 size-14 rounded-full shadow-lg shadow-brand-800/20"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-5 z-40 size-14 rounded-full shadow-lg shadow-brand-800/20 lg:bottom-5"
           >
             <Icon icon={Sparkles} size="lg" />
             <span className="sr-only">Suggest vocabulary</span>
