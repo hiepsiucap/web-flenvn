@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
       <section className="relative px-2 pt-2 motion-enter">
         <div className="relative z-(--z-dashboard-content) flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+          <div className="hidden lg:block">
             <div className="flex items-center gap-2">
               <Text
                 as="div"

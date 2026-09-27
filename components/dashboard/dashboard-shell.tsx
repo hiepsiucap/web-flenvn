@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,12 +25,15 @@ import {
 } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
 import { HttpError } from "@/lib/http";
+import { cn } from "@/lib/utils";
 
 export function DashboardShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isHome = pathname === "/" || pathname === "/dashboard";
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
   const [books, setBooks] = useState<Book[]>(() => getCachedBooksClient() ?? []);
   const [loadError, setLoadError] = useState("");
@@ -75,22 +79,22 @@ export function DashboardShell({
       <DashboardSidebar />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <header className={cn("sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 pt-[env(safe-area-inset-top)] backdrop-blur", !isHome && "hidden lg:block")}>
           <div className="relative border border-brand-200/80 bg-white">
             <div className="relative flex min-h-14 items-center justify-between gap-2 px-3 py-2 sm:min-h-16 sm:gap-4 sm:px-6 sm:py-2.5 lg:min-h-18">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <Image
                   src={penguinTopbar}
                   alt="FLEN penguin"
-                  className="size-10 shrink-0 object-contain sm:size-12"
+                  className="hidden size-12 shrink-0 object-contain lg:block"
                   priority
                 />
-                <Text as="div" className="text-base font-extrabold tracking-normal sm:hidden">
-                  FLENVN
+                <Text as="div" className="truncate text-base font-extrabold tracking-normal lg:hidden">
+                  Today&apos;s review
                 </Text>
                 {user ? (
-                  <div className="hidden min-w-0 sm:block">
-                  <Text className="hidden truncate text-xs text-brand-700 sm:block" weight="semibold">
+                  <div className="hidden min-w-0 lg:block">
+                  <Text className="truncate text-xs text-brand-700" weight="semibold">
                     Welcome back,
                   </Text>
                   <Text
@@ -101,7 +105,7 @@ export function DashboardShell({
                   </Text>
                   </div>
                 ) : (
-                  <div className="hidden min-w-0 gap-2 sm:grid" role="status" aria-label="Loading profile">
+                  <div className="hidden min-w-0 gap-2 lg:grid" role="status" aria-label="Loading profile">
                     <Skeleton className="h-3 w-20" />
                     <Skeleton className="h-6 w-24 sm:w-44" />
                   </div>
@@ -137,7 +141,7 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-6">
+        <main className={cn("px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-6", !isHome && "pt-[calc(env(safe-area-inset-top)+1.5rem)] lg:pt-6")}>
           {loadError ? (
             <Alert className="mb-4">
               <AlertTitle>Learning data unavailable</AlertTitle>
