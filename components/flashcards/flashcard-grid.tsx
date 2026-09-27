@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
+  DotsThreeVertical,
   FloppyDisk as Save,
   PencilSimple as Edit3,
   SpeakerHigh as Volume2,
@@ -312,7 +313,7 @@ export function FlashcardGrid({
             type="button"
             className={cn(
               "group overflow-hidden rounded-2xl border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md hover:shadow-brand-800/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-              view === "list" && "flex items-stretch"
+              view === "list" && "flex items-center gap-3 p-3 sm:gap-4"
             )}
             onClick={() => openCard(card)}
           >
@@ -320,43 +321,74 @@ export function FlashcardGrid({
               <div
                 className={cn(
                   "shrink-0 bg-secondary bg-cover bg-center transition-transform duration-300 group-hover:scale-105",
-                  view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "w-24 sm:w-32"
+                  view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "size-24 rounded-xl"
                 )}
                 style={{ backgroundImage: `url(${card.imageUrl})` }}
               />
             ) : (
               <div className={cn(
                 "grid shrink-0 place-items-center bg-secondary text-primary",
-                view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "w-24 sm:w-32"
+                view === "grid" ? "h-32 w-full sm:aspect-[5/3] sm:h-auto" : "size-24 rounded-xl"
               )}>
                 <Icon icon={BookOpen} className="size-7" />
               </div>
             )}
-            <div className={cn("grid min-w-0 flex-1 gap-2 p-3", view === "list" && "sm:grid-cols-[minmax(0,1fr)_minmax(220px,1fr)] sm:items-center sm:gap-6 sm:px-4")}>
+            <div className={cn(
+              "grid min-w-0 flex-1 gap-2",
+              view === "grid"
+                ? "p-3"
+                : "sm:grid-cols-[minmax(160px,0.8fr)_minmax(220px,1.2fr)_auto] sm:items-center sm:gap-6"
+            )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <Text className="truncate" weight="semibold">
+                  <Text className={cn("truncate", view === "list" && "text-lg leading-tight")} weight="semibold">
                     {card.word}
                   </Text>
-                  <Text className="truncate" size="xs" tone="muted">
-                    {card.partOfSpeech || "Flashcard"}
-                    {card.pronunciation ? ` - ${card.pronunciation}` : ""}
-                  </Text>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Text className="truncate" size="xs" tone="muted">
+                      {card.partOfSpeech || "Flashcard"}
+                      {card.pronunciation ? ` - ${card.pronunciation}` : ""}
+                    </Text>
+                    {view === "list" && isValidHttpUrl(card.audioUrl) ? (
+                      <Icon icon={Volume2} size="sm" className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                    ) : null}
+                  </div>
                   <div className="mt-2">
                     <FlashcardLabelBadges labels={card.labels} limit={3} />
                   </div>
                 </div>
-                <LearningStatusBadge status={card.status} className="shrink-0 rounded-2xl" />
+                {view === "grid" ? (
+                  <LearningStatusBadge status={card.status} className="shrink-0 rounded-2xl" />
+                ) : (
+                  <LearningStatusBadge status={card.status} className="shrink-0 rounded-2xl sm:hidden" />
+                )}
               </div>
               <div className="grid gap-2">
                 <Text className={cn("line-clamp-2 leading-5", view === "grid" && "min-h-10")} size="sm" tone="muted">
                   {card.definition || "No definition available."}
                 </Text>
-                <LabelingStatus
-                  status={card.labelingStatus}
-                  timedOut={timedOutIds.has(card.id)}
-                />
+                {view === "list" && card.translation ? (
+                  <Text className="truncate" size="xs" tone="primary">{card.translation}</Text>
+                ) : null}
+                {view === "grid" ? (
+                  <LabelingStatus
+                    status={card.labelingStatus}
+                    timedOut={timedOutIds.has(card.id)}
+                  />
+                ) : null}
               </div>
+              {view === "list" ? (
+                <div className="hidden items-center gap-3 sm:flex">
+                  <div className="grid justify-items-end gap-2">
+                    <LearningStatusBadge status={card.status} className="rounded-2xl" />
+                    <LabelingStatus
+                      status={card.labelingStatus}
+                      timedOut={timedOutIds.has(card.id)}
+                    />
+                  </div>
+                  <Icon icon={DotsThreeVertical} className="text-muted-foreground" weight="bold" />
+                </div>
+              ) : null}
             </div>
           </button>
         ))}

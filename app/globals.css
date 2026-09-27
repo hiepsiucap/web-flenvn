@@ -491,6 +491,16 @@
   animation-delay: 150ms;
 }
 
+@media (max-width: 1023px) {
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-enter,
   .motion-page-enter,

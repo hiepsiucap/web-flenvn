@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
+  GameController,
   ListBullets,
   MagnifyingGlass,
   ShareNetwork,
@@ -53,7 +54,7 @@ export function FlashcardBookView({
   const [labelMode, setLabelMode] = useState(initialLabelMode);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const parentBook = books.find((item) => item.id === book?.parentBookId);
@@ -148,9 +149,9 @@ export function FlashcardBookView({
   }
 
   return (
-    <div className="grid w-full gap-6">
+    <div className="grid w-full gap-5 pb-20 sm:gap-6 lg:pb-0">
       <section className="grid gap-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
           <Button
             render={<Link href={parentBook ? `/books/${encodeURIComponent(parentBook.id)}` : "/books"} />}
@@ -193,19 +194,50 @@ export function FlashcardBookView({
               ) : null}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            {book && isOwnedBook ? <EditBookDialog book={book} books={books} showLabel /> : null}
+          <div className="flex shrink-0 items-center gap-2">
             {book ? (
-              <Button type="button" variant="outline" onClick={() => void shareBook()}>
-                <Icon icon={ShareNetwork} />
-                Share
+              <Button
+                render={<Link href={`/flip-flashcards?bookId=${encodeURIComponent(book.id)}`} />}
+                nativeButton={false}
+                size="icon-lg"
+                className="size-10"
+                aria-label={`Play ${book.title}`}
+                title="Play flashcards"
+              >
+                <Icon icon={GameController} />
               </Button>
             ) : null}
             {book && isOwnedBook ? (
-              <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+              <EditBookDialog book={book} books={books} showLabel compactOnMobile />
+            ) : null}
+            {book ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="size-10 px-0 sm:h-9 sm:w-auto sm:px-4"
+                onClick={() => void shareBook()}
+              >
+                <Icon icon={ShareNetwork} />
+                <span className="sr-only sm:not-sr-only">Share</span>
+              </Button>
+            ) : null}
+            {book && isOwnedBook ? (
+              <div className="hidden sm:block">
+                <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
+              </div>
             ) : null}
           </div>
         </div>
+
+        {book && isOwnedBook ? (
+          <div className="sm:hidden">
+            <CreateFlashcardDialog
+              books={books}
+              defaultBookId={book.id}
+              triggerClassName="w-full rounded-full"
+            />
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <div className="relative min-w-0 flex-1">
@@ -223,7 +255,7 @@ export function FlashcardBookView({
               }}
               placeholder="Search flashcards (e.g. API, database, cloud...)"
               aria-label="Search flashcards"
-              className="h-10 rounded-full bg-card py-1 pl-10 pr-4 shadow-none dark:bg-card"
+              className="h-11 rounded-full bg-card py-1 pl-10 pr-4 shadow-none sm:h-10 dark:bg-card"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -238,12 +270,12 @@ export function FlashcardBookView({
               setVisibleCount(PAGE_SIZE);
             }}>
               <SelectTrigger className="h-9 rounded-full bg-card px-4 dark:bg-card">
-                {sortOrder === "newest" ? "Sort: Newest" : sortOrder === "word-asc" ? "Sort: A–Z" : "Sort: Z–A"}
+                {sortOrder === "newest" ? "Sort: Newest" : sortOrder === "word-asc" ? "Sort: A-Z" : "Sort: Z-A"}
               </SelectTrigger>
               <SelectContent align="start">
                 <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="word-asc">Word: A–Z</SelectItem>
-                <SelectItem value="word-desc">Word: Z–A</SelectItem>
+                <SelectItem value="word-asc">Word: A-Z</SelectItem>
+                <SelectItem value="word-desc">Word: Z-A</SelectItem>
               </SelectContent>
             </Select>
             <div className="ml-auto inline-flex rounded-full border border-border bg-card p-0.5" aria-label="Flashcard view">
@@ -279,14 +311,14 @@ export function FlashcardBookView({
               Sub-books <span className="text-muted-foreground">({subBooks.length})</span>
             </Text>
           </h2>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="-mx-1 flex flex-nowrap items-stretch gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {subBooks.map((child) => (
               <Link
                 key={child.id}
                 href={`/books/${encodeURIComponent(child.id)}`}
-                className="flex min-w-0 max-w-48 items-center gap-2 rounded-xl border border-border bg-card p-1 pr-3 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-w-48 shrink-0 items-center gap-3 rounded-2xl border border-border bg-card p-2 pr-4 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-primary">
+                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-primary">
                   {child.coverImage ? (
                     <span
                       className="size-full bg-cover bg-center"
@@ -296,13 +328,17 @@ export function FlashcardBookView({
                     <Icon icon={BookOpen} />
                   )}
                 </span>
-                <span className="min-w-0 truncate text-sm font-medium">{child.title}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{child.title}</span>
+                  <span className="block text-xs text-muted-foreground">{child.totalCards ?? 0} cards</span>
+                </span>
               </Link>
             ))}
             <CreateBookDialog
               books={books}
               defaultParentBookId={book.id}
               triggerLabel="Add sub-book"
+              triggerClassName="h-auto min-h-16 min-w-40 shrink-0 rounded-2xl px-5"
             />
           </div>
         </section>
