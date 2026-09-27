@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
   FloppyDisk as Save,
@@ -8,6 +8,8 @@ import {
   SpeakerHigh as Volume2,
   Spinner as Loader2,
   Trash as Trash2,
+  Sparkle as Sparkles,
+  MagicWand as Wand2,
 } from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 
@@ -20,6 +22,7 @@ import {
   FormTextarea,
 } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import {
   Modal,
   ModalActionButton,
@@ -39,7 +42,18 @@ import { useFlashcardLabelPolling } from "@/components/flashcards/labels/use-fla
 import { FlashcardLabelEditor } from "@/components/flashcards/labels/flashcard-label-editor";
 import { LearningStatusBadge } from "@/components/flashcards/learning-status-badge";
 import type { ApiEnvelope, ApiErrorResponse } from "@/lib/auth-types";
-import type { Flashcard, LabelCatalogItem } from "@/lib/dashboard-data";
+import type { Book, Flashcard, LabelCatalogItem } from "@/lib/dashboard-data";
+import {
+  buildFlashcardUpdatePayload,
+  DEFAULT_FLASHCARD_IMAGE_URL,
+  PARTS_OF_SPEECH,
+  validateFlashcardEdit,
+  type ImageChoice,
+} from "@/lib/flashcard-edit";
+
+type PresignResponse = { uploadUrl: string; fileUrl: string; headers?: Record<string, string> };
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
+const maxImageBytes = 5 * 1024 * 1024;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
@@ -66,9 +80,11 @@ function isValidHttpUrl(value?: string | null): value is string {
 export function FlashcardGrid({
   flashcards,
   labels,
+  books,
 }: {
   flashcards: Flashcard[];
   labels: LabelCatalogItem[];
+  books: Book[];
 }) {
   const [displayedFlashcards, setDisplayedFlashcards] = useState(flashcards);
   const [labelCatalog, setLabelCatalog] = useState(labels);
@@ -80,7 +96,17 @@ export function FlashcardGrid({
   const [definition, setDefinition] = useState("");
   const [example, setExample] = useState("");
   const [exampleAudioUrl, setExampleAudioUrl] = useState("");
+  const [exampleTranslation, setExampleTranslation] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageChoice, setImageChoice] = useState<ImageChoice>("current");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isCorrectingExample, setIsCorrectingExample] = useState(false);
+  const [keepExistingAssets, setKeepExistingAssets] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -95,7 +121,11 @@ export function FlashcardGrid({
 
   const timedOutIds = useFlashcardLabelPolling(displayedFlashcards, replaceCard);
 
-  function openCard(card: Flashcard) {
+  useEffect(() => {
+    if (imagePreview) return () => URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
+
+  function resetDraft(card: Flashcard) {
     setWord(card.word);
     setPartOfSpeech(card.partOfSpeech ?? "");
     setPronunciation(card.pronunciation ?? "");
@@ -103,7 +133,19 @@ export function FlashcardGrid({
     setDefinition(card.definition ?? "");
     setExample(card.example ?? "");
     setExampleAudioUrl(card.exampleAudioUrl ?? "");
+    setExampleTranslation(card.exampleTranslation ?? "");
+    setAudioUrl(card.audioUrl ?? "");
     setImageUrl(card.imageUrl ?? "");
+    setImageChoice("current");
+    setImageFile(null);
+    setImagePreview("");
+    setSuggestedImages([]);
+    setKeepExistingAssets(false);
+    setFieldErrors({});
+  }
+
+  function openCard(card: Flashcard) {
+    resetDraft(card);
     setIsEditing(false);
     setSelectedCard(card);
   }
@@ -123,28 +165,85 @@ export function FlashcardGrid({
       return;
     }
 
+    const draft = { word, partOfSpeech, pronunciation, translation, definition, example, exampleAudioUrl, exampleTranslation, audioUrl };
+    const errors = validateFlashcardEdit(draft);
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      return;
+    }
+    if (imageChoice === "upload" && imageFile && (!allowedImageTypes.includes(imageFile.type) || imageFile.size > maxImageBytes)) {
+      setFieldErrors({ image: "Choose a JPEG, PNG, or WebP image up to 5 MB." });
+      return;
+    }
+    setFieldErrors({});
     setIsSaving(true);
 
     try {
-      await http.put(`/api/flashcards/${selectedCard.id}`, {
-        word,
-        partOfSpeech,
-        pronunciation,
-        translation,
-        definition,
-        example,
-        exampleAudioUrl,
-        imageUrl,
-        bookId: selectedCard.bookId ?? undefined,
-      });
+      let selectedImageUrl = imageChoice === "suggested" ? imageUrl : null;
+      if (imageChoice === "upload" && imageFile) {
+        const result = await http.post<PresignResponse | { data: PresignResponse }>(
+          "/api/uploads/presign-image",
+          { contentType: imageFile.type, fileName: imageFile.name, folder: "flashcard-images" }
+        );
+        const presign = "data" in result ? result.data : result;
+        const response = await fetch(presign.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": imageFile.type, ...presign.headers },
+          body: imageFile,
+        });
+        if (!response.ok) throw new Error("Unable to upload image");
+        selectedImageUrl = presign.fileUrl;
+      }
+      await http.put(`/api/flashcards/${selectedCard.id}`, buildFlashcardUpdatePayload(
+        selectedCard, draft, imageChoice, selectedImageUrl, keepExistingAssets
+      ));
 
       toast.success("Flashcard updated");
       setSelectedCard(null);
       notifyClientDataChanged();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Unable to update flashcard"));
+      toast.error(error instanceof Error && !(error instanceof HttpError) ? error.message : getErrorMessage(error, "Unable to update flashcard"));
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function suggestImages() {
+    if (!word.trim()) {
+      setFieldErrors({ word: "Enter a word before finding images." });
+      return;
+    }
+    setIsSuggesting(true);
+    try {
+      const response = await http.get<{ data: { images?: { url?: string }[] } }>("/api/words/suggest", {
+        query: { word: word.trim(), targetLanguage: "vi", imageLimit: 6 },
+      });
+      const images = response.data.images?.map((item) => item.url).filter((url): url is string => Boolean(url)) ?? [];
+      setSuggestedImages(images);
+      if (!images.length) toast.info("No images found for this word");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to suggest images"));
+    } finally {
+      setIsSuggesting(false);
+    }
+  }
+
+  async function correctExample() {
+    if (!example.trim()) return;
+    setIsCorrectingExample(true);
+    try {
+      const response = await http.post<{
+        correctedText?: string; correction?: string; text?: string;
+        data?: { correctedText?: string; correction?: string; text?: string };
+      }>("/api/words/correct", { text: example, language: "en-US" });
+      const corrected = response.data?.correctedText ?? response.data?.correction ?? response.data?.text
+        ?? response.correctedText ?? response.correction ?? response.text;
+      if (corrected) setExample(corrected);
+      else toast.info("No correction needed");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to correct example"));
+    } finally {
+      setIsCorrectingExample(false);
     }
   }
 
@@ -242,7 +341,7 @@ export function FlashcardGrid({
       <Modal
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !isSaving) {
             setSelectedCard(null);
             setIsEditing(false);
           }
@@ -299,6 +398,9 @@ export function FlashcardGrid({
                       {selectedCard.translation}
                     </Text>
                   ) : null}
+                  <Text className="mt-1" size="xs" tone="muted">
+                    Book: {books.find((book) => book.id === selectedCard.bookId)?.title ?? "No book"}
+                  </Text>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <FlashcardLabelBadges labels={selectedCard.labels} />
                     <FlashcardLabelEditor
@@ -361,6 +463,7 @@ export function FlashcardGrid({
                     <Text className="mt-1 leading-6" size="sm">
                       {selectedCard.example}
                     </Text>
+                    {selectedCard.exampleTranslation ? <Text className="mt-1" size="sm" tone="muted">{selectedCard.exampleTranslation}</Text> : null}
                   </div>
                 ) : null}
               </div>
@@ -370,10 +473,12 @@ export function FlashcardGrid({
 
           {selectedCard && isEditing ? (
             <Form id="update-flashcard-form" className="gap-4" onSubmit={handleUpdate}>
-              {imageUrl ? (
+              {(imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl) ? (
                 <div
                   className="h-28 w-40 rounded-2xl bg-secondary bg-cover bg-center"
-                  style={{ backgroundImage: `url(${imageUrl})` }}
+                  role="img"
+                  aria-label="Selected flashcard image"
+                  style={{ backgroundImage: `url(${imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl})` }}
                 />
               ) : null}
 
@@ -386,16 +491,23 @@ export function FlashcardGrid({
                     value={word}
                     onChange={(event) => setWord(event.target.value)}
                     required
+                    maxLength={100}
+                    aria-invalid={Boolean(fieldErrors.word)}
                   />
+                  {fieldErrors.word ? <p className="text-sm text-destructive" role="alert">{fieldErrors.word}</p> : null}
                 </FormField>
                 <FormField>
                   <FormLabel htmlFor="detail-part">Part of speech</FormLabel>
-                  <FormInput
-                    id="detail-part"
-                    className="h-10"
-                    value={partOfSpeech}
-                    onChange={(event) => setPartOfSpeech(event.target.value)}
-                  />
+                  <Select value={partOfSpeech || null} onValueChange={(value) => setPartOfSpeech(value ?? "")}>
+                    <SelectTrigger id="detail-part" className="h-10 w-full">
+                      {partOfSpeech ? partOfSpeech.charAt(0).toUpperCase() + partOfSpeech.slice(1) : "Choose a part of speech"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PARTS_OF_SPEECH.map((part) => <SelectItem key={part} value={part}>{part.charAt(0).toUpperCase() + part.slice(1)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {partOfSpeech ? <Button type="button" variant="ghost" size="sm" onClick={() => setPartOfSpeech("")}>Clear</Button> : null}
+                  {fieldErrors.partOfSpeech ? <p className="text-sm text-destructive" role="alert">{fieldErrors.partOfSpeech}</p> : null}
                 </FormField>
               </div>
 
@@ -430,12 +542,29 @@ export function FlashcardGrid({
               </FormField>
 
               <FormField>
-                <FormLabel htmlFor="detail-example">Example</FormLabel>
+                <div className="flex items-center justify-between gap-2">
+                  <FormLabel htmlFor="detail-example">Example</FormLabel>
+                  <Button type="button" variant="outline" size="sm" disabled={isCorrectingExample || isSaving || !example.trim()} onClick={() => void correctExample()}>
+                    {isCorrectingExample ? <Icon icon={Loader2} className="animate-spin" /> : <Icon icon={Wand2} />} Correct
+                  </Button>
+                </div>
                 <FormTextarea
                   id="detail-example"
                   value={example}
                   onChange={(event) => setExample(event.target.value)}
                 />
+              </FormField>
+
+              <FormField>
+                <FormLabel htmlFor="detail-example-translation">Example translation</FormLabel>
+                <FormTextarea id="detail-example-translation" value={exampleTranslation} onChange={(event) => setExampleTranslation(event.target.value)} />
+              </FormField>
+
+              <FormField>
+                <FormLabel htmlFor="detail-audio">Pronunciation audio URL</FormLabel>
+                <FormInput id="detail-audio" type="url" value={audioUrl} onChange={(event) => setAudioUrl(event.target.value)} aria-invalid={Boolean(fieldErrors.audioUrl)} />
+                {fieldErrors.audioUrl ? <p className="text-sm text-destructive" role="alert">{fieldErrors.audioUrl}</p> : null}
+                {isValidHttpUrl(audioUrl) ? <audio controls src={audioUrl} className="w-full" /> : null}
               </FormField>
 
               <FormField>
@@ -446,19 +575,52 @@ export function FlashcardGrid({
                   type="url"
                   value={exampleAudioUrl}
                   onChange={(event) => setExampleAudioUrl(event.target.value)}
+                  aria-invalid={Boolean(fieldErrors.exampleAudioUrl)}
                 />
+                {fieldErrors.exampleAudioUrl ? <p className="text-sm text-destructive" role="alert">{fieldErrors.exampleAudioUrl}</p> : null}
+                {isValidHttpUrl(exampleAudioUrl) ? <audio controls src={exampleAudioUrl} className="w-full" /> : null}
               </FormField>
 
               <FormField>
-                <FormLabel htmlFor="detail-image">Image URL</FormLabel>
-                <FormInput
-                  id="detail-image"
-                  className="h-10"
-                  type="url"
-                  value={imageUrl}
-                  onChange={(event) => setImageUrl(event.target.value)}
-                />
+                <FormLabel htmlFor="detail-image">Image</FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {imageChoice !== "current" ? <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
+                    setImageChoice("current"); setImageUrl(selectedCard.imageUrl ?? ""); setImageFile(null); setImagePreview("");
+                  }}>Keep current image</Button> : null}
+                  <Button type="button" variant="outline" disabled={isSuggesting || isSaving} onClick={() => void suggestImages()}>
+                    {isSuggesting ? <Icon icon={Loader2} className="animate-spin" /> : <Icon icon={Sparkles} />} Suggest images
+                  </Button>
+                  <Button type="button" variant="outline" disabled={isSaving} onClick={() => { setImageChoice("default"); setImageFile(null); setImagePreview(""); }}>
+                    Use default image
+                  </Button>
+                </div>
+                <FormInput id="detail-image" type="file" accept="image/jpeg,image/png,image/webp" disabled={isSaving} onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setImageFile(file);
+                  setImagePreview(file ? URL.createObjectURL(file) : "");
+                  if (file) setImageChoice("upload");
+                  event.currentTarget.value = "";
+                }} />
+                <p className="text-xs text-muted-foreground">Upload JPEG, PNG, or WebP, up to 5 MB.</p>
+                {fieldErrors.image ? <p className="text-sm text-destructive" role="alert">{fieldErrors.image}</p> : null}
+                {suggestedImages.length ? (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Suggested images">
+                    {suggestedImages.map((url, index) => (
+                      <button key={`${url}-${index}`} type="button" aria-label={`Choose suggested image ${index + 1}`} aria-pressed={imageChoice === "suggested" && imageUrl === url}
+                        className="aspect-square overflow-hidden rounded-lg border border-border bg-secondary bg-cover bg-center aria-pressed:ring-2 aria-pressed:ring-primary"
+                        style={{ backgroundImage: `url(${url})` }} onClick={() => { setImageChoice("suggested"); setImageUrl(url); setImageFile(null); setImagePreview(""); }} />
+                    ))}
+                  </div>
+                ) : null}
               </FormField>
+
+              {word.trim() !== selectedCard.word ? (
+                <label className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" checked={keepExistingAssets} onChange={(event) => setKeepExistingAssets(event.target.checked)} />
+                  Keep the current image and pronunciation audio after changing the word
+                </label>
+              ) : null}
+              <p className="text-xs text-muted-foreground">The book cannot be changed here. Edit labels in the detail view; learning progress updates through reviews.</p>
 
             </Form>
           ) : null}
@@ -472,13 +634,13 @@ export function FlashcardGrid({
                     type="button"
                     variant="outline"
                     disabled={isDeleting || isSaving}
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => { resetDraft(selectedCard); setIsEditing(false); }}
                   >
                     Cancel
                   </Button>
                   <ModalActionButton
                     form="update-flashcard-form"
-                    disabled={isSaving || isDeleting}
+                    disabled={isSaving || isDeleting || isSuggesting || isCorrectingExample}
                   >
                     {isSaving ? (
                       <Icon icon={Loader2} className="animate-spin" />

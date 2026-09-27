@@ -152,6 +152,7 @@ export function FlashcardBookView({
         <FlashcardGrid
           key={filteredFlashcards.map((card) => card.id).join(",")}
           flashcards={filteredFlashcards}
+          books={books}
           labels={labels}
         />
       ) : (
