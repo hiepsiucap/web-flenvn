@@ -41,6 +41,49 @@ export type PracticeFlashcardResult = {
   games: PracticeGameResult[];
 };
 
+export const GAME_TIME_LIMIT_MS = 20_000;
+const MAX_GAME_SCORE = 100;
+
+export function calculateGameScore(responseTime: number) {
+  const elapsedSeconds = Math.floor(Math.max(0, responseTime) / 1000);
+  const pointsPerSecond = MAX_GAME_SCORE / (GAME_TIME_LIMIT_MS / 1000);
+  return Math.max(0, MAX_GAME_SCORE - elapsedSeconds * pointsPerSecond);
+}
+
+export function mixPracticeSteps<TStep extends { card: { id: string } }>(
+  steps: TStep[],
+  random: () => number = Math.random
+) {
+  const byCard = new Map<string, TStep[]>();
+
+  for (const step of steps) {
+    const games = byCard.get(step.card.id) ?? [];
+    games.push(step);
+    byCard.set(step.card.id, games);
+  }
+
+  const buckets = Array.from(byCard, ([id, games]) => ({
+    id,
+    games: shuffle(games, random),
+  }));
+  const mixed: TStep[] = [];
+  let previousCardId: string | null = null;
+
+  while (mixed.length < steps.length) {
+    const available = buckets.filter((bucket) => bucket.games.length > 0);
+    const alternatives = available.filter((bucket) => bucket.id !== previousCardId);
+    const candidates = alternatives.length ? alternatives : available;
+    const mostGames = Math.max(...candidates.map((bucket) => bucket.games.length));
+    const tied = candidates.filter((bucket) => bucket.games.length === mostGames);
+    const chosen = tied[Math.floor(random() * tied.length)];
+
+    mixed.push(chosen.games.pop()!);
+    previousCardId = chosen.id;
+  }
+
+  return mixed;
+}
+
 export function normalizeAnswer(value: string) {
   return value.trim().toLowerCase();
 }
