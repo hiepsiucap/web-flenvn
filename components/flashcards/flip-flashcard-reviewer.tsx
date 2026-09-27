@@ -81,7 +81,7 @@ export function FlipFlashcardReviewer({
         const target = event.target;
         const isAnotherControl =
           target instanceof HTMLElement &&
-          Boolean(target.closest('button:not([data-slot="flip-card"])'));
+          Boolean(target.closest('a, button:not([data-slot="flip-card"]), [role="button"], [role="link"], [role="menuitem"]'));
 
         if (isAnotherControl) return;
 
