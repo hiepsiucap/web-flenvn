@@ -33,7 +33,7 @@ export function RankLevelProgress({
     )}>
       <div
         className={cn(
-          "absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full border-2 border-primary/15 bg-brand-50",
+          "absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 rounded-full border-2 border-primary/15 bg-brand-50",
           showStart ? (compact ? "left-3" : "left-4") : "left-0",
           compact ? "h-3.5" : "h-[18px]"
         )}
@@ -83,7 +83,7 @@ export function RankLevelProgress({
           src={progressStart}
           alt="Start"
           className={cn(
-            "absolute left-0 top-1/2 z-30 -translate-y-1/2 object-contain",
+            "absolute left-0 top-1/2 z-10 -translate-y-1/2 object-contain",
             compact ? "size-7" : "size-8"
           )}
         />
