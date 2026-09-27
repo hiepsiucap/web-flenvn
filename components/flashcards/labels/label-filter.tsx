@@ -63,7 +63,7 @@ export function LabelFilter({ labels, selectedIds, mode, onChange }: {
     <div className="flex min-w-0 flex-wrap items-center gap-1.5" aria-label="Filter flashcards by label">
       <DropdownMenu>
         <DropdownMenuTrigger render={
-          <Chip>
+          <Chip className="h-9 bg-card px-4">
             Labels{selectedIds.length ? ` (${selectedIds.length})` : ""}
             <Icon icon={CaretDown} size="sm" />
           </Chip>

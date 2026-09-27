@@ -60,10 +60,12 @@ export function EditBookDialog({
   book,
   books,
   showLabel = false,
+  compactOnMobile = false,
 }: {
   book: Book;
   books: Book[];
   showLabel?: boolean;
+  compactOnMobile?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(book.title);
@@ -159,11 +161,13 @@ export function EditBookDialog({
           type="button"
           variant={showLabel ? "outline" : "secondary"}
           size={showLabel ? "default" : "icon-sm"}
-          className={showLabel ? undefined : "size-10 sm:size-8"}
+          className={showLabel
+            ? compactOnMobile ? "size-10 px-0 sm:h-9 sm:w-auto sm:px-4" : undefined
+            : "size-10 sm:size-8"}
           aria-label={`Edit ${book.title}`}
         >
           <Icon icon={PencilSimple} />
-          {showLabel ? "Edit" : null}
+          {showLabel ? <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Edit</span> : null}
         </Button>
       } />
       <ModalContent className="sm:max-w-md">

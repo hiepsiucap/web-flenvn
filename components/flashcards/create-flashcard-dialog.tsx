@@ -138,9 +138,11 @@ function getErrorMessage(error: unknown) {
 export function CreateFlashcardDialog({
   books,
   defaultBookId,
+  triggerClassName,
 }: {
   books: Book[];
   defaultBookId?: string;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [bookId, setBookId] = useState(defaultBookId ?? books[0]?.id ?? "");
@@ -370,7 +372,7 @@ export function CreateFlashcardDialog({
     <Modal open={open} onOpenChange={setOpen}>
       <ModalTrigger
         render={
-          <Button className="h-10 rounded-2xl" type="button" disabled={!books.length}>
+          <Button className={cn("h-10 rounded-2xl", triggerClassName)} type="button" disabled={!books.length}>
             <Icon icon={Plus} />
             Create flashcard
           </Button>
