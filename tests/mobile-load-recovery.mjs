@@ -78,6 +78,12 @@ try {
   await title.waitFor({ timeout: 10000 });
   assert.notEqual(await title.evaluate((element) => getComputedStyle(element).whiteSpace), "nowrap");
   await longTitlePage.close();
+
+  const settings = await openWithFailedBooks("/settings");
+  const more = settings.getByRole("button", { name: /More destinations/ });
+  await more.waitFor({ timeout: 10000 });
+  assert.equal(await more.getAttribute("aria-label"), "More destinations, current page Settings");
+  await settings.close();
 } finally {
   await browser.close();
 }
