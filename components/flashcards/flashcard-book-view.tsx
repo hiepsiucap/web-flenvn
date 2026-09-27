@@ -8,10 +8,8 @@ import {
   GameController,
   ListBullets,
   MagnifyingGlass,
-  ShareNetwork,
   SquaresFour,
 } from "@phosphor-icons/react";
-import { toast } from "react-toastify";
 
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { EditBookDialog } from "@/components/books/edit-book-dialog";
@@ -128,26 +126,6 @@ export function FlashcardBookView({
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
   }
 
-  async function shareBook() {
-    const shareData = {
-      title: book?.title ?? "Flashcards",
-      text: book?.description ?? `Study ${book?.title ?? "this flashcard book"}.`,
-      url: window.location.href,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        toast.success("Book link copied");
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      toast.error("Unable to share this book");
-    }
-  }
-
   return (
     <div className="grid w-full gap-5 pb-20 sm:gap-6 lg:pb-0">
       <section className="grid gap-5">
@@ -214,17 +192,6 @@ export function FlashcardBookView({
             ) : null}
             {book && isOwnedBook ? (
               <EditBookDialog book={book} books={books} showLabel compactOnMobile />
-            ) : null}
-            {book ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="size-10 px-0 sm:h-9 sm:w-auto sm:px-4"
-                onClick={() => void shareBook()}
-              >
-                <Icon icon={ShareNetwork} />
-                <span className="sr-only sm:not-sr-only">Share</span>
-              </Button>
             ) : null}
             {book && isOwnedBook ? (
               <div className="hidden sm:block">
