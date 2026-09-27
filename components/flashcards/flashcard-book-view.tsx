@@ -182,13 +182,18 @@ export function FlashcardBookView({
                   {parentBook.title} / Sub-book
                 </Link>
               ) : null}
-              <h1>
-                <Text as="span" className="break-words" size="3xl" weight="semibold">
+              <h1 className="min-w-0 max-w-full overflow-hidden">
+                <Text
+                  as="span"
+                  className="block w-full overflow-hidden text-ellipsis whitespace-nowrap text-xl sm:text-3xl"
+                  weight="semibold"
+                  title={book?.title ?? "Selected book"}
+                >
                   {book?.title ?? "Selected book"}
                 </Text>
               </h1>
               {book?.description ? (
-                <Text className="mt-1 line-clamp-2" size="sm" tone="muted">
+                <Text className="mt-1 max-w-full truncate" size="sm" tone="muted" title={book.description}>
                   {book.description}
                 </Text>
               ) : null}

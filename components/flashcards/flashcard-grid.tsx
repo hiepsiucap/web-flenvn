@@ -341,11 +341,20 @@ export function FlashcardGrid({
             )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <Text className={cn("truncate", view === "list" && "text-lg leading-tight")} weight="semibold">
+                  <Text
+                    className={cn("block max-w-full truncate", view === "list" && "text-lg leading-tight")}
+                    weight="semibold"
+                    title={card.word}
+                  >
                     {card.word}
                   </Text>
                   <div className="flex min-w-0 items-center gap-2">
-                    <Text className="truncate" size="xs" tone="muted">
+                    <Text
+                      className="min-w-0 flex-1 truncate"
+                      size="xs"
+                      tone="muted"
+                      title={`${card.partOfSpeech || "Flashcard"}${card.pronunciation ? ` - ${card.pronunciation}` : ""}`}
+                    >
                       {card.partOfSpeech || "Flashcard"}
                       {card.pronunciation ? ` - ${card.pronunciation}` : ""}
                     </Text>
