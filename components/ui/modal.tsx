@@ -74,7 +74,9 @@ function ModalContent({
       transform: isDragging || dragOffset > 0
         ? `translateY(${dragOffset}px)`
         : baseStyle?.transform,
-      transition: isDragging ? "none" : baseStyle?.transition,
+      transition: isDragging
+        ? "none"
+        : (baseStyle?.transition ?? "transform 180ms ease-out"),
     }
   }
 
