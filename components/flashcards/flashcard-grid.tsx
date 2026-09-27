@@ -37,6 +37,7 @@ import { Text } from "@/components/ui/text";
 import { notifyClientDataChanged } from "@/lib/client-api";
 import { HttpError, http } from "@/lib/http";
 import { FlashcardLabelBadges } from "@/components/flashcards/labels/flashcard-label-badges";
+import { FlashcardAudioField } from "@/components/flashcards/flashcard-audio-field";
 import { LabelingStatus } from "@/components/flashcards/labels/labeling-status";
 import { useFlashcardLabelPolling } from "@/components/flashcards/labels/use-flashcard-label-polling";
 import { FlashcardLabelEditor } from "@/components/flashcards/labels/flashcard-label-editor";
@@ -105,6 +106,7 @@ export function FlashcardGrid({
   const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isCorrectingExample, setIsCorrectingExample] = useState(false);
+  const [audioBusy, setAudioBusy] = useState<string | null>(null);
   const [keepExistingAssets, setKeepExistingAssets] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -142,6 +144,7 @@ export function FlashcardGrid({
     setSuggestedImages([]);
     setKeepExistingAssets(false);
     setFieldErrors({});
+    setAudioBusy(null);
   }
 
   function openCard(card: Flashcard) {
@@ -341,16 +344,16 @@ export function FlashcardGrid({
       <Modal
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
-          if (!open && !isSaving) {
+          if (!open && !isSaving && !audioBusy) {
             setSelectedCard(null);
             setIsEditing(false);
           }
         }}
       >
-        <ModalContent className="sm:max-w-3xl">
+        <ModalContent className="sm:max-w-4xl">
           <ModalHeader>
-            <ModalTitle>Flashcard detail</ModalTitle>
-            <ModalDescription>View, update, or delete this flashcard.</ModalDescription>
+            <ModalTitle>{isEditing ? "Edit flashcard" : "Flashcard detail"}</ModalTitle>
+            <ModalDescription>{isEditing ? "Update the text and choose images or audio for this card." : "View, update, or delete this flashcard."}</ModalDescription>
           </ModalHeader>
 
           <ModalBody>
@@ -472,16 +475,12 @@ export function FlashcardGrid({
           ) : null}
 
           {selectedCard && isEditing ? (
-            <Form id="update-flashcard-form" className="gap-4" onSubmit={handleUpdate}>
-              {(imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl) ? (
-                <div
-                  className="h-28 w-40 rounded-2xl bg-secondary bg-cover bg-center"
-                  role="img"
-                  aria-label="Selected flashcard image"
-                  style={{ backgroundImage: `url(${imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl})` }}
-                />
-              ) : null}
-
+            <Form id="update-flashcard-form" className="gap-6" onSubmit={handleUpdate}>
+              <section className="grid gap-4" aria-labelledby="edit-word-heading">
+                <div>
+                  <h3 id="edit-word-heading" className="text-sm font-semibold">Word and meaning</h3>
+                  <p className="text-xs text-muted-foreground">Edit the word and its definition.</p>
+                </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField>
                   <FormLabel htmlFor="detail-word">Word</FormLabel>
@@ -540,7 +539,10 @@ export function FlashcardGrid({
                   onChange={(event) => setDefinition(event.target.value)}
                 />
               </FormField>
+              </section>
 
+              <section className="grid gap-4 border-t border-border pt-5" aria-labelledby="edit-example-heading">
+                <h3 id="edit-example-heading" className="text-sm font-semibold">Example</h3>
               <FormField>
                 <div className="flex items-center justify-between gap-2">
                   <FormLabel htmlFor="detail-example">Example</FormLabel>
@@ -559,30 +561,24 @@ export function FlashcardGrid({
                 <FormLabel htmlFor="detail-example-translation">Example translation</FormLabel>
                 <FormTextarea id="detail-example-translation" value={exampleTranslation} onChange={(event) => setExampleTranslation(event.target.value)} />
               </FormField>
+              </section>
 
-              <FormField>
-                <FormLabel htmlFor="detail-audio">Pronunciation audio URL</FormLabel>
-                <FormInput id="detail-audio" type="url" value={audioUrl} onChange={(event) => setAudioUrl(event.target.value)} aria-invalid={Boolean(fieldErrors.audioUrl)} />
-                {fieldErrors.audioUrl ? <p className="text-sm text-destructive" role="alert">{fieldErrors.audioUrl}</p> : null}
-                {isValidHttpUrl(audioUrl) ? <audio controls src={audioUrl} className="w-full" /> : null}
-              </FormField>
+              <section className="grid gap-5 border-t border-border pt-5" aria-labelledby="edit-audio-heading">
+                <h3 id="edit-audio-heading" className="text-sm font-semibold">Audio</h3>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <FlashcardAudioField id="detail-audio" label="Word pronunciation" text={word} value={audioUrl} onChange={setAudioUrl} busy={audioBusy} onBusyChange={setAudioBusy} disabled={isSaving} error={fieldErrors.audioUrl} />
+                  <FlashcardAudioField id="detail-example-audio" label="Example sentence" text={example} value={exampleAudioUrl} onChange={setExampleAudioUrl} busy={audioBusy} onBusyChange={setAudioBusy} disabled={isSaving} error={fieldErrors.exampleAudioUrl} />
+                </div>
+              </section>
 
+              <section className="grid gap-4 border-t border-border pt-5" aria-labelledby="edit-image-heading">
+                <h3 id="edit-image-heading" className="text-sm font-semibold">Image</h3>
+                {(imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl) ? (
+                  <div className="h-28 w-40 rounded-xl bg-secondary bg-cover bg-center" role="img" aria-label="Selected flashcard image"
+                    style={{ backgroundImage: `url(${imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl})` }} />
+                ) : null}
               <FormField>
-                <FormLabel htmlFor="detail-example-audio">Example audio URL</FormLabel>
-                <FormInput
-                  id="detail-example-audio"
-                  className="h-10"
-                  type="url"
-                  value={exampleAudioUrl}
-                  onChange={(event) => setExampleAudioUrl(event.target.value)}
-                  aria-invalid={Boolean(fieldErrors.exampleAudioUrl)}
-                />
-                {fieldErrors.exampleAudioUrl ? <p className="text-sm text-destructive" role="alert">{fieldErrors.exampleAudioUrl}</p> : null}
-                {isValidHttpUrl(exampleAudioUrl) ? <audio controls src={exampleAudioUrl} className="w-full" /> : null}
-              </FormField>
-
-              <FormField>
-                <FormLabel htmlFor="detail-image">Image</FormLabel>
+                <FormLabel htmlFor="detail-image">Upload image</FormLabel>
                 <div className="flex flex-wrap gap-2">
                   {imageChoice !== "current" ? <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
                     setImageChoice("current"); setImageUrl(selectedCard.imageUrl ?? ""); setImageFile(null); setImagePreview("");
@@ -613,12 +609,17 @@ export function FlashcardGrid({
                   </div>
                 ) : null}
               </FormField>
+              </section>
 
               {word.trim() !== selectedCard.word ? (
-                <label className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" checked={keepExistingAssets} onChange={(event) => setKeepExistingAssets(event.target.checked)} />
-                  Keep the current image and pronunciation audio after changing the word
-                </label>
+                <div className="grid gap-2 border-t border-border pt-5">
+                  <p className="text-sm font-medium">Changing the word</p>
+                  <p className="text-xs text-muted-foreground">The current image and word audio will be cleared unless you choose replacements or keep them below.</p>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input type="checkbox" checked={keepExistingAssets} onChange={(event) => setKeepExistingAssets(event.target.checked)} />
+                    Keep the current image and pronunciation audio
+                  </label>
+                </div>
               ) : null}
               <p className="text-xs text-muted-foreground">The book cannot be changed here. Edit labels in the detail view; learning progress updates through reviews.</p>
 
@@ -633,14 +634,14 @@ export function FlashcardGrid({
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={isDeleting || isSaving}
+                    disabled={isDeleting || isSaving || Boolean(audioBusy)}
                     onClick={() => { resetDraft(selectedCard); setIsEditing(false); }}
                   >
                     Cancel
                   </Button>
                   <ModalActionButton
                     form="update-flashcard-form"
-                    disabled={isSaving || isDeleting || isSuggesting || isCorrectingExample}
+                    disabled={isSaving || isDeleting || isSuggesting || isCorrectingExample || Boolean(audioBusy)}
                   >
                     {isSaving ? (
                       <Icon icon={Loader2} className="animate-spin" />
