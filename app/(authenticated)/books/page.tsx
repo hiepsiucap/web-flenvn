@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Books as Library } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
+import { Books as Library, ListBullets, MagnifyingGlass, SquaresFour } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -12,13 +12,22 @@ import { BooksGrid } from "@/components/books/books-grid";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { CLIENT_DATA_CHANGED_EVENT, getBooksClient } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
+import { listBookGroups } from "@/lib/book-hierarchy";
+
+type BookSort = "newest" | "title-asc" | "title-desc";
+type BookView = "grid" | "list";
 
 export default function BooksPage() {
   const [books, setBooks] = useState<Book[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [loadKey, setLoadKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<BookSort>("newest");
+  const [viewMode, setViewMode] = useState<BookView>("grid");
 
   useEffect(() => {
     let active = true;
@@ -37,6 +46,24 @@ export default function BooksPage() {
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
   }, [loadKey]);
+
+  const visibleBooks = useMemo(() => {
+    if (!books) return [];
+
+    const topLevelBooks = listBookGroups(books).map(({ book }) => book);
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = query
+      ? topLevelBooks.filter((book) =>
+          [book.title, book.description].some((value) => value?.toLowerCase().includes(query))
+        )
+      : topLevelBooks;
+
+    if (sortOrder === "newest") return filtered;
+    return [...filtered].sort((left, right) => {
+      const comparison = left.title.localeCompare(right.title, undefined, { sensitivity: "base" });
+      return sortOrder === "title-asc" ? comparison : -comparison;
+    });
+  }, [books, searchQuery, sortOrder]);
 
   if (loadError && !books) {
     return (
@@ -57,8 +84,8 @@ export default function BooksPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="grid gap-6 pb-20 lg:pb-0">
+      <section className="flex items-start justify-between gap-4">
         <div>
           <Text as="div" size="2xl" weight="semibold">
             Books
@@ -67,17 +94,81 @@ export default function BooksPage() {
             Choose a book to review its flashcards.
           </Text>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="h-8 w-fit rounded-2xl px-3">
-            <Icon icon={Library} className="text-primary" />
-            {books.length} books
-          </Badge>
-          {books.length ? <CreateBookDialog books={books} /> : null}
-        </div>
+        {books.length ? <CreateBookDialog books={books} triggerClassName="shrink-0" /> : null}
       </section>
 
       {books.length > 0 ? (
-        <BooksGrid books={books} />
+        <>
+          <section className="grid gap-4" aria-label="Book controls">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Icon
+                  icon={MagnifyingGlass}
+                  size="sm"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search books..."
+                  aria-label="Search books"
+                  className="h-11 rounded-full bg-card pl-10 pr-4 shadow-none"
+                />
+              </div>
+              <div className="inline-flex shrink-0 rounded-2xl border border-border bg-card p-0.5" aria-label="Book view">
+                <Button
+                  type="button"
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="icon-lg"
+                  className="rounded-xl"
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === "grid"}
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Icon icon={SquaresFour} />
+                </Button>
+                <Button
+                  type="button"
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="icon-lg"
+                  className="rounded-xl"
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
+                  onClick={() => setViewMode("list")}
+                >
+                  <Icon icon={ListBullets} />
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant="secondary" className="h-9 w-fit rounded-2xl px-4">
+                <Icon icon={Library} className="text-primary" />
+                {visibleBooks.length} {visibleBooks.length === 1 ? "book" : "books"}
+              </Badge>
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder((value ?? "newest") as BookSort)}>
+                <SelectTrigger className="h-9 rounded-full bg-card px-4">
+                  {sortOrder === "newest" ? "Sort: Newest" : sortOrder === "title-asc" ? "Sort: A-Z" : "Sort: Z-A"}
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="title-asc">Title: A-Z</SelectItem>
+                  <SelectItem value="title-desc">Title: Z-A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          {visibleBooks.length ? (
+            <BooksGrid books={books} visibleBooks={visibleBooks} view={viewMode} />
+          ) : (
+            <EmptyState
+              title="No matching books"
+              description="Try a different search term."
+              action={<Button type="button" variant="outline" onClick={() => setSearchQuery("")}>Clear search</Button>}
+            />
+          )}
+        </>
       ) : (
         <EmptyState
           title="No books yet"
