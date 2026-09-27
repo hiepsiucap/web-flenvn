@@ -120,7 +120,7 @@ export default function DashboardPage() {
         <>
         <section className="order-2 grid gap-5 motion-enter motion-delay-1 xl:order-none xl:grid-cols-2">
           <div className="grid content-start gap-5">
-          <Card interactive className="relative justify-between rounded-3xl border border-brand-200/80 bg-white shadow-xl shadow-brand-800/8 ring-brand-200/80 [--card-spacing:--spacing(4)] sm:min-h-[360px] sm:[--card-spacing:--spacing(5)]">
+          <Card interactive className="relative justify-between rounded-3xl bg-card [--card-spacing:--spacing(4)] sm:min-h-[360px] sm:[--card-spacing:--spacing(5)]">
             <CardHeader className="relative z-(--z-dashboard-content) gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
               <div className="min-w-0">
                 <ColoredBookBadge />
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         </section>
 
         <section className="order-1 grid gap-5 motion-enter motion-delay-2 xl:order-none xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
-          <Card interactive className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
+          <Card interactive className="rounded-3xl bg-card [--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle className="text-lg font-extrabold tracking-normal">
                 Jump back in
@@ -233,7 +233,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card interactive className="rounded-3xl border border-brand-200/80 bg-white [--card-spacing:--spacing(5)]">
+          <Card interactive className="rounded-3xl bg-card [--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle className="text-lg font-extrabold tracking-normal">
                 Learning snapshot
@@ -275,7 +275,7 @@ function QuickAction({
   cta: string;
 }) {
   return (
-    <article className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-card p-3 transition-[transform,box-shadow,border-color] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-brand-800/10 motion-reduce:transform-none sm:min-h-36 sm:flex-col sm:items-stretch sm:p-4">
+    <article className="flex min-h-20 items-center justify-between gap-3 rounded-3xl bg-card p-3 shadow-sm shadow-foreground/5 ring-1 ring-foreground/5 transition-[transform,box-shadow] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 motion-reduce:transform-none sm:min-h-36 sm:flex-col sm:items-stretch sm:p-4">
       <div className="flex min-w-0 items-center gap-3 sm:block">
         <Icon icon={icon} className="size-6 shrink-0 text-primary" weight="duotone" />
         <div className="min-w-0">
@@ -299,7 +299,7 @@ function QuickAction({
 
 function SnapshotRow({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-brand-100 pb-3 last:border-b-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0">
       <Text className="text-sm text-muted-foreground" weight="semibold">
         {label}
       </Text>

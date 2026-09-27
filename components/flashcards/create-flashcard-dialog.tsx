@@ -589,10 +589,10 @@ export function CreateFlashcardDialog({
                         key={`${item.url}-${index}`}
                         type="button"
                         className={[
-                          "group relative overflow-hidden rounded-xl border bg-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-brand-800/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
+                          "group relative overflow-hidden rounded-2xl border bg-card shadow-sm shadow-foreground/5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
                           isSelected
-                            ? "border-primary ring-3 ring-primary/25 shadow-lg shadow-brand-800/15"
-                            : "border-border hover:border-primary/60",
+                            ? "border-border ring-2 ring-primary/25 shadow-md shadow-foreground/10"
+                            : "border-border",
                         ].join(" ")}
                         onClick={() => setImageUrl(item.url ?? "")}
                         aria-label={`Choose suggested image ${index + 1}`}
@@ -658,10 +658,10 @@ export function CreateFlashcardDialog({
                             example === (item.example?.text ?? "")
                           }
                           className={cn(
-                            "rounded-xl border bg-card p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                            "rounded-2xl border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                             definition === item.definition?.text &&
                               example === (item.example?.text ?? "")
-                              ? "border-primary ring-2 ring-primary/20"
+                              ? "border-border ring-2 ring-primary/25"
                               : "border-border"
                           )}
                           onClick={() => {
@@ -716,7 +716,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-xl border border-border bg-card p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl border border-border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => {
                             setDefinition(item.text ?? "");
                             if (item.partOfSpeech) {
@@ -744,7 +744,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-xl border border-border bg-card p-3 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl border border-border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => setExample(item.text ?? "")}
                         >
                           {item.text}

@@ -736,7 +736,7 @@ export function PracticeRunner({
   if (current) {
     return (
       <div className="mx-auto grid w-full max-w-4xl gap-3">
-        <section className="grid gap-2 rounded-2xl border border-brand-100 bg-card px-4 py-3 shadow-sm sm:px-5">
+        <section className="grid gap-2 rounded-3xl bg-card px-4 py-3 shadow-sm shadow-foreground/5 ring-1 ring-foreground/5 sm:px-5">
           <div className="flex items-center justify-between gap-4 text-sm font-bold">
             <span className="inline-flex min-w-0 items-center gap-2 text-primary">
               <Icon icon={Star} className="size-5 shrink-0 text-secondary" weight="fill" />
@@ -766,7 +766,7 @@ export function PracticeRunner({
           <PracticeEnergyProgress progress={progress} segments={steps.length} />
         </section>
 
-        <Card size="sm" className="overflow-hidden rounded-2xl border border-brand-100 shadow-sm">
+        <Card size="sm" className="overflow-hidden rounded-3xl">
           <CardHeader className="h-28 px-5 sm:px-6">
             <div className="flex h-full min-w-0 items-start justify-between gap-3">
               <div className="flex min-w-0 gap-3">

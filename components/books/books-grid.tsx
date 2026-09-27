@@ -87,7 +87,7 @@ export function BooksGrid({
         <Card
           key={book.id}
           className={cn(
-            "group relative overflow-hidden rounded-3xl transition-colors hover:border-primary/60",
+            "group relative overflow-hidden rounded-3xl transition-shadow hover:shadow-md hover:shadow-foreground/10",
             view === "grid" ? "gap-0 py-0" : "min-h-32"
           )}
         >
