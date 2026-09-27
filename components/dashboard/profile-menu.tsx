@@ -45,7 +45,7 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open user menu"
-        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-white px-1.5 text-foreground transition-colors hover:bg-brand-50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-2xl border border-border bg-card px-1.5 text-foreground shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {user.avatar ? (
           <span
