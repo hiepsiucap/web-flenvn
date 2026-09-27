@@ -203,11 +203,11 @@ export function FlashcardGrid({
           >
             {card.imageUrl ? (
               <div
-                className="aspect-[5/3] bg-secondary bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+                className="h-32 bg-secondary bg-cover bg-center transition-transform duration-300 group-hover:scale-105 sm:aspect-[5/3] sm:h-auto"
                 style={{ backgroundImage: `url(${card.imageUrl})` }}
               />
             ) : (
-              <div className="grid aspect-[5/3] place-items-center bg-secondary text-primary">
+              <div className="grid h-32 place-items-center bg-secondary text-primary sm:aspect-[5/3] sm:h-auto">
                 <Icon icon={BookOpen} className="size-7" />
               </div>
             )}

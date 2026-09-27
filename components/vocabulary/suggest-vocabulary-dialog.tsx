@@ -108,8 +108,15 @@ function unwrapData<TData>(response: ApiEnvelope<TData> | TData) {
   return response as TData;
 }
 
-export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
-  const [open, setOpen] = useState(false);
+export function SuggestVocabularyDialog({
+  books,
+  open,
+  onOpenChange,
+}: {
+  books: Book[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState<TopicLevel>("beginner");
   const [limit, setLimit] = useState("20");
@@ -308,13 +315,13 @@ export function SuggestVocabularyDialog({ books }: { books: Book[] }) {
   }
 
   return (
-    <Modal open={open} onOpenChange={setOpen}>
+    <Modal open={open} onOpenChange={onOpenChange}>
       <ModalTrigger
         render={
           <Button
             type="button"
             size="icon-lg"
-            className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-5 z-40 size-14 rounded-full shadow-lg shadow-brand-800/20 lg:bottom-5"
+            className="fixed bottom-5 right-5 z-40 hidden size-14 rounded-full shadow-lg shadow-brand-800/20 lg:inline-flex"
           >
             <Icon icon={Sparkles} size="lg" />
             <span className="sr-only">Suggest vocabulary</span>

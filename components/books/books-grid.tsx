@@ -110,13 +110,13 @@ export function BooksGrid({ books }: { books: Book[] }) {
             </div>
           </Link>
 
-          <div className="absolute right-3 top-3 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          <div className="flex justify-end gap-2 border-t border-border px-3 py-2 sm:absolute sm:right-3 sm:top-3 sm:border-0 sm:p-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
             <EditBookDialog book={book} books={books} />
             <Button
               type="button"
               variant="destructive"
               size="icon-sm"
-              className="shadow-md"
+              className="size-10 shadow-md sm:size-8"
               disabled={deletingBookId === book.id}
               onClick={() => handleDelete(book)}
             >
