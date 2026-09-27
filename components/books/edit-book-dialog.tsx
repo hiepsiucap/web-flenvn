@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, PencilSimple, Spinner, X } from "@phosphor-icons/react";
 import { toast } from "react-toastify";
 
@@ -61,11 +61,13 @@ export function EditBookDialog({
   books,
   showLabel = false,
   compactOnMobile = false,
+  trigger,
 }: {
   book: Book;
   books: Book[];
   showLabel?: boolean;
   compactOnMobile?: boolean;
+  trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(book.title);
@@ -156,7 +158,7 @@ export function EditBookDialog({
 
   return (
     <Modal open={open} onOpenChange={handleOpenChange}>
-      <ModalTrigger render={
+      <ModalTrigger render={trigger ??
         <Button
           type="button"
           variant={showLabel ? "outline" : "secondary"}
