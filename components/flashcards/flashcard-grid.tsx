@@ -312,7 +312,7 @@ export function FlashcardGrid({
             key={card.id}
             type="button"
             className={cn(
-              "group overflow-hidden rounded-2xl border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md hover:shadow-brand-800/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+              "group overflow-hidden rounded-3xl border border-border bg-card text-left shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
               view === "list" && "flex items-center gap-3 p-3 sm:gap-4"
             )}
             onClick={() => openCard(card)}

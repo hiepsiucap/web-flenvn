@@ -288,7 +288,7 @@ export function FlashcardBookView({
               <Link
                 key={child.id}
                 href={`/books/${encodeURIComponent(child.id)}`}
-                className="flex min-w-48 shrink-0 items-center gap-3 rounded-2xl border border-border bg-card p-2 pr-4 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-w-48 shrink-0 items-center gap-3 rounded-3xl border border-border bg-card p-2 pr-4 shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-primary">
                   {child.coverImage ? (

@@ -317,10 +317,10 @@ export function CreateBookDialog({
                       aria-pressed={isSelected}
                       aria-label={`Choose generated book cover ${index + 1}`}
                       className={cn(
-                        "group relative overflow-hidden rounded-xl border bg-card transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                        "group relative overflow-hidden rounded-2xl border bg-card shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                         isSelected
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/60"
+                          ? "border-border ring-2 ring-primary/25"
+                          : "border-border"
                       )}
                       onClick={() => {
                         setSelectedBackground(url);

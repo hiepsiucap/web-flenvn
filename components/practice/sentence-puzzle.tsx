@@ -54,7 +54,7 @@ export function SentencePuzzle({
     <div className="grid gap-3">
       <div
         className={cn(
-          "relative mt-7 grid min-h-56 content-end overflow-visible rounded-2xl border border-dashed border-brand-300 bg-brand-50/45 px-4 pb-4 pt-20 transition-colors sm:px-6",
+          "relative mt-7 grid min-h-56 content-end overflow-visible rounded-3xl border border-dashed border-border bg-muted/30 px-4 pb-4 pt-20 transition-colors sm:px-6",
           feedback?.result === "correct" &&
             "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
           feedback?.result === "incorrect" &&
@@ -78,7 +78,7 @@ export function SentencePuzzle({
                 <button
                   key={token.id}
                   type="button"
-                  className="min-h-11 w-24 rounded-xl border border-brand-300 bg-background px-2 text-sm font-semibold text-foreground shadow-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none sm:w-28 sm:text-base"
+                  className="min-h-11 w-24 rounded-2xl border border-border bg-background px-2 text-sm font-semibold text-foreground shadow-sm shadow-foreground/5 outline-none transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none sm:w-28 sm:text-base"
                   disabled={isLocked}
                   onClick={() =>
                     edit(selectedIds.filter((id) => id !== selectedToken.id))
@@ -90,7 +90,7 @@ export function SentencePuzzle({
               ) : (
                 <span
                   key={token.id}
-                  className="h-11 w-24 rounded-xl border border-dashed border-brand-300/90 bg-background/55 px-2 sm:w-28"
+                  className="h-11 w-24 rounded-2xl border border-dashed border-border bg-background/55 px-2 sm:w-28"
                   aria-hidden="true"
                 />
               );
