@@ -13,8 +13,8 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-card py-(--card-spacing) text-sm text-card-foreground shadow-sm shadow-foreground/5 ring-1 ring-foreground/5 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
-        interactive && "transition-[transform,box-shadow,ring-color] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 hover:ring-foreground/10 motion-reduce:transform-none",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-card py-(--card-spacing) text-sm text-card-foreground shadow-sm shadow-foreground/5 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
+        interactive && "transition-[transform,box-shadow] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 motion-reduce:transform-none",
         className
       )}
       {...props}
