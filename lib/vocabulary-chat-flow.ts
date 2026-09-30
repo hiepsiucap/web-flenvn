@@ -10,17 +10,16 @@ export type VocabularySearchInput = {
 export async function runVocabularySearch<T>(
   input: VocabularySearchInput,
   books: VocabularyBook[],
-  createBook: () => Promise<VocabularyBook>,
   search: (input: VocabularySearchInput) => Promise<T>,
 ): Promise<T> {
   const word = input.word.trim();
   if (!word) throw new Error('Enter a word or phrase to search.');
-  const selectedBook = input.bookId || books[0]?.id || (await createBook()).id;
+  const selectedBook = input.bookId || books[0]?.id;
   return search({
     word,
     language: input.language,
     ...(input.context?.trim() ? { context: input.context.trim() } : {}),
-    bookId: selectedBook,
+    ...(selectedBook ? { bookId: selectedBook } : {}),
   });
 }
 

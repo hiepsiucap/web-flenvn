@@ -81,7 +81,19 @@ export function VocabularyChat() {
   async function saveCard(draft: CardDraft) {
     setSave({ status: "saving" });
     try {
-      const response = await http.post<ApiEnvelope<Flashcard> | Flashcard>("/api/flashcards", draft);
+      let destinationBookId = draft.bookId || bookId;
+      if (!destinationBookId) {
+        const bookResponse = await http.post<ApiEnvelope<Book> | Book>("/api/books", { title: "Vocabulary", isPublic: false });
+        const created = unwrap(bookResponse);
+        destinationBookId = created.id;
+        setBooks((current) => [...current, created]);
+        setBookId(created.id);
+        notifyClientDataChanged();
+      }
+      const response = await http.post<ApiEnvelope<Flashcard> | Flashcard>("/api/flashcards", {
+        ...draft,
+        bookId: destinationBookId,
+      });
       const card = unwrap(response);
       setSave({ status: "saved", flashcardId: card.id, bookId: card.bookId });
       notifyClientDataChanged();
@@ -111,14 +123,6 @@ export function VocabularyChat() {
       const found = await runVocabularySearch(
         { word, language, context, bookId },
         books,
-        async () => {
-          const response = await http.post<ApiEnvelope<Book> | Book>("/api/books", { title: "Vocabulary", isPublic: false });
-          const created = unwrap(response);
-          setBooks((current) => [...current, created]);
-          setBookId(created.id);
-          notifyClientDataChanged();
-          return created;
-        },
         async (input) => {
           const response = await http.post<ApiEnvelope<SearchResult> | SearchResult>("/api/words/vocabulary-search", input);
           return unwrap(response);
@@ -213,7 +217,7 @@ export function VocabularyChat() {
                     <SelectTrigger aria-label="Book to save flashcard" className="h-10 w-full">{books.find((book) => book.id === bookId)?.title || "Choose a book"}</SelectTrigger>
                     <SelectContent>{books.map((book) => <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>)}</SelectContent>
                   </Select>
-                ) : <p className="flex h-10 items-center text-sm text-muted-foreground">A private Vocabulary book will be created.</p>}
+                ) : <p className="flex h-10 items-center text-sm text-muted-foreground">A private Vocabulary book will be created when saving.</p>}
               </div>
             </div>
             <div className="grid gap-2">
