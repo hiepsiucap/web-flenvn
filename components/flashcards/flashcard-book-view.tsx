@@ -40,6 +40,7 @@ export function FlashcardBookView({
   labels,
   initialLabelIds,
   initialLabelMode,
+  initialSearchQuery = "",
 }: {
   book: Book | null;
   books: Book[];
@@ -47,10 +48,11 @@ export function FlashcardBookView({
   labels: LabelCatalogItem[];
   initialLabelIds: string[];
   initialLabelMode: LabelFilterMode;
+  initialSearchQuery?: string;
 }) {
   const [selectedLabelIds, setSelectedLabelIds] = useState(initialLabelIds);
   const [labelMode, setLabelMode] = useState(initialLabelMode);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);

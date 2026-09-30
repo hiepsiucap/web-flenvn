@@ -12,6 +12,7 @@ import {
   Stack as Layers3,
   SquaresFour as SquareStack,
   Waveform,
+  ChatCircleText,
 } from "@phosphor-icons/react";
 
 import { Icon } from "@/components/ui/icon";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 export type SidebarNavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "shadowing" | "progress" | "support" | "settings";
+  icon: "dashboard" | "books" | "flashcards" | "flip" | "review" | "vocabulary" | "shadowing" | "progress" | "support" | "settings";
 };
 
 const icons = {
@@ -29,6 +30,7 @@ const icons = {
   flashcards: SquareStack,
   flip: Cards,
   review: BookOpen,
+  vocabulary: ChatCircleText,
   shadowing: Waveform,
   progress: BarChart3,
   support: Lifebuoy,

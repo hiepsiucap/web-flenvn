@@ -26,6 +26,7 @@ export default function FlashcardPage() {
 function FlashcardPageContent() {
   const searchParams = useSearchParams();
   const bookId = searchParams.get("bookId") ?? undefined;
+  const searchedWord = searchParams.get("word") ?? "";
   const labelIds = searchParams.get("labelIds") ?? undefined;
   const labelMode = searchParams.get("labelMode") ?? undefined;
   const selectedLabelIds = [...new Set(labelIds?.split(",").filter(Boolean) ?? [])];
@@ -117,6 +118,7 @@ function FlashcardPageContent() {
       labels={data.labels}
       initialLabelIds={selectedLabelIds}
       initialLabelMode={selectedLabelMode}
+      initialSearchQuery={searchedWord}
     />
   );
 }
