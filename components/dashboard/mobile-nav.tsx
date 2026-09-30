@@ -12,6 +12,7 @@ import {
   GearSix,
   Lifebuoy,
   Sparkle,
+  ChatCircleText,
 } from "@phosphor-icons/react";
 
 import { dashboardNavItems } from "@/components/dashboard/dashboard-nav-items";
@@ -32,6 +33,7 @@ const primary = [
 ];
 
 const secondaryIcons = {
+  vocabulary: ChatCircleText,
   shadowing: Waveform,
   support: Lifebuoy,
   settings: GearSix,
