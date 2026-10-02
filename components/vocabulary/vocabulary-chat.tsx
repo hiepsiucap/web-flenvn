@@ -1,34 +1,67 @@
 "use client";
 
-import Link from "next/link";
-import { type FormEvent, useEffect, useState } from "react";
+import {
+  ChatCircleText,
+  PaperPlaneTilt,
+  Plus,
+  Spinner,
+  Trash,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
+import { CreateFlashcardDialog } from "@/components/flashcards/create-flashcard-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Icon } from "@/components/ui/icon";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
-import { getBooksClient, notifyClientDataChanged } from "@/lib/client-api";
-import type { Book, Flashcard } from "@/lib/dashboard-data";
+import { getBooksClient } from "@/lib/client-api";
+import {
+  type ChatConversation,
+  type ChatMessage,
+  type PersistedChatMessage,
+  createOptimisticMessage,
+  failOptimisticMessage,
+  resolveOptimisticMessage,
+  toChatMessage,
+  upsertConversation,
+} from "@/lib/conversational-chat";
+import type { Book } from "@/lib/dashboard-data";
 import { HttpError, http } from "@/lib/http";
-import { buildFirstFollowUpMessage, runVocabularySearch } from "@/lib/vocabulary-chat-flow";
+import { cn } from "@/lib/utils";
 
-type CardDraft = Pick<Flashcard, "word" | "definition" | "translation" | "example" | "exampleTranslation" | "bookId">;
-type SearchResult = {
-  word: string;
-  language: "en" | "vi";
-  definition: string;
-  translation: string;
-  example: string;
-  answer: string;
-  draft: CardDraft;
-  save: { status: "pending" | "existing"; flashcardId?: string; bookId?: string | null };
+type ConversationListResponse = {
+  conversations: ChatConversation[];
+  nextCursor: string | null;
 };
-type SaveState = { status: "idle" | "saving" | "saved" | "existing" | "failed"; flashcardId?: string; bookId?: string | null; message?: string };
-type ChatMessage = { role: "user" | "assistant"; content: string };
-type ChatReply = { assistantMessage: { content: string } };
+
+type MessageListResponse = {
+  messages: PersistedChatMessage[];
+  nextCursor: string | null;
+};
+
+type MessageResponse = {
+  userMessage: PersistedChatMessage;
+  assistantMessage: PersistedChatMessage;
+  provider: "gemini";
+  model: string | null;
+};
+
+type ResponseLanguage = "vi" | "en";
+
+const STARTER_PROMPTS = [
+  "Explain the present perfect with simple examples.",
+  "Help me improve this sentence: I have went there yesterday.",
+  "What is the difference between say and tell?",
+];
 
 function unwrap<T>(response: ApiEnvelope<T> | T): T {
   return response && typeof response === "object" && "data" in response && "success" in response
@@ -36,243 +69,480 @@ function unwrap<T>(response: ApiEnvelope<T> | T): T {
     : response as T;
 }
 
-function errorMessage(error: unknown, fallback: string) {
+function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof HttpError) {
-    const data = error.data as { message?: string } | null;
-    return data?.message || fallback;
+    const data = error.data as { message?: string | string[] } | null;
+    if (Array.isArray(data?.message)) return data.message.join(" ");
+    if (data?.message) return data.message;
   }
   return error instanceof Error ? error.message : fallback;
 }
 
+function conversationTitle(message: string) {
+  const singleLine = message.replace(/\s+/g, " ").trim();
+  return singleLine.length <= 60
+    ? singleLine
+    : `${singleLine.slice(0, 57).trimEnd()}...`;
+}
+
 export function VocabularyChat() {
   const [books, setBooks] = useState<Book[]>([]);
-  const [booksError, setBooksError] = useState("");
-  const [booksLoading, setBooksLoading] = useState(true);
-  const [word, setWord] = useState("");
-  const [language, setLanguage] = useState<"en" | "vi">("en");
-  const [context, setContext] = useState("");
-  const [bookId, setBookId] = useState("");
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [searchedContext, setSearchedContext] = useState("");
-  const [save, setSave] = useState<SaveState>({ status: "idle" });
-  const [question, setQuestion] = useState("");
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"idle" | "explaining" | "replying">("idle");
+  const [draft, setDraft] = useState("");
+  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>("vi");
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const activeConversationRef = useRef<string | null>(null);
+  const messageRequestRef = useRef(0);
+  const threadEndRef = useRef<HTMLDivElement>(null);
+
+  const activeConversation = conversations.find(
+    (conversation) => conversation.id === activeConversationId,
+  );
 
   useEffect(() => {
     let active = true;
-    void getBooksClient().then((items) => {
+
+    void http.get<ApiEnvelope<ConversationListResponse> | ConversationListResponse>(
+        "/api/ai/conversations",
+        { query: { limit: 100 } },
+      ).then((response) => {
       if (!active) return;
-      setBooks(items);
-      setBookId((current) => current || items[0]?.id || "");
-      setBooksError("");
-      setBooksLoading(false);
-    }).catch(() => {
-      if (active) {
-        setBooksError("Books could not be loaded. Try reloading this page.");
-        setBooksLoading(false);
-      }
+      const items = unwrap(response).conversations;
+      setConversations(items);
+      if (items.length) setLoadingMessages(true);
+      setActiveConversationId((current) => {
+        const next = current && items.some((item) => item.id === current)
+          ? current
+          : items[0]?.id ?? null;
+        activeConversationRef.current = next;
+        return next;
+      });
+      setError("");
+    }).catch((cause) => {
+      if (!active) return;
+      setError(getErrorMessage(cause, "Could not load conversations."));
+    }).finally(() => {
+      if (!active) return;
+      setLoadingConversations(false);
     });
-    return () => { active = false; };
+
+    void getBooksClient().then((items) => {
+      if (active) setBooks(items);
+    }).catch(() => {
+      if (active) setBooks([]);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  async function saveCard(draft: CardDraft) {
-    setSave({ status: "saving" });
-    try {
-      let destinationBookId = draft.bookId || bookId;
-      if (!destinationBookId) {
-        const bookResponse = await http.post<ApiEnvelope<Book> | Book>("/api/books", { title: "Vocabulary", isPublic: false });
-        const created = unwrap(bookResponse);
-        destinationBookId = created.id;
-        setBooks((current) => [...current, created]);
-        setBookId(created.id);
-        notifyClientDataChanged();
-      }
-      const response = await http.post<ApiEnvelope<Flashcard> | Flashcard>("/api/flashcards", {
-        ...draft,
-        bookId: destinationBookId,
-      });
-      const card = unwrap(response);
-      setSave({ status: "saved", flashcardId: card.id, bookId: card.bookId });
-      notifyClientDataChanged();
-    } catch (cause) {
-      if (cause instanceof HttpError && cause.status === 409) {
-        const details = (cause.data as { details?: { existingFlashcardId?: string; flashcard?: Flashcard } } | null)?.details;
-        if (details?.existingFlashcardId) {
-          setSave({ status: "existing", flashcardId: details.existingFlashcardId, bookId: details.flashcard?.bookId });
-          return;
-        }
-      }
-      setSave({ status: "failed", message: errorMessage(cause, "Could not save flashcard.") });
+  useEffect(() => {
+    if (!activeConversationId) {
+      return;
     }
+
+    const requestId = ++messageRequestRef.current;
+
+    void http.get<ApiEnvelope<MessageListResponse> | MessageListResponse>(
+      `/api/ai/conversations/${activeConversationId}/messages`,
+      { query: { limit: 100 } },
+    ).then((response) => {
+      if (requestId !== messageRequestRef.current) return;
+      setMessages(unwrap(response).messages.map(toChatMessage));
+    }).catch((cause) => {
+      if (requestId !== messageRequestRef.current) return;
+      setError(getErrorMessage(cause, "Could not load this conversation."));
+    }).finally(() => {
+      if (requestId === messageRequestRef.current) setLoadingMessages(false);
+    });
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, sending]);
+
+  function chooseConversation(conversation: ChatConversation) {
+    messageRequestRef.current += 1;
+    activeConversationRef.current = conversation.id;
+    setActiveConversationId(conversation.id);
+    setLoadingMessages(true);
+    setResponseLanguage(conversation.targetLanguage === "en" ? "en" : "vi");
+    setMessages([]);
+    setDraft("");
+    setError("");
   }
 
-  async function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy !== "idle" || save.status === "saving" || booksError || booksLoading) return;
-    setBusy("explaining");
+  function startNewChat() {
+    messageRequestRef.current += 1;
+    activeConversationRef.current = null;
+    setActiveConversationId(null);
+    setMessages([]);
+    setLoadingMessages(false);
+    setDraft("");
     setError("");
-    setResult(null);
-    setSave({ status: "idle" });
-    setMessages([{ role: "user", content: `${word.trim()}${context.trim() ? ` — ${context.trim()}` : ""}` }]);
-    setConversationId(null);
+  }
+
+  async function updateResponseLanguage(value: ResponseLanguage) {
+    setResponseLanguage(value);
+    if (!activeConversationId) return;
 
     try {
-      const found = await runVocabularySearch(
-        { word, language, context, bookId },
-        books,
-        async (input) => {
-          const response = await http.post<ApiEnvelope<SearchResult> | SearchResult>("/api/words/vocabulary-search", input);
-          return unwrap(response);
-        },
+      const response = await http.patch<ApiEnvelope<ChatConversation> | ChatConversation>(
+        `/api/ai/conversations/${activeConversationId}`,
+        { targetLanguage: value },
       );
-      setResult(found);
-      setSearchedContext(context.trim());
-      setBookId(found.draft.bookId || bookId);
-      setMessages((current) => [...current, { role: "assistant", content: found.answer }]);
-      if (found.save.status === "existing") {
-        setSave({ status: "existing", flashcardId: found.save.flashcardId, bookId: found.save.bookId });
-      } else {
-        await saveCard(found.draft);
-      }
+      setConversations((current) => upsertConversation(current, unwrap(response)));
     } catch (cause) {
-      setError(errorMessage(cause, "Could not explain this term. Try again."));
-    } finally {
-      setBusy("idle");
+      setError(getErrorMessage(cause, "Could not update the response language."));
     }
   }
 
-  async function handleFollowUp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const text = question.trim();
-    if (!result || !text || busy !== "idle") return;
-    setBusy("replying");
+  async function sendMessage(
+    content: string,
+    clientMessageId = crypto.randomUUID(),
+    retryConversationId?: string,
+  ) {
+    const text = content.trim();
+    if (!text || sending) return;
+
+    setSending(true);
     setError("");
+    setDraft("");
+    setMessages((current) => {
+      const existing = current.some(
+        (message) => message.clientMessageId === clientMessageId,
+      );
+      return existing
+        ? current.map((message) =>
+            message.clientMessageId === clientMessageId
+              ? { ...message, status: "sending" }
+              : message,
+          )
+        : [...current, createOptimisticMessage(text, clientMessageId)];
+    });
+
+    let conversationId = retryConversationId ?? activeConversationRef.current;
+    let conversation = conversations.find((item) => item.id === conversationId);
+
     try {
-      let id = conversationId;
-      if (!id) {
-        const response = await http.post<ApiEnvelope<{ id: string }> | { id: string }>("/api/ai/conversations", {
-          title: result.word,
-          targetLanguage: result.language === "en" ? "vi" : "en",
-        });
-        id = unwrap(response).id;
-        setConversationId(id);
+      if (!conversationId) {
+        const response = await http.post<ApiEnvelope<ChatConversation> | ChatConversation>(
+          "/api/ai/conversations",
+          { targetLanguage: responseLanguage },
+        );
+        conversation = unwrap(response);
+        conversationId = conversation.id;
+        activeConversationRef.current = conversationId;
+        setActiveConversationId(conversationId);
+        setConversations((current) => upsertConversation(current, conversation as ChatConversation));
       }
-      const message = conversationId
-        ? text
-        : buildFirstFollowUpMessage({ word: result.word, context: searchedContext, answer: result.answer }, text);
-      const response = await http.post<ApiEnvelope<ChatReply> | ChatReply>(`/api/ai/conversations/${id}/messages`, {
-        message,
-        clientMessageId: crypto.randomUUID(),
-      });
+
+      const response = await http.post<ApiEnvelope<MessageResponse> | MessageResponse>(
+        `/api/ai/conversations/${conversationId}/messages`,
+        { message: text, clientMessageId },
+      );
       const reply = unwrap(response);
-      setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: reply.assistantMessage.content }]);
-      setQuestion("");
+
+      if (activeConversationRef.current === conversationId) {
+        setMessages((current) =>
+          resolveOptimisticMessage(
+            current,
+            clientMessageId,
+            reply.userMessage,
+            reply.assistantMessage,
+          ),
+        );
+      }
+
+      const updatedConversation: ChatConversation = {
+        ...(conversation as ChatConversation),
+        title: conversation?.title === "New conversation"
+          ? conversationTitle(text)
+          : conversation?.title ?? conversationTitle(text),
+        updatedAt: reply.assistantMessage.createdAt,
+      };
+      setConversations((current) => upsertConversation(current, updatedConversation));
     } catch (cause) {
-      setError(errorMessage(cause, "Could not answer the follow-up. Try again."));
+      if (!conversationId || activeConversationRef.current === conversationId) {
+        setMessages((current) => failOptimisticMessage(current, clientMessageId));
+        setError(getErrorMessage(cause, "Gemini could not answer. Try again."));
+      }
     } finally {
-      setBusy("idle");
+      setSending(false);
     }
   }
 
-  const cardLink = save.bookId
-    ? `/flashcards?bookId=${encodeURIComponent(save.bookId)}&word=${encodeURIComponent(result?.word || "")}`
-    : null;
+  async function deleteConversation(conversation: ChatConversation) {
+    if (!window.confirm(`Delete “${conversation.title}”? This removes its messages.`)) return;
+
+    try {
+      await http.delete(`/api/ai/conversations/${conversation.id}`);
+      const remaining = conversations.filter((item) => item.id !== conversation.id);
+      setConversations(remaining);
+      if (activeConversationRef.current === conversation.id) {
+        const next = remaining[0] ?? null;
+        activeConversationRef.current = next?.id ?? null;
+        setActiveConversationId(next?.id ?? null);
+        setMessages([]);
+        setLoadingMessages(false);
+        if (next) setResponseLanguage(next.targetLanguage === "en" ? "en" : "vi");
+      }
+    } catch (cause) {
+      setError(getErrorMessage(cause, "Could not delete this conversation."));
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void sendMessage(draft);
+  }
+
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      if (draft.trim()) void sendMessage(draft);
+    }
+  }
 
   return (
-    <div className="mx-auto grid w-full max-w-4xl gap-5 pb-24 lg:pb-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Vocabulary chat</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Search a word in English or Vietnamese. Your searched word becomes a flashcard.</p>
-      </div>
+    <div className="mx-auto flex min-h-[calc(100dvh-9rem)] w-full max-w-7xl overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+      <aside className="hidden w-72 shrink-0 border-r border-border bg-muted/20 md:flex md:flex-col">
+        <div className="p-3">
+          <Button type="button" variant="outline" className="w-full justify-start" onClick={startNewChat}>
+            <Icon icon={Plus} />
+            New chat
+          </Button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+          {loadingConversations ? (
+            <p className="px-3 py-4 text-sm text-muted-foreground">Loading conversations…</p>
+          ) : conversations.length ? (
+            <div className="grid gap-1">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={cn(
+                    "group flex items-center rounded-2xl",
+                    conversation.id === activeConversationId && "bg-accent",
+                  )}
+                >
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 px-3 py-2.5 text-left text-sm"
+                    onClick={() => chooseConversation(conversation)}
+                  >
+                    <span className="block truncate font-medium">{conversation.title}</span>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mr-1 size-8 shrink-0 opacity-60 hover:opacity-100"
+                    aria-label={`Delete ${conversation.title}`}
+                    onClick={() => void deleteConversation(conversation)}
+                  >
+                    <Icon icon={Trash} size="sm" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="px-3 py-4 text-sm text-muted-foreground">Your conversations will appear here.</p>
+          )}
+        </div>
+      </aside>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Search a word or phrase</CardTitle>
-          <CardDescription>Add a sentence to get the meaning that fits your context.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="vocabulary-word">Word or phrase</Label>
-              <Input id="vocabulary-word" value={word} onChange={(event) => setWord(event.target.value)} maxLength={100} required placeholder="bank" />
+      <section className="flex min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-3 sm:px-5">
+          <div className="mr-auto min-w-0">
+            <h1 className="truncate text-lg font-semibold">
+              {activeConversation?.title ?? "New conversation"}
+            </h1>
+            <p className="text-xs text-muted-foreground">Powered by Gemini</p>
+          </div>
+
+          <div className="w-full md:hidden">
+            <Select
+              value={activeConversationId ?? "new"}
+              onValueChange={(value) => {
+                if (value === "new") startNewChat();
+                else {
+                  const selected = conversations.find((item) => item.id === value);
+                  if (selected) chooseConversation(selected);
+                }
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                {activeConversation?.title ?? "New chat"}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">New chat</SelectItem>
+                {conversations.map((conversation) => (
+                  <SelectItem key={conversation.id} value={conversation.id}>
+                    {conversation.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select
+            value={responseLanguage}
+            onValueChange={(value) => {
+              if (value === "vi" || value === "en") void updateResponseLanguage(value);
+            }}
+          >
+            <SelectTrigger className="h-9 w-auto min-w-32">
+              {responseLanguage === "vi" ? "Vietnamese" : "English"}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vi">Vietnamese</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <CreateFlashcardDialog
+            books={books}
+            triggerLabel="Save vocabulary"
+            triggerClassName="h-9"
+          />
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {loadingMessages ? (
+            <div className="grid min-h-full place-items-center p-8 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <Icon icon={Spinner} className="animate-spin" />
+                Loading messages…
+              </span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label>Word language</Label>
-                <Select value={language} onValueChange={(value) => { if (value === "en" || value === "vi") setLanguage(value); }}>
-                  <SelectTrigger aria-label="Word language" className="h-10 w-full">{language === "en" ? "English" : "Vietnamese"}</SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="vi">Vietnamese</SelectItem>
-                  </SelectContent>
-                </Select>
+          ) : messages.length ? (
+            <div className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
+              {messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={cn(
+                    "flex gap-3",
+                    message.role === "user" && "justify-end",
+                  )}
+                >
+                  {message.role === "assistant" ? (
+                    <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                      <Icon icon={ChatCircleText} size="sm" />
+                    </span>
+                  ) : null}
+                  <div
+                    className={cn(
+                      "max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-6",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground",
+                      message.status === "failed" && "border border-destructive/40",
+                    )}
+                  >
+                    {message.content}
+                    {message.status === "sending" ? (
+                      <span className="mt-2 flex items-center gap-1.5 text-xs opacity-75">
+                        <Icon icon={Spinner} size="sm" className="animate-spin" />
+                        Sending
+                      </span>
+                    ) : null}
+                    {message.status === "failed" && message.clientMessageId ? (
+                      <button
+                        type="button"
+                        className="mt-2 block text-xs font-semibold underline underline-offset-2"
+                        onClick={() =>
+                          void sendMessage(
+                            message.content,
+                            message.clientMessageId,
+                            activeConversationId ?? undefined,
+                          )
+                        }
+                      >
+                        Retry
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+              {sending && messages.at(-1)?.status !== "sending" ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Icon icon={Spinner} className="animate-spin" />
+                  Gemini is writing…
+                </p>
+              ) : null}
+              <div ref={threadEndRef} />
+            </div>
+          ) : (
+            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center justify-center px-5 py-10 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Icon icon={ChatCircleText} size="lg" />
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold">How can I help you learn English?</h2>
+              <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+                Ask about grammar, vocabulary, pronunciation, writing, or everyday English.
+              </p>
+              <div className="mt-6 grid w-full gap-2 sm:grid-cols-3">
+                {STARTER_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className="rounded-2xl border border-border bg-background p-3 text-left text-sm transition-colors hover:bg-accent"
+                    onClick={() => setDraft(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
               </div>
-              <div className="grid gap-2">
-                <Label>Save to book</Label>
-                {booksLoading ? <p className="flex h-10 items-center text-sm text-muted-foreground">Loading books…</p> : books.length ? (
-                  <Select value={bookId} onValueChange={(value) => { if (value) setBookId(value); }}>
-                    <SelectTrigger aria-label="Book to save flashcard" className="h-10 w-full">{books.find((book) => book.id === bookId)?.title || "Choose a book"}</SelectTrigger>
-                    <SelectContent>{books.map((book) => <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>)}</SelectContent>
-                  </Select>
-                ) : <p className="flex h-10 items-center text-sm text-muted-foreground">A private Vocabulary book will be created when saving.</p>}
-              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="vocabulary-context">Context or example (optional)</Label>
-              <Textarea id="vocabulary-context" value={context} onChange={(event) => setContext(event.target.value)} maxLength={2000} placeholder="She went to the bank." />
-            </div>
-            {booksError ? <p role="alert" className="text-sm text-destructive">{booksError}</p> : null}
-            <Button type="submit" disabled={busy !== "idle" || save.status === "saving" || Boolean(booksError) || booksLoading} className="w-fit">
-              {save.status === "saving" ? "Saving…" : busy === "explaining" ? "Explaining…" : "Search and save"}
+          )}
+        </div>
+
+        <div className="border-t border-border bg-card px-3 py-3 sm:px-5">
+          {error ? (
+            <Alert variant="destructive" className="mx-auto mb-3 max-w-3xl">
+              <WarningCircle />
+              <AlertTitle>Chat request failed</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          <form className="mx-auto flex max-w-3xl items-end gap-2" onSubmit={handleSubmit}>
+            <Textarea
+              aria-label="Message Gemini"
+              value={draft}
+              maxLength={5000}
+              rows={1}
+              className="min-h-11 resize-none rounded-2xl"
+              placeholder="Message FLENVN…"
+              disabled={sending}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="size-11 shrink-0 rounded-full"
+              aria-label="Send message"
+              disabled={sending || !draft.trim()}
+            >
+              {sending ? (
+                <Icon icon={Spinner} className="animate-spin" />
+              ) : (
+                <Icon icon={PaperPlaneTilt} />
+              )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {messages.length ? <Card>
-        <CardHeader><CardTitle>Conversation</CardTitle></CardHeader>
-        <CardContent className="grid gap-4" aria-live="polite">
-          {messages.map((message, index) => (
-            <div key={index} className="rounded-xl border border-border p-3">
-              <p className="mb-1 text-xs font-semibold text-muted-foreground">{message.role === "user" ? "You" : "FLENVN"}</p>
-              <p className="whitespace-pre-wrap">{message.content}</p>
-            </div>
-          ))}
-          {busy === "explaining" ? <p role="status" className="text-sm text-muted-foreground">Finding the meaning…</p> : null}
-          {busy === "replying" ? <p role="status" className="text-sm text-muted-foreground">Writing a reply…</p> : null}
-        </CardContent>
-      </Card> : null}
-
-      {result ? <Card>
-        <CardHeader><CardTitle>Flashcard for {result.word}</CardTitle><CardDescription>{result.definition}{result.translation ? ` · ${result.translation}` : ""}</CardDescription></CardHeader>
-        <CardContent className="grid gap-3">
-          <p className="text-sm"><span className="font-medium">Example:</span> {result.example}</p>
-          <div aria-live="polite" className="text-sm">
-            {save.status === "saving" ? "Saving flashcard…" : null}
-            {save.status === "saved" ? "Saved as a flashcard." : null}
-            {save.status === "existing" ? "Already saved. Your existing flashcard was not changed." : null}
-            {save.status === "failed" ? <span role="alert">Explanation ready, but the flashcard was not saved: {save.message}</span> : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {cardLink && (save.status === "saved" || save.status === "existing") ? <Button render={<Link href={cardLink} />} nativeButton={false} variant="outline">View or edit flashcard</Button> : null}
-            {save.status === "failed" ? <Button type="button" onClick={() => void saveCard(result.draft)}>Retry save</Button> : null}
-          </div>
-        </CardContent>
-      </Card> : null}
-
-      {result ? <Card>
-        <CardHeader><CardTitle>Ask a follow-up</CardTitle><CardDescription>Questions about this word will not create another flashcard.</CardDescription></CardHeader>
-        <CardContent>
-          <form onSubmit={handleFollowUp} className="flex flex-col gap-3 sm:flex-row">
-            <Input aria-label="Follow-up question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={5000} placeholder="Can I use it as a verb?" required />
-            <Button type="submit" disabled={busy !== "idle"} className="sm:shrink-0">Ask</Button>
-          </form>
-        </CardContent>
-      </Card> : null}
-      {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-muted-foreground">
+            Gemini can make mistakes. Check important answers.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

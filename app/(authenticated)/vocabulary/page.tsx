@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { VocabularyChat } from "@/components/vocabulary/vocabulary-chat";
 
 export const metadata: Metadata = {
-  title: "Vocabulary chat",
-  description: "Understand English and Vietnamese words in context and save them as flashcards.",
+  title: "AI chat",
+  description: "Chat with FLENVN's Gemini-powered English-learning assistant.",
 };
 
 export default function VocabularyPage() {

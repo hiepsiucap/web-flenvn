@@ -139,10 +139,12 @@ export function CreateFlashcardDialog({
   books,
   defaultBookId,
   triggerClassName,
+  triggerLabel = "Create flashcard",
 }: {
   books: Book[];
   defaultBookId?: string;
   triggerClassName?: string;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [bookId, setBookId] = useState(defaultBookId ?? books[0]?.id ?? "");
@@ -374,7 +376,7 @@ export function CreateFlashcardDialog({
         render={
           <Button className={cn("h-10 rounded-2xl", triggerClassName)} type="button" disabled={!books.length}>
             <Icon icon={Plus} />
-            Create flashcard
+            {triggerLabel}
           </Button>
         }
       />
