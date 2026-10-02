@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { CreateFlashcardDialog } from "@/components/flashcards/create-flashcard-dialog";
+import { ChatMessageContent } from "@/components/vocabulary/chat-message-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -311,7 +312,7 @@ export function VocabularyChat() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-9rem)] w-full max-w-7xl overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+    <div className="mx-auto flex h-[calc(100dvh-10rem)] min-h-[28rem] w-full max-w-7xl overflow-hidden rounded-3xl border border-border bg-card shadow-sm md:h-[calc(100dvh-7rem)]">
       <aside className="hidden w-72 shrink-0 border-r border-border bg-muted/20 md:flex md:flex-col">
         <div className="p-3">
           <Button type="button" variant="outline" className="w-full justify-start" onClick={startNewChat}>
@@ -319,7 +320,7 @@ export function VocabularyChat() {
             New chat
           </Button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3">
           {loadingConversations ? (
             <p className="px-3 py-4 text-sm text-muted-foreground">Loading conversations…</p>
           ) : conversations.length ? (
@@ -414,7 +415,7 @@ export function VocabularyChat() {
           />
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {loadingMessages ? (
             <div className="grid min-h-full place-items-center p-8 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
@@ -439,14 +440,19 @@ export function VocabularyChat() {
                   ) : null}
                   <div
                     className={cn(
-                      "max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-6",
+                      "max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-6",
+                      message.role === "user" && "whitespace-pre-wrap",
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground",
                       message.status === "failed" && "border border-destructive/40",
                     )}
                   >
-                    {message.content}
+                    {message.role === "assistant" ? (
+                      <ChatMessageContent content={message.content} />
+                    ) : (
+                      message.content
+                    )}
                     {message.status === "sending" ? (
                       <span className="mt-2 flex items-center gap-1.5 text-xs opacity-75">
                         <Icon icon={Spinner} size="sm" className="animate-spin" />
