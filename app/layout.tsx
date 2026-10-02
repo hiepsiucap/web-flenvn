@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Nunito } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import "./notifications.css";
 
-const nunito = Nunito({
+const nunito = localFont({
+  src: "./fonts/Nunito-Variable.ttf",
   variable: "--font-nunito",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: "200 1000",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.ttf",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {
