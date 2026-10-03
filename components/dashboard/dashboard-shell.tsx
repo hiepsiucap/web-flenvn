@@ -14,16 +14,12 @@ import { ProfileMenu } from "@/components/dashboard/profile-menu";
 import { RankProgressDialog } from "@/components/dashboard/rank-progress-dialog";
 import { StreakProvider } from "@/components/streak/streak-provider";
 import { StreakTopbar } from "@/components/streak/streak-topbar";
-import { SuggestVocabularyDialog } from "@/components/vocabulary/suggest-vocabulary-dialog";
 import penguinTopbar from "@/img/peguin-topbar.png";
 import {
   CLIENT_DATA_CHANGED_EVENT,
-  getBooksClient,
-  getCachedBooksClient,
   getDashboardShellDataClient,
   type ClientDashboardShellData,
 } from "@/lib/client-api";
-import type { Book } from "@/lib/dashboard-data";
 import {
   IMMERSIVE_DASHBOARD_PADDING,
   IMMERSIVE_DASHBOARD_ROOT,
@@ -42,10 +38,8 @@ export function DashboardShell({
   const isHome = pathname === "/" || pathname === "/dashboard";
   const isImmersive = isImmersiveDashboardRoute(pathname);
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
-  const [books, setBooks] = useState<Book[]>(() => getCachedBooksClient() ?? []);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
-  const [suggestOpen, setSuggestOpen] = useState(false);
 
   useEffect(() => {
     if (!window.localStorage.getItem("accessToken")) {
@@ -55,11 +49,10 @@ export function DashboardShell({
 
     let active = true;
     const load = () => {
-      void Promise.all([getDashboardShellDataClient(), getBooksClient()])
-        .then(([nextUser, nextBooks]) => {
+      void getDashboardShellDataClient()
+        .then((nextUser) => {
         if (!active) return;
         setUser(nextUser);
-        setBooks(nextBooks);
         setLoadError(nextUser.error ?? "");
       })
       .catch((error: unknown) => {
@@ -175,9 +168,8 @@ export function DashboardShell({
         </main>
       </div>
       {shouldShowMobileDashboardNavigation(pathname) ? (
-        <MobileNav onSuggestVocabulary={() => setSuggestOpen(true)} />
+        <MobileNav />
       ) : null}
-      <SuggestVocabularyDialog books={books} open={suggestOpen} onOpenChange={setSuggestOpen} />
     </div>
     </StreakProvider>
   );

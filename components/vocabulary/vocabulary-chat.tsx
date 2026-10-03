@@ -67,6 +67,9 @@ const STARTER_PROMPTS = [
 ];
 
 export const CHAT_THREAD_WIDTH_CLASS = "max-w-5xl";
+export const CHAT_COMPOSER_WIDTH_CLASS = "w-full";
+export const CHAT_COMPOSER_INPUT_CLASS =
+  "min-h-11 resize-none rounded-2xl border-border/30 pt-3 dark:border-border/30";
 export const CHAT_CONVERSATION_TITLE_CLASS =
   "block w-full truncate font-medium";
 
@@ -598,13 +601,13 @@ export function VocabularyChat() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-          <form className="mx-auto flex max-w-3xl items-end gap-2" onSubmit={handleSubmit}>
+          <form className={cn("mx-auto flex items-end gap-2", CHAT_COMPOSER_WIDTH_CLASS)} onSubmit={handleSubmit}>
             <Textarea
               aria-label="Message Gemini"
               value={draft}
               maxLength={5000}
               rows={1}
-              className="min-h-11 resize-none rounded-2xl border-border/30 dark:border-border/30"
+              className={CHAT_COMPOSER_INPUT_CLASS}
               placeholder="Message FLENVN…"
               disabled={sending}
               onChange={(event) => setDraft(event.target.value)}
