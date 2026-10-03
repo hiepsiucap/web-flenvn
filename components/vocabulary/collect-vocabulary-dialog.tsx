@@ -43,6 +43,7 @@ type Candidate = {
   translation: string;
   definition: string;
   example?: string;
+  imageUrl?: string;
   recommended?: boolean;
   source: Source;
   alreadyExists: boolean;
@@ -208,12 +209,13 @@ export function CollectVocabularyDialog({
         {
           bookId,
           candidates: valid.map(
-            ({ text, type, translation, definition, example }) => ({
+            ({ text, type, translation, definition, example, imageUrl }) => ({
               text,
               type,
               translation,
               definition,
               example,
+              imageUrl: imageUrl?.trim() || undefined,
             }),
           ),
         },
@@ -480,6 +482,31 @@ export function CollectVocabularyDialog({
                             maxLength={2000}
                             onChange={(event) =>
                               update(item.key, { example: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="grid gap-1 sm:col-span-2">
+                          <Label htmlFor={`candidate-image-${item.key}`}>
+                            Flashcard image URL (optional)
+                          </Label>
+                          {item.imageUrl ? (
+                            <span
+                              role="img"
+                              aria-label={`Suggested image for ${item.text}`}
+                              className="block h-28 w-40 rounded-lg border border-border bg-secondary bg-cover bg-center"
+                              style={{
+                                backgroundImage: `url(${item.imageUrl})`,
+                              }}
+                            />
+                          ) : null}
+                          <Input
+                            id={`candidate-image-${item.key}`}
+                            type="url"
+                            value={item.imageUrl ?? ""}
+                            maxLength={2048}
+                            placeholder="https://example.com/image.jpg"
+                            onChange={(event) =>
+                              update(item.key, { imageUrl: event.target.value })
                             }
                           />
                         </div>
