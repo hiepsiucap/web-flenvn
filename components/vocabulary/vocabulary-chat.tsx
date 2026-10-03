@@ -1,3 +1,5 @@
+/** @format */
+
 "use client";
 
 import {
@@ -23,7 +25,12 @@ import { ChatMessageContent } from "@/components/vocabulary/chat-message-content
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
 import {
@@ -65,13 +72,19 @@ const STARTER_PROMPTS = [
 ];
 
 export const CHAT_THREAD_WIDTH_CLASS = "max-w-5xl";
+export const CHAT_COMPOSER_WIDTH_CLASS = "w-full";
+export const CHAT_COMPOSER_INPUT_CLASS =
+  "min-h-11 resize-none rounded-2xl border-border/30 pt-3 dark:border-border/30";
 export const CHAT_CONVERSATION_TITLE_CLASS =
   "block w-full truncate font-medium";
 
 function unwrap<T>(response: ApiEnvelope<T> | T): T {
-  return response && typeof response === "object" && "data" in response && "success" in response
+  return response &&
+    typeof response === "object" &&
+    "data" in response &&
+    "success" in response
     ? response.data
-    : response as T;
+    : (response as T);
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -92,10 +105,13 @@ function conversationTitle(message: string) {
 
 export function VocabularyChat() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>("vi");
+  const [responseLanguage, setResponseLanguage] =
+    useState<ResponseLanguage>("vi");
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -112,29 +128,34 @@ export function VocabularyChat() {
   useEffect(() => {
     let active = true;
 
-    void http.get<ApiEnvelope<ConversationListResponse> | ConversationListResponse>(
+    void http
+      .get<ApiEnvelope<ConversationListResponse> | ConversationListResponse>(
         "/api/ai/conversations",
         { query: { limit: 100 } },
-      ).then((response) => {
-      if (!active) return;
-      const items = unwrap(response).conversations;
-      setConversations(items);
-      if (items.length) setLoadingMessages(true);
-      setActiveConversationId((current) => {
-        const next = current && items.some((item) => item.id === current)
-          ? current
-          : items[0]?.id ?? null;
-        activeConversationRef.current = next;
-        return next;
+      )
+      .then((response) => {
+        if (!active) return;
+        const items = unwrap(response).conversations;
+        setConversations(items);
+        if (items.length) setLoadingMessages(true);
+        setActiveConversationId((current) => {
+          const next =
+            current && items.some((item) => item.id === current)
+              ? current
+              : (items[0]?.id ?? null);
+          activeConversationRef.current = next;
+          return next;
+        });
+        setError("");
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setError(getErrorMessage(cause, "Could not load conversations."));
+      })
+      .finally(() => {
+        if (!active) return;
+        setLoadingConversations(false);
       });
-      setError("");
-    }).catch((cause) => {
-      if (!active) return;
-      setError(getErrorMessage(cause, "Could not load conversations."));
-    }).finally(() => {
-      if (!active) return;
-      setLoadingConversations(false);
-    });
 
     return () => {
       active = false;
@@ -148,18 +169,22 @@ export function VocabularyChat() {
 
     const requestId = ++messageRequestRef.current;
 
-    void http.get<ApiEnvelope<MessageListResponse> | MessageListResponse>(
-      `/api/ai/conversations/${activeConversationId}/messages`,
-      { query: { limit: 100 } },
-    ).then((response) => {
-      if (requestId !== messageRequestRef.current) return;
-      setMessages(unwrap(response).messages.map(toChatMessage));
-    }).catch((cause) => {
-      if (requestId !== messageRequestRef.current) return;
-      setError(getErrorMessage(cause, "Could not load this conversation."));
-    }).finally(() => {
-      if (requestId === messageRequestRef.current) setLoadingMessages(false);
-    });
+    void http
+      .get<ApiEnvelope<MessageListResponse> | MessageListResponse>(
+        `/api/ai/conversations/${activeConversationId}/messages`,
+        { query: { limit: 100 } },
+      )
+      .then((response) => {
+        if (requestId !== messageRequestRef.current) return;
+        setMessages(unwrap(response).messages.map(toChatMessage));
+      })
+      .catch((cause) => {
+        if (requestId !== messageRequestRef.current) return;
+        setError(getErrorMessage(cause, "Could not load this conversation."));
+      })
+      .finally(() => {
+        if (requestId === messageRequestRef.current) setLoadingMessages(false);
+      });
   }, [activeConversationId]);
 
   useEffect(() => {
@@ -192,13 +217,18 @@ export function VocabularyChat() {
     if (!activeConversationId) return;
 
     try {
-      const response = await http.patch<ApiEnvelope<ChatConversation> | ChatConversation>(
-        `/api/ai/conversations/${activeConversationId}`,
-        { targetLanguage: value },
+      const response = await http.patch<
+        ApiEnvelope<ChatConversation> | ChatConversation
+      >(`/api/ai/conversations/${activeConversationId}`, {
+        targetLanguage: value,
+      });
+      setConversations((current) =>
+        upsertConversation(current, unwrap(response)),
       );
-      setConversations((current) => upsertConversation(current, unwrap(response)));
     } catch (cause) {
-      setError(getErrorMessage(cause, "Could not update the response language."));
+      setError(
+        getErrorMessage(cause, "Could not update the response language."),
+      );
     }
   }
 
@@ -231,21 +261,24 @@ export function VocabularyChat() {
 
     try {
       if (!conversationId) {
-        const response = await http.post<ApiEnvelope<ChatConversation> | ChatConversation>(
-          "/api/ai/conversations",
-          { targetLanguage: responseLanguage },
-        );
+        const response = await http.post<
+          ApiEnvelope<ChatConversation> | ChatConversation
+        >("/api/ai/conversations", { targetLanguage: responseLanguage });
         conversation = unwrap(response);
         conversationId = conversation.id;
         activeConversationRef.current = conversationId;
         setActiveConversationId(conversationId);
-        setConversations((current) => upsertConversation(current, conversation as ChatConversation));
+        setConversations((current) =>
+          upsertConversation(current, conversation as ChatConversation),
+        );
       }
 
-      const response = await http.post<ApiEnvelope<MessageResponse> | MessageResponse>(
-        `/api/ai/conversations/${conversationId}/messages`,
-        { message: text, clientMessageId },
-      );
+      const response = await http.post<
+        ApiEnvelope<MessageResponse> | MessageResponse
+      >(`/api/ai/conversations/${conversationId}/messages`, {
+        message: text,
+        clientMessageId,
+      });
       const reply = unwrap(response);
 
       if (activeConversationRef.current === conversationId) {
@@ -261,15 +294,20 @@ export function VocabularyChat() {
 
       const updatedConversation: ChatConversation = {
         ...(conversation as ChatConversation),
-        title: conversation?.title === "New conversation"
-          ? conversationTitle(text)
-          : conversation?.title ?? conversationTitle(text),
+        title:
+          conversation?.title === "New conversation"
+            ? conversationTitle(text)
+            : (conversation?.title ?? conversationTitle(text)),
         updatedAt: reply.assistantMessage.createdAt,
       };
-      setConversations((current) => upsertConversation(current, updatedConversation));
+      setConversations((current) =>
+        upsertConversation(current, updatedConversation),
+      );
     } catch (cause) {
       if (!conversationId || activeConversationRef.current === conversationId) {
-        setMessages((current) => failOptimisticMessage(current, clientMessageId));
+        setMessages((current) =>
+          failOptimisticMessage(current, clientMessageId),
+        );
         setError(getErrorMessage(cause, "Gemini could not answer. Try again."));
       }
     } finally {
@@ -278,11 +316,18 @@ export function VocabularyChat() {
   }
 
   async function deleteConversation(conversation: ChatConversation) {
-    if (!window.confirm(`Delete “${conversation.title}”? This removes its messages.`)) return;
+    if (
+      !window.confirm(
+        `Delete “${conversation.title}”? This removes its messages.`,
+      )
+    )
+      return;
 
     try {
       await http.delete(`/api/ai/conversations/${conversation.id}`);
-      const remaining = conversations.filter((item) => item.id !== conversation.id);
+      const remaining = conversations.filter(
+        (item) => item.id !== conversation.id,
+      );
       setConversations(remaining);
       if (activeConversationRef.current === conversation.id) {
         const next = remaining[0] ?? null;
@@ -290,7 +335,8 @@ export function VocabularyChat() {
         setActiveConversationId(next?.id ?? null);
         setMessages([]);
         setLoadingMessages(false);
-        if (next) setResponseLanguage(next.targetLanguage === "en" ? "en" : "vi");
+        if (next)
+          setResponseLanguage(next.targetLanguage === "en" ? "en" : "vi");
       }
     } catch (cause) {
       setError(getErrorMessage(cause, "Could not delete this conversation."));
@@ -311,7 +357,8 @@ export function VocabularyChat() {
 
   function goBack() {
     const hasSameOriginReferrer =
-      document.referrer && new URL(document.referrer).origin === window.location.origin;
+      document.referrer &&
+      new URL(document.referrer).origin === window.location.origin;
 
     if (hasSameOriginReferrer) {
       window.history.back();
@@ -325,14 +372,21 @@ export function VocabularyChat() {
     <div className="mx-auto flex h-dvh min-h-0 w-full max-w-7xl overflow-hidden bg-card lg:h-[calc(100dvh-6.625rem-env(safe-area-inset-top))] lg:rounded-3xl lg:border-2 lg:border-border/20 lg:shadow-md lg:shadow-foreground/10">
       <aside className="hidden w-72 shrink-0 border-r-2 border-border/20 bg-muted/20 md:flex md:flex-col">
         <div className="p-3">
-          <Button type="button" variant="outline" className="w-full justify-start border-border/30 dark:border-border/30" onClick={startNewChat}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start border-border/30 dark:border-border/30"
+            onClick={startNewChat}
+          >
             <Icon icon={Plus} />
             New chat
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3">
           {loadingConversations ? (
-            <p className="px-3 py-4 text-sm text-muted-foreground">Loading conversations…</p>
+            <p className="px-3 py-4 text-sm text-muted-foreground">
+              Loading conversations…
+            </p>
           ) : conversations.length ? (
             <div className="grid gap-1">
               {conversations.map((conversation) => (
@@ -363,13 +417,18 @@ export function VocabularyChat() {
                     aria-label={`Delete ${conversation.title}`}
                     onClick={() => void deleteConversation(conversation)}
                   >
-                    <Icon icon={Trash} size="sm" />
+                    <Icon
+                      icon={Trash}
+                      size="sm"
+                    />
                   </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="px-3 py-4 text-sm text-muted-foreground">Your conversations will appear here.</p>
+            <p className="px-3 py-4 text-sm text-muted-foreground">
+              Your conversations will appear here.
+            </p>
           )}
         </div>
       </aside>
@@ -384,7 +443,10 @@ export function VocabularyChat() {
             aria-label="Go back"
             onClick={goBack}
           >
-            <Icon icon={ArrowLeft} weight="bold" />
+            <Icon
+              icon={ArrowLeft}
+              weight="bold"
+            />
           </Button>
           <div className="mr-auto min-w-0 flex-1">
             <h1 className="truncate text-lg font-semibold">
@@ -402,14 +464,18 @@ export function VocabularyChat() {
             aria-controls="mobile-chat-details"
             onClick={() => setMobileDetailsOpen((open) => !open)}
           >
-            <Icon icon={DotsThreeVertical} weight="bold" />
+            <Icon
+              icon={DotsThreeVertical}
+              weight="bold"
+            />
           </Button>
 
           <div className="hidden items-center gap-2 lg:flex">
             <Select
               value={responseLanguage}
               onValueChange={(value) => {
-                if (value === "vi" || value === "en") void updateResponseLanguage(value);
+                if (value === "vi" || value === "en")
+                  void updateResponseLanguage(value);
               }}
             >
               <SelectTrigger className="h-9 w-auto min-w-32 border-border/30 dark:border-border/30">
@@ -423,6 +489,7 @@ export function VocabularyChat() {
 
             <CollectVocabularyDialog
               conversationId={activeConversationId}
+              conversationRevision={messages.findLast((message) => message.status === "sent")?.id ?? null}
               language={responseLanguage}
               disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
               triggerClassName="h-9"
@@ -440,7 +507,9 @@ export function VocabularyChat() {
               onValueChange={(value) => {
                 if (value === "new") startNewChat();
                 else {
-                  const selected = conversations.find((item) => item.id === value);
+                  const selected = conversations.find(
+                    (item) => item.id === value,
+                  );
                   if (selected) chooseConversation(selected);
                 }
                 setMobileDetailsOpen(false);
@@ -452,7 +521,10 @@ export function VocabularyChat() {
               <SelectContent>
                 <SelectItem value="new">New chat</SelectItem>
                 {conversations.map((conversation) => (
-                  <SelectItem key={conversation.id} value={conversation.id}>
+                  <SelectItem
+                    key={conversation.id}
+                    value={conversation.id}
+                  >
                     {conversation.title}
                   </SelectItem>
                 ))}
@@ -480,6 +552,7 @@ export function VocabularyChat() {
 
               <CollectVocabularyDialog
                 conversationId={activeConversationId}
+                conversationRevision={messages.findLast((message) => message.status === "sent")?.id ?? null}
                 language={responseLanguage}
                 disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
                 triggerClassName="h-9 shrink-0"
@@ -492,12 +565,20 @@ export function VocabularyChat() {
           {loadingMessages ? (
             <div className="grid min-h-full place-items-center p-8 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
-                <Icon icon={Spinner} className="animate-spin" />
+                <Icon
+                  icon={Spinner}
+                  className="animate-spin"
+                />
                 Loading messages…
               </span>
             </div>
           ) : messages.length ? (
-            <div className={cn("mx-auto grid w-full gap-6 px-4 py-6 sm:px-6", CHAT_THREAD_WIDTH_CLASS)}>
+            <div
+              className={cn(
+                "mx-auto grid w-full gap-6 px-4 py-6 sm:px-6",
+                CHAT_THREAD_WIDTH_CLASS,
+              )}
+            >
               {messages.map((message) => (
                 <article
                   key={message.id}
@@ -508,7 +589,10 @@ export function VocabularyChat() {
                 >
                   {message.role === "assistant" ? (
                     <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                      <Icon icon={ChatCircleText} size="sm" />
+                      <Icon
+                        icon={ChatCircleText}
+                        size="sm"
+                      />
                     </span>
                   ) : null}
                   <div
@@ -518,7 +602,8 @@ export function VocabularyChat() {
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground",
-                      message.status === "failed" && "border border-destructive/40",
+                      message.status === "failed" &&
+                        "border border-destructive/40",
                     )}
                   >
                     {message.role === "assistant" ? (
@@ -528,7 +613,11 @@ export function VocabularyChat() {
                     )}
                     {message.status === "sending" ? (
                       <span className="mt-2 flex items-center gap-1.5 text-xs opacity-75">
-                        <Icon icon={Spinner} size="sm" className="animate-spin" />
+                        <Icon
+                          icon={Spinner}
+                          size="sm"
+                          className="animate-spin"
+                        />
                         Sending
                       </span>
                     ) : null}
@@ -552,7 +641,10 @@ export function VocabularyChat() {
               ))}
               {sending && messages.at(-1)?.status !== "sending" ? (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Icon icon={Spinner} className="animate-spin" />
+                  <Icon
+                    icon={Spinner}
+                    className="animate-spin"
+                  />
                   Gemini is writing…
                 </p>
               ) : null}
@@ -561,11 +653,17 @@ export function VocabularyChat() {
           ) : (
             <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center justify-center px-5 py-10 text-center">
               <span className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground">
-                <Icon icon={ChatCircleText} size="lg" />
+                <Icon
+                  icon={ChatCircleText}
+                  size="lg"
+                />
               </span>
-              <h2 className="mt-4 text-2xl font-semibold">How can I help you learn English?</h2>
+              <h2 className="mt-4 text-2xl font-semibold">
+                How can I help you learn English?
+              </h2>
               <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-                Ask about grammar, vocabulary, pronunciation, writing, or everyday English.
+                Ask about grammar, vocabulary, pronunciation, writing, or
+                everyday English.
               </p>
               <div className="mt-6 grid w-full gap-2 sm:grid-cols-3">
                 {STARTER_PROMPTS.map((prompt) => (
@@ -585,19 +683,28 @@ export function VocabularyChat() {
 
         <div className="border-t-2 border-border/20 bg-card px-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 lg:py-3">
           {error ? (
-            <Alert variant="destructive" className="mx-auto mb-3 max-w-3xl">
+            <Alert
+              variant="destructive"
+              className="mx-auto mb-3 max-w-3xl"
+            >
               <WarningCircle />
               <AlertTitle>Chat request failed</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-          <form className="mx-auto flex max-w-3xl items-end gap-2" onSubmit={handleSubmit}>
+          <form
+            className={cn(
+              "mx-auto flex items-end gap-2",
+              CHAT_COMPOSER_WIDTH_CLASS,
+            )}
+            onSubmit={handleSubmit}
+          >
             <Textarea
               aria-label="Message Gemini"
               value={draft}
               maxLength={5000}
               rows={1}
-              className="min-h-11 resize-none rounded-2xl border-border/30 dark:border-border/30"
+              className={CHAT_COMPOSER_INPUT_CLASS}
               placeholder="Message FLENVN…"
               disabled={sending}
               onChange={(event) => setDraft(event.target.value)}
@@ -611,7 +718,10 @@ export function VocabularyChat() {
               disabled={sending || !draft.trim()}
             >
               {sending ? (
-                <Icon icon={Spinner} className="animate-spin" />
+                <Icon
+                  icon={Spinner}
+                  className="animate-spin"
+                />
               ) : (
                 <Icon icon={PaperPlaneTilt} />
               )}

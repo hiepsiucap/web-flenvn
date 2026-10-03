@@ -11,7 +11,6 @@ import {
   Waveform,
   GearSix,
   Lifebuoy,
-  Sparkle,
   ChatCircleText,
 } from "@phosphor-icons/react";
 
@@ -43,7 +42,7 @@ function isCurrent(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 }
 
-export function MobileNav({ onSuggestVocabulary }: { onSuggestVocabulary: () => void }) {
+export function MobileNav() {
   const pathname = usePathname();
   const secondary = dashboardNavItems.filter((item) => item.icon in secondaryIcons);
   const currentSecondary = secondary.find((item) => isCurrent(pathname, item.href));
@@ -84,15 +83,6 @@ export function MobileNav({ onSuggestVocabulary }: { onSuggestVocabulary: () => 
             <span>More</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-44 bg-card p-1">
-            <DropdownMenuItem
-              render={<button type="button" />}
-              nativeButton
-              onClick={onSuggestVocabulary}
-              className="min-h-11 w-full gap-2 px-3 text-sm"
-            >
-              <Icon icon={Sparkle} className="size-5" />
-              Suggest vocabulary
-            </DropdownMenuItem>
             {secondary.map((item) => {
               const ItemIcon = secondaryIcons[item.icon as keyof typeof secondaryIcons];
               return (

@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import { Icon } from "@/components/ui/icon";
 import {
+  CHAT_COMPOSER_INPUT_CLASS,
+  CHAT_COMPOSER_WIDTH_CLASS,
   CHAT_CONVERSATION_TITLE_CLASS,
   CHAT_THREAD_WIDTH_CLASS,
   VocabularyChat,
@@ -12,6 +14,14 @@ import {
 describe("VocabularyChat surface", () => {
   it("uses a wider conversation column", () => {
     expect(CHAT_THREAD_WIDTH_CLASS).toBe("max-w-5xl");
+  });
+
+  it("uses the full available width for the chat composer", () => {
+    expect(CHAT_COMPOSER_WIDTH_CLASS).toBe("w-full");
+  });
+
+  it("adds vertical breathing room around typed text", () => {
+    expect(CHAT_COMPOSER_INPUT_CLASS).toContain("pt-3");
   });
 
   it("truncates long conversation names in the sidebar", () => {
