@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,11 +22,13 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
 import { getBooksClient, notifyClientDataChanged } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
 import { HttpError, http } from "@/lib/http";
+import { cn } from "@/lib/utils";
 
 const types = [
   "word",
@@ -111,6 +114,7 @@ export function CollectVocabularyDialog({
   const [busy, setBusy] = useState<"discover" | "save" | null>(null);
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState("");
+  const [editingKey, setEditingKey] = useState<number | null>(null);
   const conversationResults = useRef(new Map<string, Item[]>());
   const requestId = useRef(0);
 
@@ -159,6 +163,8 @@ export function CollectVocabularyDialog({
     if (source === "conversation" && !id) return;
     const currentRequest = ++requestId.current;
     setBusy("discover");
+    setEditingKey(null);
+    setItems([]);
     setMessage("");
     setSummary("");
     try {
@@ -253,6 +259,7 @@ export function CollectVocabularyDialog({
       item.status !== "saved" &&
       item.status !== "duplicate",
   );
+  const editingItem = items.find((item) => item.key === editingKey);
   const valid = eligible.filter(
     (item) =>
       item.text.trim() && item.translation.trim() && item.definition.trim(),
@@ -326,16 +333,54 @@ export function CollectVocabularyDialog({
       </Button>
       <Modal open={open} onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (!nextOpen) requestId.current += 1;
+        if (!nextOpen) {
+          requestId.current += 1;
+          setEditingKey(null);
+        }
       }}>
-        <ModalContent className="h-[calc(100dvh-1rem)] sm:max-w-4xl">
+        <ModalContent
+          className={cn(
+            "h-[calc(100dvh-1rem)] sm:max-w-4xl",
+            editingItem && "pointer-events-none blur-[2px]",
+          )}
+        >
           <ModalHeader>
             <ModalTitle>Collect vocabulary</ModalTitle>
             <ModalDescription>
               Review useful words and phrases before saving them to a book.
             </ModalDescription>
           </ModalHeader>
-          <ModalBody>
+          <ModalBody className="content-start auto-rows-max">
+            <div className="sticky top-0 z-10 -mx-2 bg-popover px-2 pb-3 pt-1">
+              <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4">
+                <Label>Save to book</Label>
+                {loadingBooks ? (
+                  <p role="status" className="text-sm text-muted-foreground">Loading books…</p>
+                ) : booksError ? (
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-destructive" role="alert">
+                    <span>Books could not be loaded: {booksError}</span>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => void loadBooks()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : books.length ? (
+                  <Select value={bookId || null} onValueChange={(value) => setBookId(value ?? "")}>
+                    <SelectTrigger aria-label="Destination book" className="w-full sm:max-w-sm">
+                      {books.find((book) => book.id === bookId)?.title ?? "Select a book"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {books.map((book) => (
+                        <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    <Link href="/books" className="font-medium text-primary underline">Create a book</Link> to save cards.
+                  </p>
+                )}
+              </div>
+            </div>
             <div
               className="flex flex-wrap gap-2"
               role="group"
@@ -343,7 +388,7 @@ export function CollectVocabularyDialog({
             >
               <Button
                 type="button"
-                variant={mode === "conversation" ? "default" : "outline"}
+                variant={mode === "conversation" ? "default" : "ghost"}
                 aria-pressed={mode === "conversation"}
                 onClick={() => {
                   if (conversationId) showConversation(conversationId);
@@ -353,7 +398,7 @@ export function CollectVocabularyDialog({
               </Button>
               <Button
                 type="button"
-                variant={mode === "topic" ? "default" : "outline"}
+                variant={mode === "topic" ? "default" : "ghost"}
                 aria-pressed={mode === "topic"}
                 onClick={() => {
                   requestId.current += 1;
@@ -380,14 +425,35 @@ export function CollectVocabularyDialog({
             ) : null}
             {mode === "topic" ? <Button
               type="button"
-              variant="outline"
+              variant="default"
               disabled={!!busy}
               onClick={() => void discover("topic")}
             >
-              {busy === "discover" ? "Analyzing…" : "Find words for topic"}
+              Find words for topic
             </Button> : null}
-            {busy === "discover" && mode === "conversation" ? (
-              <p role="status" className="text-sm text-muted-foreground">Analyzing conversation…</p>
+            {busy === "discover" ? (
+              <div role="status" aria-live="polite" className="grid gap-3">
+                <div className="flex min-h-8 items-center gap-2 text-sm font-medium">
+                  <Spinner className="size-5 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
+                  <span>Finding useful vocabulary from {mode === "conversation" ? "your conversation" : "your topic"}…</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border-2 border-border/30 bg-card p-4 shadow-md shadow-foreground/10">
+                      <div className="flex gap-4">
+                        <Skeleton className="size-6 shrink-0 rounded-full" />
+                        <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-24" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-3 py-1">
+                          <Skeleton className="h-5 w-1/3 rounded-full" />
+                          <Skeleton className="h-4 w-2/3 rounded-full" />
+                          <Skeleton className="h-4 w-full rounded-full" />
+                        </div>
+                      </div>
+                      <Skeleton className="mt-auto h-7 w-24 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : null}
             {message ? (
               <p role="alert" className="text-sm text-destructive">
@@ -400,7 +466,7 @@ export function CollectVocabularyDialog({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => selectMatching(() => true)}
                   >
                     Select all eligible
@@ -408,7 +474,7 @@ export function CollectVocabularyDialog({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => selectMatching((item) => !!item.recommended)}
                   >
                     Select recommended
@@ -416,257 +482,104 @@ export function CollectVocabularyDialog({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => selectMatching(() => false)}
                   >
                     Clear selection
                   </Button>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-3 md:auto-rows-fr md:grid-cols-2">
                   {items.map((item) => (
                     <article
                       key={item.key}
-                      className="rounded-xl border border-border bg-card p-4"
+                      className={cn(
+                        "flex h-full flex-col rounded-3xl border-2 border-border/30 bg-card p-4 shadow-md shadow-foreground/10 transition-shadow",
+                        !item.alreadyExists && item.status !== "saved" && item.status !== "duplicate" &&
+                          "cursor-pointer hover:shadow-lg hover:shadow-foreground/10",
+                      )}
+                      onClick={(event) => {
+                        if (item.alreadyExists || item.status === "saved" || item.status === "duplicate") return;
+                        if (!(event.target instanceof Element)) return;
+                        if (event.target.closest("button, input, textarea, select, a, details, [role='checkbox'], [role='combobox']")) return;
+                        update(item.key, { selected: !item.selected });
+                      }}
                     >
-                      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-                        <Checkbox
-                          aria-label={`Select ${item.text}`}
-                          checked={item.selected}
-                          disabled={
-                            item.alreadyExists ||
-                            item.status === "saved" ||
-                            item.status === "duplicate"
-                          }
-                          onCheckedChange={(checked) =>
-                            update(item.key, { selected: checked === true })
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {item.source === "topic"
-                            ? "Related to topic"
-                            : "From conversation"}
-                        </span>
-                        <span className="text-sm font-semibold">{item.text}</span>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
-                          {item.type.replaceAll("_", " ")}
-                        </span>
-                        {item.alreadyExists || item.status === "duplicate" ? (
-                          <span className="text-xs font-medium">
-                            Already saved
-                            {item.existingBookTitle
-                              ? ` in ${item.existingBookTitle}`
-                              : ""}
-                          </span>
-                        ) : null}
-                        {item.status === "saved" ? (
-                          <span className="text-xs font-medium">Saved</span>
-                        ) : null}
-                        {item.status === "failed" ? (
-                          <span className="text-xs text-destructive">
-                            Failed: {item.error}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-4 grid gap-4 md:grid-cols-[11rem_minmax(0,1fr)]">
-                        <div className="space-y-2">
-                          {item.imageUrl ? (
-                            <div
-                              className="aspect-square w-full rounded-lg border border-border bg-secondary bg-cover bg-center"
-                              role="img"
-                              aria-label={`Picture for ${item.text}`}
-                              style={{ backgroundImage: `url(${item.imageUrl})` }}
-                            />
-                          ) : (
-                            <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-secondary px-3 text-center text-xs text-muted-foreground">
-                              No picture selected
-                            </div>
-                          )}
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="w-full"
-                            disabled={item.imageLoading || !item.text.trim()}
-                            onClick={() => void findPictures(item)}
-                          >
-                            {item.imageLoading ? "Finding pictures…" : "Find a picture"}
-                          </Button>
-                          {item.imageUrl ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="w-full"
-                              onClick={() => update(item.key, { imageUrl: null })}
-                            >
-                              Remove picture
-                            </Button>
-                          ) : null}
-                          {item.imageError ? (
-                            <p role="alert" className="text-xs text-destructive">{item.imageError}</p>
-                          ) : null}
-                          {item.imageSuggestions?.length ? (
-                            <div className="grid grid-cols-3 gap-1.5" aria-label={`Pictures for ${item.text}`}>
-                              {item.imageSuggestions.map((url, index) => (
-                                <button
-                                  key={`${url}-${index}`}
-                                  type="button"
-                                  aria-label={`Choose picture ${index + 1} for ${item.text}`}
-                                  aria-pressed={item.imageUrl === url}
-                                  className="aspect-square rounded-md border-2 border-border bg-secondary bg-cover bg-center focus-visible:outline-2 focus-visible:outline-ring aria-pressed:border-primary"
-                                  style={{ backgroundImage: `url(${url})` }}
-                                  onClick={() => update(item.key, { imageUrl: url })}
-                                />
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-                        <div className="grid gap-1">
-                          <Label htmlFor={`candidate-text-${item.key}`}>
-                            Word or phrase
-                          </Label>
-                          <Input
-                            id={`candidate-text-${item.key}`}
-                            value={item.text}
-                            maxLength={100}
-                            onChange={(event) =>
-                              update(item.key, {
-                                text: event.target.value,
-                                imageUrl: null,
-                                imageSuggestions: [],
-                                imageError: "",
-                                alreadyExists: false,
-                                status: undefined,
-                              })
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
+                          <Checkbox
+                            aria-label={`Save ${item.text}`}
+                            className="size-6 rounded-full [&_[data-slot=checkbox-indicator]>svg]:size-4"
+                            checked={item.selected}
+                            disabled={
+                              item.alreadyExists ||
+                              item.status === "saved" ||
+                              item.status === "duplicate"
+                            }
+                            onCheckedChange={(checked) =>
+                              update(item.key, { selected: checked === true })
                             }
                           />
+                          <span className="text-[11px] text-muted-foreground">
+                            {item.alreadyExists || item.status === "saved" || item.status === "duplicate"
+                              ? "Saved"
+                              : "Save"}
+                          </span>
                         </div>
-                        <div className="grid gap-1">
-                          <Label>Type</Label>
-                          <Select
-                            value={item.type}
-                            onValueChange={(value) => {
-                              if (types.includes(value as CandidateType))
-                                update(item.key, {
-                                  type: value as CandidateType,
-                                });
-                            }}
-                          >
-                            <SelectTrigger
-                              aria-label={`Type for ${item.text}`}
-                              className="w-full"
-                            >
+                        {item.imageUrl ? (
+                          <div
+                            className="size-20 shrink-0 rounded-2xl bg-card bg-cover bg-center sm:size-24"
+                            role="img"
+                            aria-label={`Picture for ${item.text}`}
+                            style={{ backgroundImage: `url(${item.imageUrl})` }}
+                          />
+                        ) : (
+                          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-card p-2 text-center text-[11px] text-muted-foreground sm:size-24">
+                            No picture
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="break-words text-base font-semibold">{item.text}</h3>
+                            <span className="rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
                               {item.type.replaceAll("_", " ")}
-                            </SelectTrigger>
-                            <SelectContent>
-                              {types.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type.replaceAll("_", " ")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-1">
-                          <Label htmlFor={`candidate-translation-${item.key}`}>
-                            Translation
-                          </Label>
-                          <Textarea
-                            id={`candidate-translation-${item.key}`}
-                            value={item.translation}
-                            maxLength={2000}
-                            onChange={(event) =>
-                              update(item.key, {
-                                translation: event.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="grid gap-1">
-                          <Label htmlFor={`candidate-definition-${item.key}`}>
-                            Definition
-                          </Label>
-                          <Textarea
-                            id={`candidate-definition-${item.key}`}
-                            value={item.definition}
-                            maxLength={2000}
-                            onChange={(event) =>
-                              update(item.key, {
-                                definition: event.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="grid gap-1 sm:col-span-2">
-                          <Label htmlFor={`candidate-example-${item.key}`}>
-                            Example
-                          </Label>
-                          <Textarea
-                            id={`candidate-example-${item.key}`}
-                            value={item.example ?? ""}
-                            maxLength={2000}
-                            onChange={(event) =>
-                              update(item.key, { example: event.target.value })
-                            }
-                          />
-                        </div>
+                            </span>
+                          </div>
+                          <p className="mt-1 break-words text-sm font-medium">{item.translation}</p>
+                          <p className="mt-1 line-clamp-2 break-words text-sm text-muted-foreground">
+                            {item.definition}
+                          </p>
+                          {item.example ? (
+                            <p className="mt-2 line-clamp-2 break-words text-xs italic text-muted-foreground">
+                              “{item.example}”
+                            </p>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            <span>{item.source === "topic" ? "Related to topic" : "From conversation"}</span>
+                            {item.recommended ? <span>Recommended</span> : null}
+                            {item.alreadyExists || item.status === "duplicate" ? (
+                              <span>Already saved{item.existingBookTitle ? ` in ${item.existingBookTitle}` : ""}</span>
+                            ) : null}
+                            {item.status === "saved" ? <span>Saved</span> : null}
+                            {item.status === "failed" ? (
+                              <span className="text-destructive">Failed: {item.error}</span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="mt-auto self-start"
+                        aria-label={`Edit details for ${item.text}`}
+                        onClick={() => setEditingKey(item.key)}
+                      >
+                        Edit details
+                      </Button>
                     </article>
                   ))}
                 </div>
               </>
-            ) : null}
-            {items.length ? (
-              <div className="grid gap-2">
-                <Label>Destination book</Label>
-                {loadingBooks ? (
-                  <p role="status" className="text-sm">
-                    Loading books…
-                  </p>
-                ) : booksError ? (
-                  <p role="alert" className="text-sm text-destructive">
-                    Books could not be loaded: {booksError}{" "}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void loadBooks()}
-                    >
-                      Retry
-                    </Button>
-                  </p>
-                ) : books.length ? (
-                  <Select
-                    value={bookId || null}
-                    onValueChange={(value) => setBookId(value ?? "")}
-                  >
-                    <SelectTrigger
-                      aria-label="Destination book"
-                      className="w-full"
-                    >
-                      {books.find((book) => book.id === bookId)?.title ??
-                        "Select a book"}
-                    </SelectTrigger>
-                    <SelectContent>
-                      {books.map((book) => (
-                        <SelectItem key={book.id} value={book.id}>
-                          {book.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm">
-                    A book is required.{" "}
-                    <Link href="/books" className="underline">
-                      Create a book
-                    </Link>
-                    , then return here.
-                  </p>
-                )}
-              </div>
             ) : null}
             {eligible.length > valid.length ? (
               <p role="alert" className="text-sm text-destructive">
@@ -700,11 +613,179 @@ export function CollectVocabularyDialog({
               }
               onClick={() => void save()}
             >
-              {busy === "save"
-                ? "Saving…"
-                : `Save ${valid.length} card${valid.length === 1 ? "" : "s"}`}
+              {busy === "discover"
+                ? "Finding cards…"
+                : busy === "save"
+                  ? "Saving…"
+                  : `Save ${valid.length} card${valid.length === 1 ? "" : "s"}`}
             </Button>
           </ModalFooter>
+        {editingItem ? (
+          <Modal open={open} onOpenChange={(nextOpen) => {
+            if (!nextOpen) setEditingKey(null);
+          }}>
+            <ModalContent className="sm:max-w-2xl">
+              <ModalHeader>
+                <ModalTitle>Edit card</ModalTitle>
+                <ModalDescription>Update {editingItem.text} before saving.</ModalDescription>
+              </ModalHeader>
+              <ModalBody className="content-start auto-rows-max">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label>Picture</Label>
+                    {editingItem.imageUrl ? (
+                      <div
+                        className="size-24 rounded-2xl bg-muted bg-cover bg-center"
+                        role="img"
+                        aria-label={`Picture for ${editingItem.text}`}
+                        style={{ backgroundImage: `url(${editingItem.imageUrl})` }}
+                      />
+                    ) : (
+                      <div className="flex size-24 items-center justify-center rounded-2xl bg-muted/40 p-2 text-center text-xs text-muted-foreground">
+                        No picture
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={editingItem.imageLoading || !editingItem.text.trim()}
+                      onClick={() => void findPictures(editingItem)}
+                    >
+                      {editingItem.imageLoading ? "Finding pictures…" : "Find a picture"}
+                    </Button>
+                    {editingItem.imageUrl ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => update(editingItem.key, { imageUrl: null })}
+                      >
+                        Remove picture
+                      </Button>
+                    ) : null}
+                    {editingItem.imageError ? (
+                      <p role="alert" className="text-xs text-destructive">{editingItem.imageError}</p>
+                    ) : null}
+                    {editingItem.imageSuggestions?.length ? (
+                      <div className="grid grid-cols-3 gap-1.5" aria-label={`Pictures for ${editingItem.text}`}>
+                        {editingItem.imageSuggestions.map((url, index) => (
+                          <button
+                            key={`${url}-${index}`}
+                            type="button"
+                            aria-label={`Choose picture ${index + 1} for ${editingItem.text}`}
+                            aria-pressed={editingItem.imageUrl === url}
+                            className="aspect-square rounded-xl bg-muted bg-cover bg-center ring-2 ring-transparent focus-visible:outline-2 focus-visible:outline-ring aria-pressed:ring-primary"
+                            style={{ backgroundImage: `url(${url})` }}
+                            onClick={() => update(editingItem.key, { imageUrl: url })}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                  <div className="grid gap-1">
+                    <Label htmlFor={`candidate-text-${editingItem.key}`}>
+                      Word or phrase
+                    </Label>
+                    <Input
+                      id={`candidate-text-${editingItem.key}`}
+                      value={editingItem.text}
+                      maxLength={100}
+                      onChange={(event) =>
+                        update(editingItem.key, {
+                          text: event.target.value,
+                          imageUrl: null,
+                          imageSuggestions: [],
+                          imageError: "",
+                          alreadyExists: false,
+                          status: undefined,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>Type</Label>
+                    <Select
+                      value={editingItem.type}
+                      onValueChange={(value) => {
+                        if (types.includes(value as CandidateType))
+                          update(editingItem.key, {
+                            type: value as CandidateType,
+                          });
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={`Type for ${editingItem.text}`}
+                        className="w-full"
+                      >
+                        {editingItem.type.replaceAll("_", " ")}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {types.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type.replaceAll("_", " ")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor={`candidate-translation-${editingItem.key}`}>
+                      Translation
+                    </Label>
+                    <Textarea
+                      id={`candidate-translation-${editingItem.key}`}
+                      value={editingItem.translation}
+                      maxLength={2000}
+                      onChange={(event) =>
+                        update(editingItem.key, {
+                          translation: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor={`candidate-definition-${editingItem.key}`}>
+                      Definition
+                    </Label>
+                    <Textarea
+                      id={`candidate-definition-${editingItem.key}`}
+                      value={editingItem.definition}
+                      maxLength={2000}
+                      onChange={(event) =>
+                        update(editingItem.key, {
+                          definition: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1 sm:col-span-2">
+                    <Label htmlFor={`candidate-example-${editingItem.key}`}>
+                      Example
+                    </Label>
+                    <Textarea
+                      id={`candidate-example-${editingItem.key}`}
+                      value={editingItem.example ?? ""}
+                      maxLength={2000}
+                      onChange={(event) =>
+                        update(editingItem.key, { example: event.target.value })
+                      }
+                    />
+                  </div>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button type="button" onClick={() => setEditingKey(null)}>
+                  Done
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        ) : null}
         </ModalContent>
       </Modal>
     </>
