@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ type Candidate = {
   translation: string;
   definition: string;
   example?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   recommended?: boolean;
   source: Source;
   alreadyExists: boolean;
@@ -52,6 +52,9 @@ type Candidate = {
 type Item = Candidate & {
   key: number;
   selected: boolean;
+  imageSuggestions?: string[];
+  imageLoading?: boolean;
+  imageError?: string;
   status?: "saved" | "duplicate" | "failed";
   error?: string;
 };
@@ -86,11 +89,13 @@ function errorMessage(error: unknown) {
 
 export function CollectVocabularyDialog({
   conversationId,
+  conversationRevision,
   language,
   disabled,
   triggerClassName = "",
 }: {
   conversationId: string | null;
+  conversationRevision: string | null;
   language: string;
   disabled: boolean;
   triggerClassName?: string;
@@ -106,6 +111,27 @@ export function CollectVocabularyDialog({
   const [busy, setBusy] = useState<"discover" | "save" | null>(null);
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState("");
+  const conversationResults = useRef(new Map<string, Item[]>());
+  const requestId = useRef(0);
+
+  const cacheKey = conversationId && conversationRevision
+    ? `${conversationId}:${conversationRevision}:${language}`
+    : null;
+
+  function showConversation(id: string) {
+    const cached = cacheKey ? conversationResults.current.get(cacheKey) : undefined;
+    setMode("conversation");
+    setMessage("");
+    setSummary("");
+    if (cached) {
+      requestId.current += 1;
+      setBusy(null);
+      setItems(cached);
+    } else {
+      setItems([]);
+      void discover("conversation", id);
+    }
+  }
 
   async function loadBooks() {
     setBooksError("");
@@ -125,56 +151,64 @@ export function CollectVocabularyDialog({
     }
   }
 
-  async function discover() {
-    if (mode === "topic" && !topic.trim()) {
+  async function discover(source: Source, id = conversationId) {
+    if (source === "topic" && !topic.trim()) {
       setMessage("Enter a topic first.");
       return;
     }
-    if (mode === "conversation" && !conversationId) return;
+    if (source === "conversation" && !id) return;
+    const currentRequest = ++requestId.current;
     setBusy("discover");
     setMessage("");
     setSummary("");
     try {
       const path =
-        mode === "conversation"
-          ? `/api/ai/conversations/${conversationId}/vocabulary/discover`
+        source === "conversation"
+          ? `/api/ai/conversations/${id}/vocabulary/discover`
           : "/api/ai/conversations/vocabulary/topic";
       const response = await http.post<
         ApiEnvelope<{ candidates: Candidate[] }> | { candidates: Candidate[] }
       >(
         path,
-        mode === "topic"
+        source === "topic"
           ? { topic: topic.trim(), targetLanguage: language }
           : {},
       );
       const candidates = unwrap(response).candidates;
-      setItems(
-        candidates.map((candidate, key) => ({
+      if (currentRequest !== requestId.current) return;
+      const discovered = candidates.map((candidate, key) => ({
           ...candidate,
           key,
           selected: !candidate.alreadyExists,
-        })),
-      );
+        }));
+      setItems(discovered);
+      if (source === "conversation" && id && cacheKey)
+        conversationResults.current.set(cacheKey, discovered);
       if (!candidates.length)
         setMessage(
           "No useful vocabulary found. Try a topic or return to the conversation.",
         );
     } catch (error) {
-      setMessage(errorMessage(error));
+      if (currentRequest === requestId.current) setMessage(errorMessage(error));
     } finally {
-      setBusy(null);
+      if (currentRequest === requestId.current) setBusy(null);
     }
   }
 
   function update(key: number, patch: Partial<Item>) {
-    setItems((current) =>
-      current.map((item) => (item.key === key ? { ...item, ...patch } : item)),
-    );
+    setItems((current) => {
+      const next = current.map((item) =>
+        item.key === key ? { ...item, ...patch } : item,
+      );
+      if (mode === "conversation" && cacheKey)
+        conversationResults.current.set(cacheKey, next);
+      return next;
+    });
   }
 
   function selectMatching(predicate: (item: Item) => boolean) {
-    setItems((current) =>
-      current.map((item) => ({
+    setItems((current) => {
+      const next = current.map((item) => ({
         ...item,
         selected:
           item.alreadyExists ||
@@ -182,8 +216,34 @@ export function CollectVocabularyDialog({
           item.status === "duplicate"
             ? false
             : predicate(item),
-      })),
-    );
+      }));
+      if (mode === "conversation" && cacheKey)
+        conversationResults.current.set(cacheKey, next);
+      return next;
+    });
+  }
+
+  async function findPictures(item: Item) {
+    if (!item.text.trim() || item.imageLoading) return;
+    update(item.key, { imageLoading: true, imageError: "" });
+    try {
+      const response = await http.get<
+        ApiEnvelope<{ images?: { url?: string }[] }>
+      >("/api/flashcards/images/suggest", {
+        query: { word: item.text.trim(), limit: 6 },
+      });
+      const images = response.data.images
+        ?.map((image) => image.url)
+        .filter((url): url is string => Boolean(url)) ?? [];
+      update(item.key, {
+        imageSuggestions: images,
+        imageError: images.length ? "" : "No pictures found for this word.",
+      });
+    } catch (error) {
+      update(item.key, { imageError: errorMessage(error) });
+    } finally {
+      update(item.key, { imageLoading: false });
+    }
   }
 
   const eligible = items.filter(
@@ -215,7 +275,7 @@ export function CollectVocabularyDialog({
               translation,
               definition,
               example,
-              imageUrl: imageUrl?.trim() || undefined,
+              imageUrl: imageUrl || undefined,
             }),
           ),
         },
@@ -235,6 +295,8 @@ export function CollectVocabularyDialog({
             error: outcome.error,
           };
         });
+        if (mode === "conversation" && cacheKey)
+          conversationResults.current.set(cacheKey, next);
         return next;
       });
       setSummary(
@@ -256,12 +318,16 @@ export function CollectVocabularyDialog({
         disabled={disabled}
         onClick={() => {
           setOpen(true);
+          if (conversationId) showConversation(conversationId);
           void loadBooks();
         }}
       >
         Collect vocabulary
       </Button>
-      <Modal open={open} onOpenChange={setOpen}>
+      <Modal open={open} onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) requestId.current += 1;
+      }}>
         <ModalContent className="h-[calc(100dvh-1rem)] sm:max-w-4xl">
           <ModalHeader>
             <ModalTitle>Collect vocabulary</ModalTitle>
@@ -280,9 +346,7 @@ export function CollectVocabularyDialog({
                 variant={mode === "conversation" ? "default" : "outline"}
                 aria-pressed={mode === "conversation"}
                 onClick={() => {
-                  setMode("conversation");
-                  setItems([]);
-                  setMessage("");
+                  if (conversationId) showConversation(conversationId);
                 }}
               >
                 From conversation
@@ -292,6 +356,8 @@ export function CollectVocabularyDialog({
                 variant={mode === "topic" ? "default" : "outline"}
                 aria-pressed={mode === "topic"}
                 onClick={() => {
+                  requestId.current += 1;
+                  setBusy(null);
                   setMode("topic");
                   setItems([]);
                   setMessage("");
@@ -312,18 +378,17 @@ export function CollectVocabularyDialog({
                 />
               </div>
             ) : null}
-            <Button
+            {mode === "topic" ? <Button
               type="button"
               variant="outline"
-              disabled={!!busy || (mode === "conversation" && !conversationId)}
-              onClick={() => void discover()}
+              disabled={!!busy}
+              onClick={() => void discover("topic")}
             >
-              {busy === "discover"
-                ? "Analyzing…"
-                : items.length
-                  ? "Discover again"
-                  : "Discover vocabulary"}
-            </Button>
+              {busy === "discover" ? "Analyzing…" : "Find words for topic"}
+            </Button> : null}
+            {busy === "discover" && mode === "conversation" ? (
+              <p role="status" className="text-sm text-muted-foreground">Analyzing conversation…</p>
+            ) : null}
             {message ? (
               <p role="alert" className="text-sm text-destructive">
                 {message}
@@ -359,11 +424,11 @@ export function CollectVocabularyDialog({
                 </div>
                 <div className="grid gap-3">
                   {items.map((item) => (
-                    <div
+                    <article
                       key={item.key}
-                      className="rounded-xl border border-border p-3"
+                      className="rounded-xl border border-border bg-card p-4"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
                         <Checkbox
                           aria-label={`Select ${item.text}`}
                           checked={item.selected}
@@ -380,6 +445,10 @@ export function CollectVocabularyDialog({
                           {item.source === "topic"
                             ? "Related to topic"
                             : "From conversation"}
+                        </span>
+                        <span className="text-sm font-semibold">{item.text}</span>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                          {item.type.replaceAll("_", " ")}
                         </span>
                         {item.alreadyExists || item.status === "duplicate" ? (
                           <span className="text-xs font-medium">
@@ -398,7 +467,61 @@ export function CollectVocabularyDialog({
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-4 md:grid-cols-[11rem_minmax(0,1fr)]">
+                        <div className="space-y-2">
+                          {item.imageUrl ? (
+                            <div
+                              className="aspect-square w-full rounded-lg border border-border bg-secondary bg-cover bg-center"
+                              role="img"
+                              aria-label={`Picture for ${item.text}`}
+                              style={{ backgroundImage: `url(${item.imageUrl})` }}
+                            />
+                          ) : (
+                            <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-secondary px-3 text-center text-xs text-muted-foreground">
+                              No picture selected
+                            </div>
+                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            disabled={item.imageLoading || !item.text.trim()}
+                            onClick={() => void findPictures(item)}
+                          >
+                            {item.imageLoading ? "Finding pictures…" : "Find a picture"}
+                          </Button>
+                          {item.imageUrl ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="w-full"
+                              onClick={() => update(item.key, { imageUrl: null })}
+                            >
+                              Remove picture
+                            </Button>
+                          ) : null}
+                          {item.imageError ? (
+                            <p role="alert" className="text-xs text-destructive">{item.imageError}</p>
+                          ) : null}
+                          {item.imageSuggestions?.length ? (
+                            <div className="grid grid-cols-3 gap-1.5" aria-label={`Pictures for ${item.text}`}>
+                              {item.imageSuggestions.map((url, index) => (
+                                <button
+                                  key={`${url}-${index}`}
+                                  type="button"
+                                  aria-label={`Choose picture ${index + 1} for ${item.text}`}
+                                  aria-pressed={item.imageUrl === url}
+                                  className="aspect-square rounded-md border-2 border-border bg-secondary bg-cover bg-center focus-visible:outline-2 focus-visible:outline-ring aria-pressed:border-primary"
+                                  style={{ backgroundImage: `url(${url})` }}
+                                  onClick={() => update(item.key, { imageUrl: url })}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                         <div className="grid gap-1">
                           <Label htmlFor={`candidate-text-${item.key}`}>
                             Word or phrase
@@ -410,6 +533,9 @@ export function CollectVocabularyDialog({
                             onChange={(event) =>
                               update(item.key, {
                                 text: event.target.value,
+                                imageUrl: null,
+                                imageSuggestions: [],
+                                imageError: "",
                                 alreadyExists: false,
                                 status: undefined,
                               })
@@ -485,33 +611,9 @@ export function CollectVocabularyDialog({
                             }
                           />
                         </div>
-                        <div className="grid gap-1 sm:col-span-2">
-                          <Label htmlFor={`candidate-image-${item.key}`}>
-                            Flashcard image URL (optional)
-                          </Label>
-                          {item.imageUrl ? (
-                            <span
-                              role="img"
-                              aria-label={`Suggested image for ${item.text}`}
-                              className="block h-28 w-40 rounded-lg border border-border bg-secondary bg-cover bg-center"
-                              style={{
-                                backgroundImage: `url(${item.imageUrl})`,
-                              }}
-                            />
-                          ) : null}
-                          <Input
-                            id={`candidate-image-${item.key}`}
-                            type="url"
-                            value={item.imageUrl ?? ""}
-                            maxLength={2048}
-                            placeholder="https://example.com/image.jpg"
-                            onChange={(event) =>
-                              update(item.key, { imageUrl: event.target.value })
-                            }
-                          />
                         </div>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               </>
