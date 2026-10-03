@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  ArrowLeft,
   ChatCircleText,
+  DotsThreeVertical,
   PaperPlaneTilt,
   Plus,
   Spinner,
@@ -64,6 +66,10 @@ const STARTER_PROMPTS = [
   "What is the difference between say and tell?",
 ];
 
+export const CHAT_THREAD_WIDTH_CLASS = "max-w-5xl";
+export const CHAT_CONVERSATION_TITLE_CLASS =
+  "block w-full truncate font-medium";
+
 function unwrap<T>(response: ApiEnvelope<T> | T): T {
   return response && typeof response === "object" && "data" in response && "success" in response
     ? response.data
@@ -93,6 +99,7 @@ export function VocabularyChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>("vi");
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
@@ -311,11 +318,23 @@ export function VocabularyChat() {
     }
   }
 
+  function goBack() {
+    const hasSameOriginReferrer =
+      document.referrer && new URL(document.referrer).origin === window.location.origin;
+
+    if (hasSameOriginReferrer) {
+      window.history.back();
+      return;
+    }
+
+    window.location.assign("/dashboard");
+  }
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-10rem)] min-h-[28rem] w-full max-w-7xl overflow-hidden rounded-3xl border border-border bg-card shadow-sm md:h-[calc(100dvh-7rem)]">
-      <aside className="hidden w-72 shrink-0 border-r border-border bg-muted/20 md:flex md:flex-col">
+    <div className="mx-auto flex h-dvh min-h-0 w-full max-w-7xl overflow-hidden bg-card lg:h-[calc(100dvh-6.625rem-env(safe-area-inset-top))] lg:rounded-3xl lg:border-2 lg:border-border/20 lg:shadow-md lg:shadow-foreground/10">
+      <aside className="hidden w-72 shrink-0 border-r-2 border-border/20 bg-muted/20 md:flex md:flex-col">
         <div className="p-3">
-          <Button type="button" variant="outline" className="w-full justify-start" onClick={startNewChat}>
+          <Button type="button" variant="outline" className="w-full justify-start border-border/30 dark:border-border/30" onClick={startNewChat}>
             <Icon icon={Plus} />
             New chat
           </Button>
@@ -329,16 +348,21 @@ export function VocabularyChat() {
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group flex items-center rounded-2xl",
+                    "group flex min-w-0 items-center rounded-2xl",
                     conversation.id === activeConversationId && "bg-accent",
                   )}
                 >
                   <button
                     type="button"
-                    className="min-w-0 flex-1 px-3 py-2.5 text-left text-sm"
+                    className="w-0 min-w-0 flex-1 overflow-hidden px-3 py-2.5 text-left text-sm"
                     onClick={() => chooseConversation(conversation)}
                   >
-                    <span className="block truncate font-medium">{conversation.title}</span>
+                    <span
+                      className={CHAT_CONVERSATION_TITLE_CLASS}
+                      title={conversation.title}
+                    >
+                      {conversation.title}
+                    </span>
                   </button>
                   <Button
                     type="button"
@@ -360,15 +384,65 @@ export function VocabularyChat() {
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-3 sm:px-5">
-          <div className="mr-auto min-w-0">
+        <header className="flex items-center gap-2 border-b-2 border-border/20 px-3 pb-3 pt-[calc(.75rem+env(safe-area-inset-top))] sm:px-5 lg:py-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-9 shrink-0 rounded-full border border-border/20 shadow-sm shadow-foreground/10 lg:hidden"
+            aria-label="Go back"
+            onClick={goBack}
+          >
+            <Icon icon={ArrowLeft} weight="bold" />
+          </Button>
+          <div className="mr-auto min-w-0 flex-1">
             <h1 className="truncate text-lg font-semibold">
               {activeConversation?.title ?? "New conversation"}
             </h1>
-            <p className="text-xs text-muted-foreground">Powered by Gemini</p>
           </div>
 
-          <div className="w-full md:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-9 shrink-0 rounded-full border border-border/20 shadow-sm shadow-foreground/10 lg:hidden"
+            aria-label="Chat details"
+            aria-expanded={mobileDetailsOpen}
+            aria-controls="mobile-chat-details"
+            onClick={() => setMobileDetailsOpen((open) => !open)}
+          >
+            <Icon icon={DotsThreeVertical} weight="bold" />
+          </Button>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <Select
+              value={responseLanguage}
+              onValueChange={(value) => {
+                if (value === "vi" || value === "en") void updateResponseLanguage(value);
+              }}
+            >
+              <SelectTrigger className="h-9 w-auto min-w-32 border-border/30 dark:border-border/30">
+                {responseLanguage === "vi" ? "Vietnamese" : "English"}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vi">Vietnamese</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <CreateFlashcardDialog
+              books={books}
+              triggerLabel="Save vocabulary"
+              triggerClassName="h-9"
+            />
+          </div>
+        </header>
+
+        {mobileDetailsOpen ? (
+          <div
+            id="mobile-chat-details"
+            className="grid gap-2 border-b-2 border-border/20 bg-muted/10 px-3 py-3 sm:px-5 lg:hidden"
+          >
             <Select
               value={activeConversationId ?? "new"}
               onValueChange={(value) => {
@@ -377,9 +451,10 @@ export function VocabularyChat() {
                   const selected = conversations.find((item) => item.id === value);
                   if (selected) chooseConversation(selected);
                 }
+                setMobileDetailsOpen(false);
               }}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-9 w-full border-border/30 dark:border-border/30">
                 {activeConversation?.title ?? "New chat"}
               </SelectTrigger>
               <SelectContent>
@@ -391,29 +466,34 @@ export function VocabularyChat() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="flex items-center gap-2">
+              <Select
+                value={responseLanguage}
+                onValueChange={(value) => {
+                  if (value === "vi" || value === "en") {
+                    void updateResponseLanguage(value);
+                    setMobileDetailsOpen(false);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-9 min-w-0 flex-1 border-border/30 dark:border-border/30">
+                  {responseLanguage === "vi" ? "Vietnamese" : "English"}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vi">Vietnamese</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <CreateFlashcardDialog
+                books={books}
+                triggerLabel="Save vocabulary"
+                triggerClassName="h-9 shrink-0"
+              />
+            </div>
           </div>
-
-          <Select
-            value={responseLanguage}
-            onValueChange={(value) => {
-              if (value === "vi" || value === "en") void updateResponseLanguage(value);
-            }}
-          >
-            <SelectTrigger className="h-9 w-auto min-w-32">
-              {responseLanguage === "vi" ? "Vietnamese" : "English"}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vi">Vietnamese</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <CreateFlashcardDialog
-            books={books}
-            triggerLabel="Save vocabulary"
-            triggerClassName="h-9"
-          />
-        </header>
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {loadingMessages ? (
@@ -424,7 +504,7 @@ export function VocabularyChat() {
               </span>
             </div>
           ) : messages.length ? (
-            <div className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
+            <div className={cn("mx-auto grid w-full gap-6 px-4 py-6 sm:px-6", CHAT_THREAD_WIDTH_CLASS)}>
               {messages.map((message) => (
                 <article
                   key={message.id}
@@ -499,7 +579,7 @@ export function VocabularyChat() {
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-2xl border border-border bg-background p-3 text-left text-sm transition-colors hover:bg-accent"
+                    className="rounded-2xl border border-border/30 bg-background p-3 text-left text-sm transition-colors hover:bg-accent"
                     onClick={() => setDraft(prompt)}
                   >
                     {prompt}
@@ -510,7 +590,7 @@ export function VocabularyChat() {
           )}
         </div>
 
-        <div className="border-t border-border bg-card px-3 py-3 sm:px-5">
+        <div className="border-t-2 border-border/20 bg-card px-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 lg:py-3">
           {error ? (
             <Alert variant="destructive" className="mx-auto mb-3 max-w-3xl">
               <WarningCircle />
@@ -524,7 +604,7 @@ export function VocabularyChat() {
               value={draft}
               maxLength={5000}
               rows={1}
-              className="min-h-11 resize-none rounded-2xl"
+              className="min-h-11 resize-none rounded-2xl border-border/30 dark:border-border/30"
               placeholder="Message FLENVN…"
               disabled={sending}
               onChange={(event) => setDraft(event.target.value)}
@@ -544,9 +624,6 @@ export function VocabularyChat() {
               )}
             </Button>
           </form>
-          <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-muted-foreground">
-            Gemini can make mistakes. Check important answers.
-          </p>
         </div>
       </section>
     </div>

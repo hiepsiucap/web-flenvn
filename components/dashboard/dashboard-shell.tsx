@@ -24,6 +24,12 @@ import {
   type ClientDashboardShellData,
 } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
+import {
+  IMMERSIVE_DASHBOARD_PADDING,
+  IMMERSIVE_DASHBOARD_ROOT,
+  isImmersiveDashboardRoute,
+  shouldShowMobileDashboardNavigation,
+} from "@/lib/dashboard-layout";
 import { HttpError } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +40,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const isHome = pathname === "/" || pathname === "/dashboard";
+  const isImmersive = isImmersiveDashboardRoute(pathname);
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
   const [books, setBooks] = useState<Book[]>(() => getCachedBooksClient() ?? []);
   const [loadError, setLoadError] = useState("");
@@ -75,7 +82,12 @@ export function DashboardShell({
 
   return (
     <StreakProvider initialStatus={user?.streakStatus ?? null}>
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className={cn(
+        "bg-background text-foreground",
+        isImmersive ? IMMERSIVE_DASHBOARD_ROOT : "min-h-screen",
+      )}
+    >
       <DashboardSidebar />
 
       <div className="lg:pl-64">
@@ -141,7 +153,13 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className={cn("px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-6", !isHome && "pt-[calc(env(safe-area-inset-top)+1.5rem)] lg:pt-6")}>
+        <main
+          className={cn(
+            !isImmersive && "px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-6",
+            !isHome && !isImmersive && "pt-[calc(env(safe-area-inset-top)+1.5rem)] lg:pt-6",
+            isImmersive && `overflow-hidden ${IMMERSIVE_DASHBOARD_PADDING}`,
+          )}
+        >
           {loadError ? (
             <Alert className="mb-4">
               <AlertTitle>Learning data unavailable</AlertTitle>
@@ -156,7 +174,9 @@ export function DashboardShell({
           {children}
         </main>
       </div>
-      <MobileNav onSuggestVocabulary={() => setSuggestOpen(true)} />
+      {shouldShowMobileDashboardNavigation(pathname) ? (
+        <MobileNav onSuggestVocabulary={() => setSuggestOpen(true)} />
+      ) : null}
       <SuggestVocabularyDialog books={books} open={suggestOpen} onOpenChange={setSuggestOpen} />
     </div>
     </StreakProvider>
