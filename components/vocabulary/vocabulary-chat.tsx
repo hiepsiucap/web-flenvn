@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 
-import { CreateFlashcardDialog } from "@/components/flashcards/create-flashcard-dialog";
+import { CollectVocabularyDialog } from "@/components/vocabulary/collect-vocabulary-dialog";
 import { ChatMessageContent } from "@/components/vocabulary/chat-message-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ import { Icon } from "@/components/ui/icon";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
-import { getBooksClient } from "@/lib/client-api";
 import {
   type ChatConversation,
   type ChatMessage,
@@ -37,7 +36,6 @@ import {
   toChatMessage,
   upsertConversation,
 } from "@/lib/conversational-chat";
-import type { Book } from "@/lib/dashboard-data";
 import { HttpError, http } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +94,6 @@ function conversationTitle(message: string) {
 }
 
 export function VocabularyChat() {
-  const [books, setBooks] = useState<Book[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -140,12 +137,6 @@ export function VocabularyChat() {
     }).finally(() => {
       if (!active) return;
       setLoadingConversations(false);
-    });
-
-    void getBooksClient().then((items) => {
-      if (active) setBooks(items);
-    }).catch(() => {
-      if (active) setBooks([]);
     });
 
     return () => {
@@ -433,9 +424,10 @@ export function VocabularyChat() {
               </SelectContent>
             </Select>
 
-            <CreateFlashcardDialog
-              books={books}
-              triggerLabel="Save vocabulary"
+            <CollectVocabularyDialog
+              conversationId={activeConversationId}
+              language={responseLanguage}
+              disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
               triggerClassName="h-9"
             />
           </div>
@@ -489,9 +481,10 @@ export function VocabularyChat() {
                 </SelectContent>
               </Select>
 
-              <CreateFlashcardDialog
-                books={books}
-                triggerLabel="Save vocabulary"
+              <CollectVocabularyDialog
+                conversationId={activeConversationId}
+                language={responseLanguage}
+                disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
                 triggerClassName="h-9 shrink-0"
               />
             </div>
