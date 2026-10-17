@@ -248,7 +248,7 @@ export function FlipFlashcardReviewer({
                     flipped && "[transform:rotateY(180deg)]"
                   )}
                 >
-                <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
+                <div className="absolute inset-0 grid overflow-hidden rounded-2xl bg-card p-6 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
                   <div className="flex items-start pr-12">
                     <Badge variant="secondary" className="rounded-xl">
                       Front
@@ -259,7 +259,7 @@ export function FlipFlashcardReviewer({
                     <div className="grid justify-items-center gap-4">
                       {currentCard.imageUrl ? (
                         <div
-                          className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center"
+                          className="h-40 w-56 max-w-full rounded-2xl bg-secondary bg-cover bg-center"
                           style={{ backgroundImage: `url(${currentCard.imageUrl})` }}
                           aria-label={`${currentCard.word} image`}
                           role="img"
@@ -282,7 +282,7 @@ export function FlipFlashcardReviewer({
                   </div>
                 </div>
 
-                <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                <div className="absolute inset-0 grid overflow-hidden rounded-2xl bg-card p-6 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
                   <div className="flex items-start pr-12">
                     <Badge variant="outline" className="rounded-xl">
                       Back
@@ -307,7 +307,7 @@ export function FlipFlashcardReviewer({
                       </Text>
                     </div>
                     {currentCard.example ? (
-                      <div className="rounded-xl border border-border bg-background p-3">
+                      <div className="rounded-xl bg-background p-3">
                         <Text className="uppercase tracking-wide" size="xs" weight="semibold" tone="muted">
                           Example
                         </Text>

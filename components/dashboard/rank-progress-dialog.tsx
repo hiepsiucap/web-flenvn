@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { CaretLeft, CaretRight, CheckCircle, LockSimple, Medal, Sparkle, Star } from "@phosphor-icons/react";
+import { CheckCircle, LockSimple, Medal, Sparkle, Star } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { Carousel } from "@/components/ui/carousel";
 import { Icon } from "@/components/ui/icon";
 import { LoadingState } from "@/components/ui/loading-state";
 import { RankLevelProgress } from "@/components/dashboard/rank-level-progress";
@@ -33,7 +34,7 @@ function RankCard({ rank }: { rank: RankCatalogItem }) {
 
   return (
     <article className={cn(
-      "relative grid h-52 min-w-0 content-start justify-items-center gap-1 rounded-2xl border border-border px-2.5 py-2.5 text-center",
+      "relative flex h-52 min-w-0 flex-col items-center justify-between gap-1 rounded-2xl border border-border px-2.5 py-2.5 text-center",
       current && "border-primary ring-1 ring-primary/20",
       rank.status === "locked" && "opacity-75"
     )}>
@@ -52,7 +53,7 @@ function RankCard({ rank }: { rank: RankCatalogItem }) {
         </div>
       )}
       <span className={cn(
-        "mt-auto inline-flex w-full items-center justify-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold",
+        "inline-flex w-full items-center justify-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold",
         current && "border-primary bg-primary text-primary-foreground",
         completed && "border-secondary/40 text-foreground",
         rank.status === "locked" && "border-border text-muted-foreground"
@@ -70,8 +71,8 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
   const [catalog, setCatalog] = useState<RankCatalogResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [carouselStart, setCarouselStart] = useState(0);
   const requestId = useRef(0);
+  const rankScrollRef = useRef<HTMLDivElement>(null);
   const user = catalog?.currentUser;
   const shownRank = user?.currentRank ?? rank;
   const shownExp = user?.exp ?? exp;
@@ -79,9 +80,18 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
   const shownProgress = clampProgress(user?.levelProgressPercent ?? progress);
   const earnedXp = user ? Math.max(0, user.exp - user.currentLevelStartExp) : null;
   const requiredXp = user ? Math.max(0, user.nextLevelExp - user.currentLevelStartExp) : null;
-  const ranksPerView = 5;
-  const maxCarouselStart = Math.max(0, (catalog?.ranks.length ?? 0) - ranksPerView);
-  const visibleRanks = catalog?.ranks.slice(carouselStart, carouselStart + ranksPerView) ?? [];
+
+  useLayoutEffect(() => {
+    if (!open || !catalog || !rankScrollRef.current) return;
+
+    const carousel = rankScrollRef.current;
+    const currentIndex = Math.max(0, catalog.ranks.findIndex((item) => item.status === "current"));
+    const badge = carousel.children[currentIndex] as HTMLElement | undefined;
+    if (!badge) return;
+
+    const left = badge.getBoundingClientRect().left - carousel.getBoundingClientRect().left + carousel.scrollLeft;
+    carousel.scrollLeft = left - (carousel.clientWidth - badge.clientWidth) / 2;
+  }, [catalog, open]);
 
   async function loadRanks() {
     const id = ++requestId.current;
@@ -91,7 +101,6 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
       const response = await http.get<ApiEnvelope<RankCatalogResponse> | RankCatalogResponse>("/api/ranks", { cache: "no-store" });
       if (id === requestId.current) {
         setCatalog("data" in response ? response.data : response);
-        setCarouselStart(0);
       }
     } catch {
       if (id === requestId.current) setError("We couldn't load the full rank journey. Please try again.");
@@ -202,35 +211,16 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
             {isLoading && !catalog && <p className="rounded-2xl border border-border p-5 text-sm text-muted-foreground">Loading your rank journey…</p>}
             {error && !catalog && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border p-4"><p className="text-sm text-muted-foreground">{error}</p><Button type="button" variant="outline" size="sm" onClick={() => void loadRanks()}>Try again</Button></div>}
             {catalog && (
-              <div className="relative mx-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-xs"
-                  className="absolute -left-4 top-1/2 z-20 -translate-y-1/2 bg-background shadow-sm"
-                  disabled={carouselStart === 0}
-                  aria-label="Show previous ranks"
-                  onClick={() => setCarouselStart((value) => Math.max(0, value - 1))}
-                >
-                  <Icon icon={CaretLeft} />
-                </Button>
-                <div className="grid grid-cols-5 gap-2.5 overflow-hidden">
-                  {visibleRanks.map((item) => (
-                    <RankCard key={item.slug} rank={item} />
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-xs"
-                  className="absolute -right-4 top-1/2 z-20 -translate-y-1/2 bg-background shadow-sm"
-                  disabled={carouselStart >= maxCarouselStart}
-                  aria-label="Show next ranks"
-                  onClick={() => setCarouselStart((value) => Math.min(maxCarouselStart, value + 1))}
-                >
-                  <Icon icon={CaretRight} />
-                </Button>
-              </div>
+              <Carousel
+                scrollRef={rankScrollRef}
+                ariaLabel="Rank badges"
+                itemClassName="snap-center"
+                className="auto-cols-[calc((100%-0.625rem)/2)] sm:auto-cols-[calc((100%-1.25rem)/3)] lg:auto-cols-[calc((100%-2.5rem)/5)]"
+              >
+                {catalog.ranks.map((item) => (
+                  <RankCard key={item.slug} rank={item} />
+                ))}
+              </Carousel>
             )}
           </section>
 

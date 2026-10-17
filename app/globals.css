@@ -49,8 +49,8 @@
   --accent: #d0d2fd;
   --accent-foreground: #111322;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #e3e5eb;
-  --input: #d9dce5;
+  --border: #eef0f4;
+  --input: #e8eaf0;
   --ring: #737efa;
   --status-new: #eef2ff;
   --status-new-foreground: #475569;
@@ -78,7 +78,7 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #d9dafd;
   --sidebar-accent-foreground: #111322;
-  --sidebar-border: #e3e5eb;
+  --sidebar-border: #eef0f4;
   --sidebar-ring: #737efa;
 }
 
@@ -271,7 +271,7 @@
   :root {
     --surface: #171a2c;
     --surface-muted: #252a52;
-    --border: #3a4052;
+    --border: #34394a;
   }
 }
 
@@ -291,8 +291,8 @@
   --accent: #2d3dde;
   --accent-foreground: #ffffff;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: #3a4052;
-  --input: #444b60;
+  --border: #34394a;
+  --input: #3b4153;
   --ring: #9da5f5;
   --status-new: #252a52;
   --status-new-foreground: #d9dafd;
@@ -319,7 +319,7 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #252a52;
   --sidebar-accent-foreground: #f4f5fd;
-  --sidebar-border: #3a4052;
+  --sidebar-border: #34394a;
   --sidebar-ring: #9da5f5;
 }
 
@@ -489,6 +489,14 @@
 
 .motion-delay-3 {
   animation-delay: 150ms;
+}
+
+.carousel-scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.carousel-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 1023px) {

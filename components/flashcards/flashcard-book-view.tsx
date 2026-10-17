@@ -54,7 +54,7 @@ export function FlashcardBookView({
   const [labelMode, setLabelMode] = useState(initialLabelMode);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const parentBook = books.find((item) => item.id === book?.parentBookId);
@@ -252,7 +252,7 @@ export function FlashcardBookView({
                 <SelectItem value="word-desc">Word: Z-A</SelectItem>
               </SelectContent>
             </Select>
-            <div className="ml-auto inline-flex rounded-full border border-border bg-card p-0.5" aria-label="Flashcard view">
+            <div className="ml-auto inline-flex rounded-full bg-card p-0.5" aria-label="Flashcard view">
               <Button
                 type="button"
                 variant={viewMode === "grid" ? "default" : "ghost"}
@@ -290,7 +290,7 @@ export function FlashcardBookView({
               <Link
                 key={child.id}
                 href={`/books/${encodeURIComponent(child.id)}`}
-                className="flex min-w-48 shrink-0 items-center gap-3 rounded-3xl border border-border bg-card p-2 pr-4 shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-w-48 shrink-0 items-center gap-3 rounded-3xl bg-card p-2 pr-4 shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-primary">
                   {child.coverImage ? (
@@ -312,7 +312,7 @@ export function FlashcardBookView({
               books={books}
               defaultParentBookId={book.id}
               triggerLabel="Add sub-book"
-              triggerClassName="h-auto min-h-16 min-w-40 shrink-0 rounded-2xl px-5"
+              triggerClassName="h-auto min-h-16 min-w-40 shrink-0 rounded-2xl border-0 bg-card px-5 hover:bg-muted"
             />
           </div>
         </section>

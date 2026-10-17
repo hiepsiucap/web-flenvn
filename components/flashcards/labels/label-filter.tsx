@@ -94,7 +94,7 @@ export function LabelFilter({ labels, selectedIds, mode, onChange }: {
       </DropdownMenu>
 
       {selectedIds.length > 1 ? (
-        <div className="ml-1 inline-flex rounded-full border border-border p-0.5" aria-label="Label matching mode">
+        <div className="ml-1 inline-flex rounded-full p-0.5" aria-label="Label matching mode">
           {(["any", "all"] as const).map((value) => (
             <Chip
               key={value}
