@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { CaretDown } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -141,7 +140,7 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
       </Modal>
 
       <Modal open={historyOpen} onOpenChange={setHistoryOpen}>
-        <ModalContent className="sm:max-w-xl">
+        <ModalContent className="h-[min(42rem,calc(100dvh-1rem))] sm:max-w-3xl">
           <ModalHeader>
             <ModalTitle>My feedback and reports</ModalTitle>
             <ModalDescription>Check the status of messages you’ve sent.</ModalDescription>
@@ -152,27 +151,18 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
             </div>
             {listError && <p className="text-sm text-destructive" role="alert">{listError}</p>}
             {loading ? <p className="text-muted-foreground">Loading…</p> : items.length === 0 && !listError ? <p className="text-muted-foreground">No messages yet.</p> : (
-              <ul className="divide-y divide-border">
+              <div className="grid items-start gap-3 sm:grid-cols-2">
                 {items.map((item) => (
-                  <li key={item.id}>
-                    <details className="group">
-                      <summary className="flex cursor-pointer list-none items-start gap-3 py-4 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="truncate font-medium">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</span>
-                            <Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge>
-                          </div>
-                          <p className="mt-1 truncate text-sm text-muted-foreground">{item.message}</p>
-                          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{item.type === "report" ? "Report" : "Feedback"}</span>
-                            <span aria-hidden="true">·</span>
-                            <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time>
-                          </div>
-                        </div>
-                        <Icon icon={CaretDown} className="mt-1 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-                      </summary>
-                      <div className="pb-4 pl-1">
-                        <p className="whitespace-pre-wrap text-sm">{item.message}</p>
+                  <Card key={item.id} size="sm" className="min-w-0 border border-gray-200 shadow-none dark:border-gray-600">
+                    <CardHeader>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{item.type === "report" ? "Report" : "Feedback"}</span>
+                        <Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge>
+                      </div>
+                      <CardTitle className="mt-1 break-words">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.message}</p>
                         {item.evidenceImageUrl && (
                           <a href={item.evidenceImageUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
                             {/* S3 evidence hosts vary by environment, so the image is intentionally unoptimized. */}
@@ -180,11 +170,11 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
                             <img src={item.evidenceImageUrl} alt="Attached screenshot" className="max-h-40 max-w-60 rounded-md object-contain" loading="lazy" />
                           </a>
                         )}
-                      </div>
-                    </details>
-                  </li>
+                      <time dateTime={item.createdAt} className="mt-3 block text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</time>
+                    </CardContent>
+                  </Card>
                 ))}
-              </ul>
+              </div>
             )}
           </ModalBody>
         </ModalContent>
