@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -153,29 +152,39 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
               </div>
             )}
             {loading ? <p className="text-muted-foreground">Loading…</p> : items.length === 0 && !listError ? <p className="text-muted-foreground">No messages yet.</p> : (
-              <div className="grid items-start gap-3 sm:grid-cols-2">
-                {items.map((item) => (
-                  <Card key={item.id} size="sm" className="min-w-0 border border-gray-200 shadow-none dark:border-gray-600">
-                    <CardHeader>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{item.type === "report" ? "Report" : "Feedback"}</span>
-                        <Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge>
-                      </div>
-                      <CardTitle className="mt-1 break-words">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.message}</p>
-                        {item.evidenceImageUrl && (
-                          <a href={item.evidenceImageUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
-                            {/* S3 evidence hosts vary by environment, so the image is intentionally unoptimized. */}
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={item.evidenceImageUrl} alt="Attached screenshot" className="max-h-40 max-w-60 rounded-md object-contain" loading="lazy" />
-                          </a>
-                        )}
-                      <time dateTime={item.createdAt} className="mt-3 block text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</time>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-600">
+                <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+                  <thead className="bg-muted/50 text-xs text-muted-foreground">
+                    <tr>
+                      <th scope="col" className="w-40 px-4 py-3 font-medium">Name</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Description</th>
+                      <th scope="col" className="w-24 px-4 py-3 font-medium">Status</th>
+                      <th scope="col" className="w-28 px-4 py-3 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {items.map((item) => (
+                      <tr key={item.id} className="align-top">
+                        <td className="px-4 py-4">
+                          <span className="block break-words font-medium">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground">{item.type === "report" ? "Report" : "Feedback"}</span>
+                        </td>
+                        <td className="min-w-0 px-4 py-4">
+                          <p className="max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-muted-foreground">{item.message}</p>
+                          {item.evidenceImageUrl && (
+                            <a href={item.evidenceImageUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block" aria-label="View attached screenshot">
+                              {/* S3 evidence hosts vary by environment, so the image is intentionally unoptimized. */}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.evidenceImageUrl} alt="Attached screenshot" className="size-12 rounded-md object-cover" loading="lazy" />
+                            </a>
+                          )}
+                        </td>
+                        <td className="px-4 py-4"><Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge></td>
+                        <td className="whitespace-nowrap px-4 py-4 text-muted-foreground"><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </ModalBody>
