@@ -146,10 +146,12 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
             <ModalDescription>Check the status of messages you’ve sent.</ModalDescription>
           </ModalHeader>
           <ModalBody>
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>Refresh</Button>
-            </div>
-            {listError && <p className="text-sm text-destructive" role="alert">{listError}</p>}
+            {listError && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-destructive" role="alert">{listError}</p>
+                <Button variant="outline" size="sm" onClick={() => void refresh()}>Try again</Button>
+              </div>
+            )}
             {loading ? <p className="text-muted-foreground">Loading…</p> : items.length === 0 && !listError ? <p className="text-muted-foreground">No messages yet.</p> : (
               <div className="grid items-start gap-3 sm:grid-cols-2">
                 {items.map((item) => (
