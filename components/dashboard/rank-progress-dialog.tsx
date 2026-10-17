@@ -34,8 +34,8 @@ function RankCard({ rank }: { rank: RankCatalogItem }) {
 
   return (
     <article className={cn(
-      "relative flex h-52 min-w-0 flex-col items-center justify-between gap-1 rounded-2xl border border-border px-2.5 py-2.5 text-center",
-      current && "border-primary ring-1 ring-primary/20",
+      "relative flex h-52 min-w-0 flex-col items-center justify-between gap-1 rounded-2xl border border-gray-200 bg-card px-2.5 py-2.5 text-center shadow-sm shadow-foreground/10 dark:border-gray-600",
+      current && "shadow-md shadow-primary/20",
       rank.status === "locked" && "opacity-75"
     )}>
       {rank.imageUrl ? (
@@ -53,10 +53,10 @@ function RankCard({ rank }: { rank: RankCatalogItem }) {
         </div>
       )}
       <span className={cn(
-        "inline-flex w-full items-center justify-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold",
-        current && "border-primary bg-primary text-primary-foreground",
-        completed && "border-secondary/40 text-foreground",
-        rank.status === "locked" && "border-border text-muted-foreground"
+        "inline-flex w-full items-center justify-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm shadow-foreground/5",
+        current && "bg-primary text-primary-foreground",
+        completed && "bg-secondary/25 text-foreground",
+        rank.status === "locked" && "bg-muted/60 text-muted-foreground"
       )}>
         {completed && <Icon icon={CheckCircle} className="size-3.5" weight="fill" />}
         {rank.status === "locked" && <Icon icon={LockSimple} className="size-3.5" />}
@@ -227,7 +227,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
         </ModalBody>
 
         <ModalFooter className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
-          <div className="relative flex min-h-16 items-center rounded-2xl border border-border px-4 pr-32">
+          <div className="relative flex min-h-16 items-center rounded-2xl border border-gray-200 px-4 pr-32 dark:border-gray-600">
             <Icon icon={Sparkle} className="mr-3 size-6 shrink-0 text-primary" weight="duotone" />
             <div>
               <p className="text-sm font-extrabold text-primary">Keep learning, keep growing!</p>

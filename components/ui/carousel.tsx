@@ -86,7 +86,7 @@ export function Carousel({
       aria-label={ariaLabel}
       tabIndex={0}
       className={cn(
-        "carousel-scrollbar-hidden grid cursor-grab grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain pb-2 select-none snap-x snap-mandatory active:cursor-grabbing",
+        "carousel-scrollbar-hidden grid cursor-grab grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain py-2 select-none snap-x snap-mandatory active:cursor-grabbing",
         className,
       )}
       onDragStart={(event) => event.preventDefault()}
