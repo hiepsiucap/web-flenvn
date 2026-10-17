@@ -15,14 +15,23 @@ import {
   getMySubmissions,
   validateEvidenceImage,
   type Submission,
+  type SubmissionStatus,
   type SubmissionType,
 } from "@/lib/submissions";
+import { cn } from "@/lib/utils";
 
 const statusLabels = {
   pending: "Pending",
   in_review: "In review",
   resolved: "Resolved",
   rejected: "Rejected",
+};
+
+const statusStyles: Record<SubmissionStatus, string> = {
+  pending: "bg-status-new text-status-new-foreground",
+  in_review: "bg-status-learning text-status-learning-foreground",
+  resolved: "bg-status-mastered text-status-mastered-foreground",
+  rejected: "bg-destructive/10 text-destructive",
 };
 
 export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -179,7 +188,7 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
                             </a>
                           )}
                         </td>
-                        <td className="px-4 py-4"><Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge></td>
+                        <td className="px-4 py-4"><Badge variant="outline" className={cn("border-gray-200 dark:border-gray-600", statusStyles[item.status])}>{statusLabels[item.status] ?? item.status}</Badge></td>
                         <td className="whitespace-nowrap px-4 py-4 text-muted-foreground"><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time></td>
                       </tr>
                     ))}
