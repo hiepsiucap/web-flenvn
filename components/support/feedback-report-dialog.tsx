@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { CaretDown } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -152,21 +154,34 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
             {loading ? <p className="text-muted-foreground">Loading…</p> : items.length === 0 && !listError ? <p className="text-muted-foreground">No messages yet.</p> : (
               <ul className="divide-y divide-border">
                 {items.map((item) => (
-                  <li key={item.id} className="py-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</span>
-                      <Badge variant="secondary">{item.type === "report" ? "Report" : "Feedback"}</Badge>
-                      <Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge>
-                    </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{item.message}</p>
-                    {item.evidenceImageUrl && (
-                      <a href={item.evidenceImageUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
-                        {/* S3 evidence hosts vary by environment, so the image is intentionally unoptimized. */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.evidenceImageUrl} alt="Attached screenshot" className="max-h-40 max-w-60 rounded-md object-contain" loading="lazy" />
-                      </a>
-                    )}
-                    <time dateTime={item.createdAt} className="mt-2 block text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</time>
+                  <li key={item.id}>
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-start gap-3 py-4 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate font-medium">{item.subject || (item.type === "report" ? "Problem report" : "Feedback")}</span>
+                            <Badge variant="outline">{statusLabels[item.status] ?? item.status}</Badge>
+                          </div>
+                          <p className="mt-1 truncate text-sm text-muted-foreground">{item.message}</p>
+                          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{item.type === "report" ? "Report" : "Feedback"}</span>
+                            <span aria-hidden="true">·</span>
+                            <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time>
+                          </div>
+                        </div>
+                        <Icon icon={CaretDown} className="mt-1 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="pb-4 pl-1">
+                        <p className="whitespace-pre-wrap text-sm">{item.message}</p>
+                        {item.evidenceImageUrl && (
+                          <a href={item.evidenceImageUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
+                            {/* S3 evidence hosts vary by environment, so the image is intentionally unoptimized. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.evidenceImageUrl} alt="Attached screenshot" className="max-h-40 max-w-60 rounded-md object-contain" loading="lazy" />
+                          </a>
+                        )}
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>
