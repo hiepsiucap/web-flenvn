@@ -138,7 +138,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
 
       <ModalContent className="sm:max-w-4xl sm:px-6 sm:py-5">
         {isLoading || error || !catalog ? (
-          <div className="absolute inset-0 z-40 grid min-h-[36rem] place-items-center rounded-xl bg-popover p-6">
+          <div className="absolute inset-0 z-40 grid place-items-center rounded-xl bg-popover p-6">
             {isLoading ? (
               <LoadingState
                 title="Loading your rank journey"
@@ -167,8 +167,8 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
 
         <ModalTitle className="text-xl">Your rank journey</ModalTitle>
 
-        <ModalBody className="gap-4 overflow-x-hidden overflow-y-hidden" aria-live="polite">
-          <section className="grid h-52 gap-3">
+        <ModalBody className="gap-4 overflow-x-hidden overflow-y-auto" aria-live="polite">
+          <section className="grid min-h-52 gap-3">
             <div className="grid items-center gap-3 sm:grid-cols-[110px_minmax(0,1fr)_210px]">
               <div className="mx-auto flex w-28 flex-col items-center">
                 {shownRank?.imageUrl ? (
@@ -226,7 +226,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
 
         </ModalBody>
 
-        <ModalFooter className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
+        <ModalFooter className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 [@media(max-height:700px)]:hidden">
           <div className="relative flex min-h-16 items-center rounded-2xl border border-gray-200 px-4 pr-32 dark:border-gray-600">
             <Icon icon={Sparkle} className="mr-3 size-6 shrink-0 text-primary" weight="duotone" />
             <div>
