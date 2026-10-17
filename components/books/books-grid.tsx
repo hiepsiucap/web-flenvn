@@ -115,7 +115,7 @@ export function BooksGrid({
                 </div>
               )}
               {view === "grid" ? (
-                <div className="absolute inset-x-0 bottom-0 z-10 w-full border-t border-border/40 bg-background/75 px-3 py-2.5 backdrop-blur-sm">
+                <div className="absolute inset-x-0 bottom-0 z-10 w-full border-t border-gray-200 bg-background/75 px-3 py-2.5 backdrop-blur-sm dark:border-gray-600">
                   <p className="truncate text-sm font-semibold text-foreground">{book.title}</p>
                   <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Icon icon={Layers3} size="sm" />
@@ -220,7 +220,7 @@ export function BooksGrid({
   return (
     <section className={cn(
       "grid items-start gap-5",
-      view === "grid" && "grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-4"
+      view === "grid" && "grid-cols-2 gap-3 lg:grid-cols-4"
     )}>
       {visibleBooks.map((book) => renderBookCard(book))}
     </section>

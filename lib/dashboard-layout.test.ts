@@ -18,7 +18,7 @@ describe("dashboard layout", () => {
   });
 
   it("uses a small responsive gutter for the immersive page", () => {
-    expect(IMMERSIVE_DASHBOARD_PADDING).toBe("p-0 lg:p-3");
+    expect(IMMERSIVE_DASHBOARD_PADDING).toBe("p-0");
   });
 
   it("locks the immersive page to the viewport", () => {

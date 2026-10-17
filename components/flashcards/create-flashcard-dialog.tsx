@@ -475,7 +475,7 @@ export function CreateFlashcardDialog({
                     </Button>
                   </div>
                   {wordOptions.length || isAutocompleting ? (
-                    <div className="absolute left-0 right-[108px] top-11 z-20 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg">
+                    <div className="absolute left-0 right-[108px] top-11 z-20 overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-lg">
                       {isAutocompleting ? (
                         <div className="flex h-9 items-center gap-2 px-3 text-sm text-muted-foreground">
                           <Icon icon={Loader2} size="sm" className="animate-spin" />
@@ -591,10 +591,8 @@ export function CreateFlashcardDialog({
                         key={`${item.url}-${index}`}
                         type="button"
                         className={[
-                          "group relative overflow-hidden rounded-2xl border bg-card shadow-sm shadow-foreground/5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
-                          isSelected
-                            ? "border-border ring-2 ring-primary/25 shadow-md shadow-foreground/10"
-                            : "border-border",
+                          "group relative overflow-hidden rounded-2xl bg-card shadow-sm shadow-foreground/5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
+                          isSelected && "ring-2 ring-primary/25 shadow-md shadow-foreground/10",
                         ].join(" ")}
                         onClick={() => setImageUrl(item.url ?? "")}
                         aria-label={`Choose suggested image ${index + 1}`}
@@ -619,7 +617,7 @@ export function CreateFlashcardDialog({
                   })}
                 </div>
               ) : (
-                <div className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
+                <div className="flex min-h-20 items-center justify-center rounded-2xl bg-muted/30 text-sm text-muted-foreground">
                   <Icon icon={ImageIcon} className="mr-2" />
                   Use Suggest to choose a picture
                 </div>
@@ -629,7 +627,7 @@ export function CreateFlashcardDialog({
             </div>
           </Form>
 
-          <aside className="min-h-0 rounded-2xl border border-border bg-muted/30 p-3 lg:h-full lg:overflow-y-auto lg:overscroll-contain">
+          <aside className="min-h-0 rounded-2xl bg-muted/30 p-3 lg:h-full lg:overflow-y-auto lg:overscroll-contain">
             {suggestion ? (
               <div className="grid gap-4">
                 <div className="flex items-center justify-between gap-3">
@@ -660,11 +658,10 @@ export function CreateFlashcardDialog({
                             example === (item.example?.text ?? "")
                           }
                           className={cn(
-                            "rounded-2xl border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                            "rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50",
                             definition === item.definition?.text &&
-                              example === (item.example?.text ?? "")
-                              ? "border-border ring-2 ring-primary/25"
-                              : "border-border"
+                              example === (item.example?.text ?? "") &&
+                              "ring-2 ring-primary/25"
                           )}
                           onClick={() => {
                             setDefinition(item.definition?.text ?? "");
@@ -693,7 +690,7 @@ export function CreateFlashcardDialog({
                             </span>
                           ) : null}
                           {item.example?.text ? (
-                            <span className="mt-2 block border-t border-border pt-2 text-muted-foreground">
+                            <span className="mt-2 block pt-2 text-muted-foreground">
                               {item.example.text}
                               {item.example.translation ? (
                                 <span className="mt-1 block text-xs">
@@ -718,7 +715,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-2xl border border-border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => {
                             setDefinition(item.text ?? "");
                             if (item.partOfSpeech) {
@@ -746,7 +743,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-2xl border border-border bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => setExample(item.text ?? "")}
                         >
                           {item.text}

@@ -312,7 +312,7 @@ export function FlashcardGrid({
             key={card.id}
             type="button"
             className={cn(
-              "group overflow-hidden rounded-3xl border border-border bg-card text-left shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+              "group overflow-hidden rounded-3xl bg-card text-left shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50",
               view === "list" && "flex items-center gap-3 p-3 sm:gap-4"
             )}
             onClick={() => openCard(card)}
@@ -449,7 +449,7 @@ export function FlashcardGrid({
                     {isValidHttpUrl(selectedCard.audioUrl) ? (
                       <button
                         type="button"
-                        className="inline-flex size-7 items-center justify-center rounded-xl border border-border bg-background text-primary transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
                         title="Play pronunciation audio"
                         aria-label="Play pronunciation audio"
                         onClick={() => playAudio(selectedCard.audioUrl)}
@@ -498,7 +498,7 @@ export function FlashcardGrid({
                 </div>
               </div>
 
-              <div className="grid gap-3 rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="grid gap-3 rounded-2xl bg-muted/30 p-4">
                 <div>
                   <Text size="xs" weight="medium" tone="muted" className="uppercase">
                     Definition
@@ -516,7 +516,7 @@ export function FlashcardGrid({
                       {isValidHttpUrl(selectedCard.exampleAudioUrl) ? (
                         <button
                           type="button"
-                          className="inline-flex size-7 items-center justify-center rounded-xl border border-border bg-background text-primary transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
                           title="Play example audio"
                           aria-label="Play example audio"
                           onClick={() => playAudio(selectedCard.exampleAudioUrl)}
@@ -603,7 +603,7 @@ export function FlashcardGrid({
               </FormField>
               </section>
 
-              <section className="grid gap-4 border-t border-border pt-5" aria-labelledby="edit-example-heading">
+              <section className="grid gap-4 pt-5" aria-labelledby="edit-example-heading">
                 <h3 id="edit-example-heading" className="text-sm font-semibold">Example</h3>
               <FormField>
                 <div className="flex items-center justify-between gap-2">
@@ -625,7 +625,7 @@ export function FlashcardGrid({
               </FormField>
               </section>
 
-              <section className="grid gap-5 border-t border-border pt-5" aria-labelledby="edit-audio-heading">
+              <section className="grid gap-5 pt-5" aria-labelledby="edit-audio-heading">
                 <h3 id="edit-audio-heading" className="text-sm font-semibold">Audio</h3>
                 <div className="grid gap-5 md:grid-cols-2">
                   <FlashcardAudioField id="detail-audio" label="Word pronunciation" text={word} value={audioUrl} onChange={setAudioUrl} busy={audioBusy} onBusyChange={setAudioBusy} disabled={isSaving} error={fieldErrors.audioUrl} />
@@ -633,7 +633,7 @@ export function FlashcardGrid({
                 </div>
               </section>
 
-              <section className="grid gap-4 border-t border-border pt-5" aria-labelledby="edit-image-heading">
+              <section className="grid gap-4 pt-5" aria-labelledby="edit-image-heading">
                 <h3 id="edit-image-heading" className="text-sm font-semibold">Image</h3>
                 {(imageChoice === "upload" ? imagePreview : imageChoice === "default" ? DEFAULT_FLASHCARD_IMAGE_URL : imageUrl) ? (
                   <div className="h-28 w-40 rounded-xl bg-secondary bg-cover bg-center" role="img" aria-label="Selected flashcard image"
@@ -669,7 +669,7 @@ export function FlashcardGrid({
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Suggested images">
                     {suggestedImages.map((url, index) => (
                       <button key={`${url}-${index}`} type="button" aria-label={`Choose suggested image ${index + 1}`} aria-pressed={imageChoice === "suggested" && imageUrl === url}
-                        className="aspect-square overflow-hidden rounded-lg border border-border bg-secondary bg-cover bg-center aria-pressed:ring-2 aria-pressed:ring-primary"
+                        className="aspect-square overflow-hidden rounded-lg bg-secondary bg-cover bg-center aria-pressed:ring-2 aria-pressed:ring-primary"
                         style={{ backgroundImage: `url(${url})` }} onClick={() => { setImageChoice("suggested"); setImageUrl(url); setImageFile(null); setImagePreview(""); }} />
                     ))}
                   </div>
@@ -678,7 +678,7 @@ export function FlashcardGrid({
               </section>
 
               {word.trim() !== selectedCard.word ? (
-                <div className="grid gap-2 border-t border-border pt-5">
+                <div className="grid gap-2 pt-5">
                   <p className="text-sm font-medium">Changing the word</p>
                   <p className="text-xs text-muted-foreground">The current image and word audio will be cleared unless you choose replacements or keep them below.</p>
                   <label className="flex items-start gap-2 text-sm">
