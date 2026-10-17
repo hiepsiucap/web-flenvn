@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { FeedbackReportDialog } from "@/components/support/feedback-report-dialog";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
 import { RankProgressDialog } from "@/components/dashboard/rank-progress-dialog";
@@ -40,6 +41,7 @@ export function DashboardShell({
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (!window.localStorage.getItem("accessToken")) {
@@ -81,7 +83,7 @@ export function DashboardShell({
         isImmersive ? IMMERSIVE_DASHBOARD_ROOT : "min-h-screen",
       )}
     >
-      <DashboardSidebar />
+      <DashboardSidebar onFeedbackClick={() => setFeedbackOpen(true)} />
 
       <div className="lg:pl-64">
         <header className={cn("sticky top-0 z-(--z-layout-topbar) bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur", !isImmersive && "pb-2.5", !isHome && "hidden lg:block")}>
@@ -168,8 +170,9 @@ export function DashboardShell({
         </main>
       </div>
       {shouldShowMobileDashboardNavigation(pathname) ? (
-        <MobileNav />
+        <MobileNav onFeedbackClick={() => setFeedbackOpen(true)} />
       ) : null}
+      <FeedbackReportDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
     </StreakProvider>
   );
