@@ -116,7 +116,7 @@ export default function BooksPage() {
                   className="h-11 rounded-full bg-card pl-10 pr-4 shadow-none"
                 />
               </div>
-              <div className="inline-flex shrink-0 rounded-2xl border border-border bg-card p-0.5" aria-label="Book view">
+              <div className="inline-flex shrink-0 rounded-2xl border border-gray-200 bg-card p-0.5 dark:border-gray-600" aria-label="Book view">
                 <Button
                   type="button"
                   variant={viewMode === "grid" ? "default" : "ghost"}

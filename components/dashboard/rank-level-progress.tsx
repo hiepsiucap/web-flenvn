@@ -75,14 +75,14 @@ export function RankLevelProgress({
           src={progressStart}
           alt="Start"
           className={cn(
-            "absolute left-0 top-1/2 z-30 -translate-y-1/2 object-contain",
+            "pointer-events-none absolute left-0 top-1/2 z-50 -translate-y-1/2 object-contain",
             compact ? "size-7" : "size-8"
           )}
         />
       )}
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 z-40",
+          "pointer-events-none absolute inset-y-0 right-0 z-[60]",
           showStart ? (compact ? "left-3" : "left-4") : "left-0"
         )}
         aria-hidden="true"

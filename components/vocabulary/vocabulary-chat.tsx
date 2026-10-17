@@ -26,6 +26,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -74,7 +82,7 @@ const STARTER_PROMPTS = [
 export const CHAT_THREAD_WIDTH_CLASS = "max-w-5xl";
 export const CHAT_COMPOSER_WIDTH_CLASS = "w-full";
 export const CHAT_COMPOSER_INPUT_CLASS =
-  "min-h-11 resize-none rounded-2xl border-border/30 pt-3 dark:border-border/30";
+  "min-h-11 resize-none rounded-2xl border-0 bg-muted/20 pt-3";
 export const CHAT_CONVERSATION_TITLE_CLASS =
   "block w-full truncate font-medium";
 
@@ -111,12 +119,15 @@ export function VocabularyChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [responseLanguage, setResponseLanguage] =
-    useState<ResponseLanguage>("vi");
+    useState<ResponseLanguage>("en");
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const activeConversationRef = useRef<string | null>(null);
   const messageRequestRef = useRef(0);
   const threadEndRef = useRef<HTMLDivElement>(null);
@@ -137,6 +148,7 @@ export function VocabularyChat() {
         if (!active) return;
         const items = unwrap(response).conversations;
         setConversations(items);
+        if (items[0]) setResponseLanguage(items[0].targetLanguage === "vi" ? "vi" : "en");
         if (items.length) setLoadingMessages(true);
         setActiveConversationId((current) => {
           const next =
@@ -208,6 +220,7 @@ export function VocabularyChat() {
     setActiveConversationId(null);
     setMessages([]);
     setLoadingMessages(false);
+    setResponseLanguage("en");
     setDraft("");
     setError("");
   }
@@ -316,13 +329,8 @@ export function VocabularyChat() {
   }
 
   async function deleteConversation(conversation: ChatConversation) {
-    if (
-      !window.confirm(
-        `Delete “${conversation.title}”? This removes its messages.`,
-      )
-    )
-      return;
-
+    setDeletingConversation(true);
+    setDeleteError("");
     try {
       await http.delete(`/api/ai/conversations/${conversation.id}`);
       const remaining = conversations.filter(
@@ -338,8 +346,11 @@ export function VocabularyChat() {
         if (next)
           setResponseLanguage(next.targetLanguage === "en" ? "en" : "vi");
       }
+      setConversationToDelete(null);
     } catch (cause) {
-      setError(getErrorMessage(cause, "Could not delete this conversation."));
+      setDeleteError(getErrorMessage(cause, "Could not delete this conversation."));
+    } finally {
+      setDeletingConversation(false);
     }
   }
 
@@ -369,13 +380,13 @@ export function VocabularyChat() {
   }
 
   return (
-    <div className="mx-auto flex h-dvh min-h-0 w-full max-w-7xl overflow-hidden bg-card lg:h-[calc(100dvh-6.625rem-env(safe-area-inset-top))] lg:rounded-3xl lg:border-2 lg:border-border/20 lg:shadow-md lg:shadow-foreground/10">
-      <aside className="hidden w-72 shrink-0 border-r-2 border-border/20 bg-muted/20 md:flex md:flex-col">
+    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-card lg:h-[calc(100dvh-4.5rem-env(safe-area-inset-top))]">
+      <aside className="hidden w-72 shrink-0 bg-muted/20 md:flex md:flex-col">
         <div className="p-3">
           <Button
             type="button"
             variant="outline"
-            className="w-full justify-start border-border/30 dark:border-border/30"
+            className="w-full justify-start border-0"
             onClick={startNewChat}
           >
             <Icon icon={Plus} />
@@ -415,7 +426,10 @@ export function VocabularyChat() {
                     size="icon"
                     className="mr-1 size-8 shrink-0 opacity-60 hover:opacity-100"
                     aria-label={`Delete ${conversation.title}`}
-                    onClick={() => void deleteConversation(conversation)}
+                    onClick={() => {
+                      setDeleteError("");
+                      setConversationToDelete(conversation);
+                    }}
                   >
                     <Icon
                       icon={Trash}
@@ -434,12 +448,12 @@ export function VocabularyChat() {
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b-2 border-border/20 px-3 pb-3 pt-[calc(.75rem+env(safe-area-inset-top))] sm:px-5 lg:py-3">
+        <header className="flex items-center gap-2 px-3 pb-3 pt-[calc(.75rem+env(safe-area-inset-top))] sm:px-5 lg:py-3">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 shrink-0 rounded-full border border-border/20 shadow-sm shadow-foreground/10 lg:hidden"
+            className="size-9 shrink-0 rounded-full border-0 shadow-sm shadow-foreground/10 lg:hidden"
             aria-label="Go back"
             onClick={goBack}
           >
@@ -458,7 +472,7 @@ export function VocabularyChat() {
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 shrink-0 rounded-full border border-border/20 shadow-sm shadow-foreground/10 lg:hidden"
+            className="size-9 shrink-0 rounded-full border-0 shadow-sm shadow-foreground/10 lg:hidden"
             aria-label="Chat details"
             aria-expanded={mobileDetailsOpen}
             aria-controls="mobile-chat-details"
@@ -478,7 +492,7 @@ export function VocabularyChat() {
                   void updateResponseLanguage(value);
               }}
             >
-              <SelectTrigger className="h-9 w-auto min-w-32 border-border/30 dark:border-border/30">
+              <SelectTrigger className="h-9 w-auto min-w-32 border-0 bg-muted/20">
                 {responseLanguage === "vi" ? "Vietnamese" : "English"}
               </SelectTrigger>
               <SelectContent>
@@ -500,7 +514,7 @@ export function VocabularyChat() {
         {mobileDetailsOpen ? (
           <div
             id="mobile-chat-details"
-            className="grid gap-2 border-b-2 border-border/20 bg-muted/10 px-3 py-3 sm:px-5 lg:hidden"
+            className="grid gap-2 bg-muted/10 px-3 py-3 sm:px-5 lg:hidden"
           >
             <Select
               value={activeConversationId ?? "new"}
@@ -515,7 +529,7 @@ export function VocabularyChat() {
                 setMobileDetailsOpen(false);
               }}
             >
-              <SelectTrigger className="h-9 w-full border-border/30 dark:border-border/30">
+              <SelectTrigger className="h-9 w-full border-0 bg-muted/20">
                 {activeConversation?.title ?? "New chat"}
               </SelectTrigger>
               <SelectContent>
@@ -541,7 +555,7 @@ export function VocabularyChat() {
                   }
                 }}
               >
-                <SelectTrigger className="h-9 min-w-0 flex-1 border-border/30 dark:border-border/30">
+                <SelectTrigger className="h-9 min-w-0 flex-1 border-0 bg-muted/20">
                   {responseLanguage === "vi" ? "Vietnamese" : "English"}
                 </SelectTrigger>
                 <SelectContent>
@@ -670,7 +684,7 @@ export function VocabularyChat() {
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-2xl border border-border/30 bg-background p-3 text-left text-sm transition-colors hover:bg-accent"
+                    className="rounded-2xl bg-muted/20 p-3 text-left text-sm transition-colors hover:bg-accent"
                     onClick={() => setDraft(prompt)}
                   >
                     {prompt}
@@ -681,7 +695,7 @@ export function VocabularyChat() {
           )}
         </div>
 
-        <div className="border-t-2 border-border/20 bg-card px-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 lg:py-3">
+        <div className="bg-card px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 lg:pb-6">
           {error ? (
             <Alert
               variant="destructive"
@@ -729,6 +743,40 @@ export function VocabularyChat() {
           </form>
         </div>
       </section>
+      <Modal
+        open={!!conversationToDelete}
+        onOpenChange={(open) => {
+          if (!open && !deletingConversation) {
+            setConversationToDelete(null);
+            setDeleteError("");
+          }
+        }}
+      >
+        <ModalContent className="sm:max-w-md">
+          <ModalHeader>
+            <ModalTitle>Delete chat?</ModalTitle>
+            <ModalDescription>
+              “{conversationToDelete?.title}” and all its messages will be deleted. This cannot be undone.
+            </ModalDescription>
+          </ModalHeader>
+          {deleteError ? <p role="alert" className="text-sm text-destructive">{deleteError}</p> : null}
+          <ModalFooter>
+            <Button type="button" variant="outline" disabled={deletingConversation} onClick={() => setConversationToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deletingConversation}
+              onClick={() => {
+                if (conversationToDelete) void deleteConversation(conversationToDelete);
+              }}
+            >
+              {deletingConversation ? "Deleting…" : "Delete chat"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

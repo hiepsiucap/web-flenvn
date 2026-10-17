@@ -1,4 +1,4 @@
-export const IMMERSIVE_DASHBOARD_PADDING = "p-0 lg:p-3";
+export const IMMERSIVE_DASHBOARD_PADDING = "p-0";
 export const IMMERSIVE_DASHBOARD_ROOT = "h-dvh overflow-hidden overscroll-none";
 
 export function isImmersiveDashboardRoute(pathname: string) {

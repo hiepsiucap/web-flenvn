@@ -168,7 +168,7 @@ export function FlashcardLabelEditor({
                 <Text size="xs" tone="muted">{selectedLabels.length} selected</Text>
               </div>
               {selectedLabels.length ? (
-                <div className="flex flex-wrap gap-2 rounded-2xl border border-border p-3">
+                <div className="flex flex-wrap gap-2 rounded-2xl p-3">
                   {selectedLabels.map((label) => (
                     <Tag
                       key={label.id}
@@ -183,7 +183,7 @@ export function FlashcardLabelEditor({
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border px-4 py-3 text-sm text-muted-foreground">
+                <div className="rounded-2xl px-4 py-3 text-sm text-muted-foreground">
                   No labels selected. Saving will remove all labels from this flashcard.
                 </div>
               )}
@@ -207,7 +207,7 @@ export function FlashcardLabelEditor({
                         <button
                           key={label.id}
                           type="button"
-                          className="flex min-w-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-left text-sm font-medium transition-colors hover:border-foreground/30 hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={() => selectLabel(label)}
                         >
                           <Icon icon={Plus} size="sm" className="shrink-0 text-muted-foreground" />
@@ -223,7 +223,7 @@ export function FlashcardLabelEditor({
               ) : null}
             </section>
 
-            <section className="grid gap-2 border-t border-border pt-4">
+            <section className="grid gap-2 pt-4">
               <Label htmlFor={`custom-label-${card.id}`}>Create custom label</Label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input

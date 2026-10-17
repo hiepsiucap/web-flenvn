@@ -84,7 +84,7 @@ export function DashboardShell({
       <DashboardSidebar />
 
       <div className="lg:pl-64">
-        <header className={cn("sticky top-0 z-(--z-layout-topbar) bg-background/80 pb-2.5 pt-[env(safe-area-inset-top)] backdrop-blur", !isHome && "hidden lg:block")}>
+        <header className={cn("sticky top-0 z-(--z-layout-topbar) bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur", !isImmersive && "pb-2.5", !isHome && "hidden lg:block")}>
           <div className="relative bg-card shadow-sm shadow-foreground/5 ring-1 ring-foreground/5">
             <div className="relative flex min-h-14 items-center justify-between gap-2 px-3 py-2 sm:min-h-16 sm:gap-4 sm:px-6 sm:py-2.5 lg:min-h-18">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">

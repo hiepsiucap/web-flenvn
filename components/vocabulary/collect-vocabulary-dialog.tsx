@@ -439,7 +439,7 @@ export function CollectVocabularyDialog({
                 </div>
                 <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
                   {Array.from({ length: 8 }, (_, index) => (
-                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border-2 border-border/30 bg-card p-4 shadow-md shadow-foreground/10">
+                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border border-border bg-card p-4 shadow-sm shadow-foreground/5">
                       <div className="flex gap-4">
                         <Skeleton className="size-6 shrink-0 rounded-full" />
                         <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-24" />
@@ -493,9 +493,9 @@ export function CollectVocabularyDialog({
                     <article
                       key={item.key}
                       className={cn(
-                        "flex h-full flex-col rounded-3xl border-2 border-border/30 bg-card p-4 shadow-md shadow-foreground/10 transition-shadow",
+                        "flex h-full flex-col rounded-3xl border border-border bg-card p-4 shadow-sm shadow-foreground/5 transition-shadow",
                         !item.alreadyExists && item.status !== "saved" && item.status !== "duplicate" &&
-                          "cursor-pointer hover:shadow-lg hover:shadow-foreground/10",
+                          "cursor-pointer hover:shadow-md hover:shadow-foreground/5",
                       )}
                       onClick={(event) => {
                         if (item.alreadyExists || item.status === "saved" || item.status === "duplicate") return;

@@ -20,6 +20,13 @@ describe("VocabularyChat surface", () => {
     expect(CHAT_COMPOSER_WIDTH_CLASS).toBe("w-full");
   });
 
+  it("defaults new chats to English", () => {
+    const html = renderToStaticMarkup(<VocabularyChat />);
+
+    expect(html).toContain("English");
+    expect(html).not.toContain(">Vietnamese</button>");
+  });
+
   it("adds vertical breathing room around typed text", () => {
     expect(CHAT_COMPOSER_INPUT_CLASS).toContain("pt-3");
   });
@@ -37,7 +44,7 @@ describe("VocabularyChat surface", () => {
     expect(html).toContain("lg:hidden");
   });
 
-  it("renders both mobile header actions with ultra-soft borders, shadows, and bold icons", () => {
+  it("renders both mobile header actions without borders and with bold icons", () => {
     const html = renderToStaticMarkup(<VocabularyChat />);
     const boldBackIcon = renderToStaticMarkup(
       <Icon icon={ArrowLeft} weight="bold" />,
@@ -46,7 +53,7 @@ describe("VocabularyChat surface", () => {
       <Icon icon={DotsThreeVertical} weight="bold" />,
     );
 
-    expect(html.match(/size-9 shrink-0 rounded-full border border-border\/20 shadow-sm shadow-foreground\/10 lg:hidden/g))
+    expect(html.match(/size-9 shrink-0 rounded-full border-0 shadow-sm shadow-foreground\/10 lg:hidden/g))
       .toHaveLength(2);
     expect(html).toContain(boldBackIcon);
     expect(html).toContain(boldDetailsIcon);
@@ -60,31 +67,31 @@ describe("VocabularyChat surface", () => {
     expect(html).not.toContain('id="mobile-chat-details"');
   });
 
-  it("uses a soft shadow and subtle outer border", () => {
+  it("fills the available page width without outer spacing", () => {
     const html = renderToStaticMarkup(<VocabularyChat />);
     const rootClasses = html.match(/^<div class="([^"]+)"/)?.[1] ?? "";
 
     expect(rootClasses).toContain("h-dvh");
-    expect(rootClasses).toContain("lg:shadow-md");
-    expect(rootClasses).toContain("lg:shadow-foreground/10");
-    expect(rootClasses).toContain("lg:border-2");
-    expect(rootClasses).toContain("lg:border-border/20");
+    expect(rootClasses).toContain("w-full");
+    expect(rootClasses).not.toContain("max-w-");
+    expect(rootClasses).not.toContain("mx-auto");
+    expect(rootClasses).not.toContain("lg:border-");
   });
 
-  it("uses soft theme borders for structural dividers", () => {
+  it("keeps structural sections borderless", () => {
     const html = renderToStaticMarkup(<VocabularyChat />);
 
-    expect(html).toContain("border-r-2 border-border/20");
-    expect(html).toContain("border-b-2 border-border/20");
-    expect(html).toContain("border-t-2 border-border/20");
+    expect(html).not.toContain("border-r-2 border-border/20");
+    expect(html).not.toContain("border-b-2 border-border/20");
+    expect(html).not.toContain("border-t-2 border-border/20");
   });
 
-  it("uses soft gray borders for interactive controls", () => {
+  it("uses borderless chat controls", () => {
     const html = renderToStaticMarkup(<VocabularyChat />);
 
     expect(html).not.toContain("border-border bg-background");
     expect(html).not.toContain("border-input bg-transparent");
-    expect(html).toContain("border-border/30");
+    expect(html).not.toContain("border-border/30");
   });
 
   it("does not display provider branding in the chat header", () => {
