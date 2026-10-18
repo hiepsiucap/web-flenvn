@@ -60,6 +60,8 @@ import {
   calculateQuality,
   createPracticeGames,
   GAME_TIME_LIMIT_MS,
+  getQuestionTimeLeftMs,
+  isValidGameTimeLimitSeconds,
   isCorrectAnswer,
   isCorrectSentence,
   mixPracticeSteps,
@@ -142,6 +144,8 @@ export function PracticeRunner({
   const [answer, setAnswer] = useState("");
   const [startedAt, setStartedAt] = useState(0);
   const [runStartedAt, setRunStartedAt] = useState(0);
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(GAME_TIME_LIMIT_MS / 1000);
+  const timeLimitMs = timeLimitSeconds * 1000;
   const [timeLeftMs, setTimeLeftMs] = useState(GAME_TIME_LIMIT_MS);
   const [results, setResults] = useState<Record<string, PracticeGameResult[]>>({});
   const [summary, setSummary] = useState<PracticeSummary | null>(null);
@@ -178,10 +182,7 @@ export function PracticeRunner({
     }
 
     const interval = window.setInterval(() => {
-      const nextTimeLeft = Math.max(
-        0,
-        GAME_TIME_LIMIT_MS - Math.round(getNow() - startedAt)
-      );
+      const nextTimeLeft = getQuestionTimeLeftMs(startedAt, getNow(), timeLimitSeconds);
 
       setTimeLeftMs(nextTimeLeft);
 
@@ -192,7 +193,7 @@ export function PracticeRunner({
     }, 100);
 
     return () => window.clearInterval(interval);
-  }, [current, isSubmitting, startedAt]);
+  }, [current, isSubmitting, startedAt, timeLimitSeconds]);
 
   const prompt = useMemo(() => {
     if (!current) return null;
@@ -206,6 +207,11 @@ export function PracticeRunner({
 
   async function startPractice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!isValidGameTimeLimitSeconds(timeLimitSeconds)) {
+      setMessage("Choose a time from 5 to 120 seconds per question.");
+      return;
+    }
 
     if (!selectedBook || selectedBook.dueForReview <= 0) {
       setMessage("Choose a book with due cards.");
@@ -268,7 +274,7 @@ export function PracticeRunner({
       setProgressTransition(null);
       setStartedAt(0);
       setRunStartedAt(0);
-      setTimeLeftMs(GAME_TIME_LIMIT_MS);
+      setTimeLeftMs(timeLimitMs);
     } catch (error) {
       const nextMessage = getErrorMessage(error, "Unable to start practice");
       setMessage(nextMessage);
@@ -294,8 +300,8 @@ export function PracticeRunner({
     setSummary(null);
     setStartedAt(getNow());
     setRunStartedAt(getNow());
-    setTimeLeftMs(GAME_TIME_LIMIT_MS);
-  }, [reviewSteps]);
+    setTimeLeftMs(timeLimitMs);
+  }, [reviewSteps, timeLimitMs]);
 
   const closeReviewPhase = useCallback(function closeReviewPhase() {
     setReviewCards([]);
@@ -457,7 +463,7 @@ export function PracticeRunner({
 
     setIndex(index + 1);
     setStartedAt(getNow());
-    setTimeLeftMs(GAME_TIME_LIMIT_MS);
+    setTimeLeftMs(timeLimitMs);
     setIsSubmitting(false);
     answerLockedRef.current = false;
   }
@@ -999,6 +1005,28 @@ export function PracticeRunner({
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
+              <Label htmlFor="game-time-limit">Time per question</Label>
+              <Input
+                id="game-time-limit"
+                type="number"
+                min={5}
+                max={120}
+                step={1}
+                value={timeLimitSeconds || ""}
+                onChange={(event) => {
+                  setTimeLimitSeconds(Number(event.target.value));
+                  setMessage("");
+                }}
+                aria-invalid={!isValidGameTimeLimitSeconds(timeLimitSeconds)}
+                aria-describedby={!isValidGameTimeLimitSeconds(timeLimitSeconds) ? "game-time-limit-error" : undefined}
+                className="h-8 w-20 rounded-xl bg-card px-2.5 text-sm text-foreground"
+              />
+              <span>seconds (5–120)</span>
+              {!isValidGameTimeLimitSeconds(timeLimitSeconds) ? (
+                <span id="game-time-limit-error" className="text-destructive">Enter a whole number from 5 to 120.</span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -1068,7 +1096,7 @@ export function PracticeRunner({
           <Button
             type="submit"
             className="h-11 w-full rounded-xl text-sm shadow-md shadow-brand-800/20"
-            disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0}
+            disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0 || !isValidGameTimeLimitSeconds(timeLimitSeconds)}
           >
             {isLoading ? (
               <Icon icon={Loader2} className="animate-spin" />
@@ -1084,7 +1112,7 @@ export function PracticeRunner({
           <p>
             Target: {limit} word{limit === 1 ? "" : "s"} · Up to 100 XP per game
           </p>
-          <p>Every second costs 10 XP, so answer fast.</p>
+          <p>XP reaches 0 after 20 seconds; your timer controls when the question ends.</p>
         </div>
 
         {message ? (

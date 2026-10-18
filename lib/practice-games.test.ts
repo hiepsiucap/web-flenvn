@@ -6,6 +6,8 @@ import {
   createPracticeGames,
   createSentencePuzzleTokens,
   GAME_TIME_LIMIT_MS,
+  getQuestionTimeLeftMs,
+  isValidGameTimeLimitSeconds,
   mixPracticeSteps,
   isCorrectSentence,
 } from "./practice-games";
@@ -39,6 +41,22 @@ describe("practice game queue", () => {
     expect(calculateGameScore(10_000)).toBe(50);
     expect(calculateGameScore(19_000)).toBe(5);
     expect(calculateGameScore(20_000)).toBe(0);
+  });
+
+  it("counts down from the selected duration for each question", () => {
+    expect(getQuestionTimeLeftMs(1_000, 1_000, 10)).toBe(10_000);
+    expect(getQuestionTimeLeftMs(1_000, 6_000, 10)).toBe(5_000);
+    expect(getQuestionTimeLeftMs(1_000, 31_000, 30)).toBe(0);
+    expect(getQuestionTimeLeftMs(1_000, 32_000, 30)).toBe(0);
+    expect(getQuestionTimeLeftMs(32_000, 32_000, 30)).toBe(30_000);
+  });
+
+  it("accepts whole-second countdowns from 5 to 120 seconds", () => {
+    expect(isValidGameTimeLimitSeconds(5)).toBe(true);
+    expect(isValidGameTimeLimitSeconds(120)).toBe(true);
+    expect(isValidGameTimeLimitSeconds(4)).toBe(false);
+    expect(isValidGameTimeLimitSeconds(121)).toBe(false);
+    expect(isValidGameTimeLimitSeconds(10.5)).toBe(false);
   });
 });
 

@@ -44,6 +44,18 @@ export type PracticeFlashcardResult = {
 export const GAME_TIME_LIMIT_MS = 20_000;
 const MAX_GAME_SCORE = 100;
 
+export function isValidGameTimeLimitSeconds(value: number) {
+  return Number.isInteger(value) && value >= 5 && value <= 120;
+}
+
+export function getQuestionTimeLeftMs(
+  startedAt: number,
+  now: number,
+  timeLimitSeconds: number
+) {
+  return Math.max(0, timeLimitSeconds * 1000 - Math.round(now - startedAt));
+}
+
 export function calculateGameScore(responseTime: number) {
   const elapsedSeconds = Math.floor(Math.max(0, responseTime) / 1000);
   const pointsPerSecond = MAX_GAME_SCORE / (GAME_TIME_LIMIT_MS / 1000);
