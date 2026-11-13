@@ -37,6 +37,12 @@
   animation: flen-page-enter var(--motion-quick) var(--ease-motion-out);
 }
 
+/* Keep the backdrop transparent until the popup finishes closing and unmounts. */
+[data-slot="dialog-overlay"] {
+  animation-duration: var(--motion-quick);
+  animation-fill-mode: both;
+}
+
 /* Individual scale/translate leave positional and drag transforms intact. */
 @keyframes flen-dialog-in {
   from { opacity: 0; scale: 0.98; }
