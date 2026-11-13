@@ -105,7 +105,6 @@ export function CollectVocabularyDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Source>("conversation");
-  const [topic, setTopic] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState("");
@@ -156,11 +155,7 @@ export function CollectVocabularyDialog({
   }
 
   async function discover(source: Source, id = conversationId) {
-    if (source === "topic" && !topic.trim()) {
-      setMessage("Enter a topic first.");
-      return;
-    }
-    if (source === "conversation" && !id) return;
+    if (!id) return;
     const currentRequest = ++requestId.current;
     setBusy("discover");
     setEditingKey(null);
@@ -171,14 +166,12 @@ export function CollectVocabularyDialog({
       const path =
         source === "conversation"
           ? `/api/ai/conversations/${id}/vocabulary/discover`
-          : "/api/ai/conversations/vocabulary/topic";
+          : `/api/ai/conversations/${id}/vocabulary/topic`;
       const response = await http.post<
         ApiEnvelope<{ candidates: Candidate[] }> | { candidates: Candidate[] }
       >(
         path,
-        source === "topic"
-          ? { topic: topic.trim(), targetLanguage: language }
-          : {},
+        {},
       );
       const candidates = unwrap(response).candidates;
       if (currentRequest !== requestId.current) return;
@@ -252,13 +245,13 @@ export function CollectVocabularyDialog({
     }
   }
 
-  const eligible = items.filter(
+  const unsavedItems = items.filter(
     (item) =>
-      item.selected &&
       !item.alreadyExists &&
       item.status !== "saved" &&
       item.status !== "duplicate",
   );
+  const eligible = unsavedItems.filter((item) => item.selected);
   const editingItem = items.find((item) => item.key === editingKey);
   const valid = eligible.filter(
     (item) =>
@@ -381,88 +374,38 @@ export function CollectVocabularyDialog({
                 )}
               </div>
             </div>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Discovery source"
-            >
-              <Button
-                type="button"
-                variant={mode === "conversation" ? "default" : "ghost"}
-                aria-pressed={mode === "conversation"}
-                onClick={() => {
-                  if (conversationId) showConversation(conversationId);
-                }}
+            <div className="flex items-center justify-between gap-4 overflow-x-auto pb-1">
+              <div
+                className="flex shrink-0 items-center gap-2"
+                role="group"
+                aria-label="Discovery source"
               >
-                From conversation
-              </Button>
-              <Button
-                type="button"
-                variant={mode === "topic" ? "default" : "ghost"}
-                aria-pressed={mode === "topic"}
-                onClick={() => {
-                  requestId.current += 1;
-                  setBusy(null);
-                  setMode("topic");
-                  setItems([]);
-                  setMessage("");
-                }}
-              >
-                From topic
-              </Button>
-            </div>
-            {mode === "topic" ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor="collector-topic">Topic</Label>
-                <Input
-                  id="collector-topic"
-                  value={topic}
-                  maxLength={120}
-                  onChange={(event) => setTopic(event.target.value)}
-                  placeholder="Travel conversations"
-                />
+                <Button
+                  type="button"
+                  variant={mode === "conversation" ? "default" : "ghost"}
+                  className="border border-gray-100"
+                  aria-pressed={mode === "conversation"}
+                  onClick={() => {
+                    if (conversationId) showConversation(conversationId);
+                  }}
+                >
+                  From conversation
+                </Button>
+                <Button
+                  type="button"
+                  variant={mode === "topic" ? "default" : "ghost"}
+                  className="border border-gray-100"
+                  aria-pressed={mode === "topic"}
+                  onClick={() => {
+                    setMode("topic");
+                    void discover("topic");
+                  }}
+                >
+                  From topic
+                </Button>
               </div>
-            ) : null}
-            {mode === "topic" ? <Button
-              type="button"
-              variant="default"
-              disabled={!!busy}
-              onClick={() => void discover("topic")}
-            >
-              Find words for topic
-            </Button> : null}
-            {busy === "discover" ? (
-              <div role="status" aria-live="polite" className="grid gap-3">
-                <div className="flex min-h-8 items-center gap-2 text-sm font-medium">
-                  <Spinner className="size-5 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
-                  <span>Finding useful vocabulary from {mode === "conversation" ? "your conversation" : "your topic"}…</span>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
-                  {Array.from({ length: 8 }, (_, index) => (
-                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border border-border bg-card p-4 shadow-sm shadow-foreground/5">
-                      <div className="flex gap-4">
-                        <Skeleton className="size-6 shrink-0 rounded-full" />
-                        <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-24" />
-                        <div className="flex min-w-0 flex-1 flex-col gap-3 py-1">
-                          <Skeleton className="h-5 w-1/3 rounded-full" />
-                          <Skeleton className="h-4 w-2/3 rounded-full" />
-                          <Skeleton className="h-4 w-full rounded-full" />
-                        </div>
-                      </div>
-                      <Skeleton className="mt-auto h-7 w-24 rounded-full" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {message ? (
-              <p role="alert" className="text-sm text-destructive">
-                {message}
-              </p>
-            ) : null}
-            {items.length ? (
-              <>
-                <div className="flex flex-wrap gap-2">
+              {unsavedItems.length ? (
+                <div className="flex shrink-0 items-center gap-1">
                   <Button
                     type="button"
                     size="sm"
@@ -488,12 +431,46 @@ export function CollectVocabularyDialog({
                     Clear selection
                   </Button>
                 </div>
+              ) : null}
+            </div>
+            {busy === "discover" ? (
+              <div role="status" aria-live="polite" className="grid gap-3">
+                <div className="flex min-h-8 items-center gap-2 text-sm font-medium">
+                  <Spinner className="size-5 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
+                  <span>Finding useful vocabulary from {mode === "conversation" ? "your conversation" : "the chat’s topic"}…</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border border-gray-100 bg-card p-4 shadow-sm shadow-foreground/5">
+                      <div className="flex gap-4">
+                        <Skeleton className="size-6 shrink-0 rounded-full" />
+                        <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-24" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-3 py-1">
+                          <Skeleton className="h-5 w-1/3 rounded-full" />
+                          <Skeleton className="h-4 w-2/3 rounded-full" />
+                          <Skeleton className="h-4 w-full rounded-full" />
+                        </div>
+                      </div>
+                      <Skeleton className="mt-auto h-7 w-24 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {message ? (
+              <p role="alert" className="text-sm text-destructive">
+                {message}
+              </p>
+            ) : null}
+            {unsavedItems.length ? (
+              <>
                 <div className="grid gap-3 md:auto-rows-fr md:grid-cols-2">
-                  {items.map((item) => (
+                  {unsavedItems.map((item) => (
                     <article
                       key={item.key}
                       className={cn(
-                        "flex h-full flex-col rounded-3xl border border-border bg-card p-4 shadow-sm shadow-foreground/5 transition-shadow",
+                        "flex h-full flex-col rounded-3xl border border-gray-100 bg-card p-4 shadow-sm shadow-foreground/5 transition-[background-color,box-shadow]",
+                        item.selected && "bg-blue-50/50",
                         !item.alreadyExists && item.status !== "saved" && item.status !== "duplicate" &&
                           "cursor-pointer hover:shadow-md hover:shadow-foreground/5",
                       )}
@@ -580,6 +557,11 @@ export function CollectVocabularyDialog({
                   ))}
                 </div>
               </>
+            ) : null}
+            {items.length > 0 && !unsavedItems.length && !busy ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                All discovered words have already been saved.
+              </p>
             ) : null}
             {eligible.length > valid.length ? (
               <p role="alert" className="text-sm text-destructive">
