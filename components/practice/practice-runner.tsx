@@ -834,10 +834,10 @@ export function PracticeRunner({
                         "h-14 min-w-0 justify-start rounded-2xl px-4 text-left text-sm transition-colors sm:text-base",
                         answerFeedback &&
                           isCorrectAnswer(choice, answerFeedback.correctAnswer) &&
-                          "border-emerald-500 bg-emerald-50 text-emerald-700 disabled:opacity-100 dark:bg-emerald-950/30 dark:text-emerald-300",
+                          "border-emerald-500 bg-emerald-50 text-emerald-700 focus-visible:border-emerald-500 disabled:opacity-100 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-300",
                         answerFeedback?.result === "incorrect" &&
                           isCorrectAnswer(choice, answerFeedback.selectedAnswer) &&
-                          "border-destructive bg-destructive/10 text-destructive disabled:opacity-100"
+                          "border-destructive bg-destructive/10 text-destructive focus-visible:border-destructive disabled:opacity-100 dark:border-destructive"
                       )}
                       disabled={isSubmitting}
                       onClick={() => submitAnswer(choice)}
