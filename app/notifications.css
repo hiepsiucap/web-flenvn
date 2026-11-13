@@ -1,67 +1,77 @@
 .app-toaster {
   --toastify-color-light: var(--card);
-  --toastify-text-color-light: var(--foreground);
+  --toastify-text-color-light: var(--card-foreground);
   --toastify-icon-color-success: var(--status-mastered-foreground);
   --toastify-icon-color-error: var(--destructive);
   --toastify-icon-color-warning: var(--status-learning-foreground);
   --toastify-icon-color-info: var(--primary);
-  --toastify-color-progress-success: var(--status-mastered-foreground);
-  --toastify-color-progress-error: var(--destructive);
-  --toastify-color-progress-warning: var(--status-learning-foreground);
-  --toastify-color-progress-info: var(--primary);
   --toastify-toast-width: min(360px, calc(100vw - 32px));
   --toastify-toast-min-height: 56px;
-  --toastify-toast-padding: 12px 14px;
-  --toastify-toast-bd-radius: 14px;
-  --toastify-toast-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+  --toastify-toast-padding: 12px;
+  --toastify-toast-bd-radius: 16px;
+  --toastify-toast-shadow: 0 4px 16px color-mix(in srgb, var(--foreground) 8%, transparent);
   --toastify-font-family: var(--font-sans);
   gap: 8px;
 }
 
 .app-toast.Toastify__toast {
   margin-bottom: 0;
+  gap: 10px;
   border: 1px solid var(--border);
-  color: var(--foreground);
+  border-radius: var(--toastify-toast-bd-radius);
+  color: var(--card-foreground);
   background: var(--card);
   font-size: 0.875rem;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-.app-toast.Toastify__toast--success {
-  border-left: 3px solid var(--status-mastered-foreground);
+.app-toast .Toastify__toast-icon {
+  width: 20px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
-.app-toast.Toastify__toast--error {
-  border-left: 3px solid var(--destructive);
+.app-toast.Toastify__toast--success .Toastify__toast-icon {
+  color: var(--status-mastered-foreground);
 }
 
-.app-toast.Toastify__toast--warning {
-  border-left: 3px solid var(--status-learning-foreground);
+.app-toast.Toastify__toast--error .Toastify__toast-icon {
+  color: var(--destructive);
 }
 
-.app-toast.Toastify__toast--info {
-  border-left: 3px solid var(--primary);
+.app-toast.Toastify__toast--warning .Toastify__toast-icon {
+  color: var(--status-learning-foreground);
 }
 
-.app-toast .Toastify__toast-body {
-  padding: 0;
+.app-toast.Toastify__toast--info .Toastify__toast-icon {
+  color: var(--primary);
 }
 
-.app-toast .Toastify__close-button {
+.app-toast .app-toast-dismiss {
+  margin-left: auto;
   color: var(--muted-foreground);
-  align-self: center;
-  opacity: 1;
 }
 
-.app-toast .Toastify__close-button:hover {
-  color: var(--foreground);
-}
-
-@media (max-width: 480px) {
+@media (max-width: 1023px) {
   .app-toaster.Toastify__toast-container {
-    top: max(12px, env(safe-area-inset-top));
-    left: 12px;
-    right: 12px;
+    top: auto;
+    /* Clear the app's 64px mobile navigation and the device's home indicator. */
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    left: max(16px, env(safe-area-inset-left, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
     width: auto;
+    align-items: center;
+  }
+
+  .app-toast.Toastify__toast {
+    width: min(100%, 360px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast.Toastify__toast {
+    animation-duration: 1ms;
   }
 }
