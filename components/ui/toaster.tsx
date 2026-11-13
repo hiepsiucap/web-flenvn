@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle, Info, Warning, WarningCircle, X } from "@phosphor-icons/react";
-import { ToastContainer, type CloseButtonProps, type IconProps } from "react-toastify";
+import { ToastContainer, cssTransition, type CloseButtonProps, type IconProps } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -32,12 +32,18 @@ function DismissToast({ closeToast }: CloseButtonProps) {
   );
 }
 
+const toastTransition = cssTransition({
+  enter: "app-toast-enter",
+  exit: "app-toast-exit",
+});
+
 export function Toaster() {
   return (
     <ToastContainer
       className="app-toaster"
       toastClassName="app-toast"
       position="top-right"
+      transition={toastTransition}
       icon={ToastIcon}
       closeButton={DismissToast}
       hideProgressBar

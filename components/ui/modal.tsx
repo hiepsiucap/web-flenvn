@@ -86,7 +86,7 @@ function ModalContent({
         : baseStyle?.transform,
       transition: isDragging
         ? "none"
-        : (baseStyle?.transition ?? "transform 180ms ease-out"),
+        : (baseStyle?.transition ?? "transform var(--motion-quick) var(--ease-motion-out)"),
     }
   }
 
@@ -98,7 +98,7 @@ function ModalContent({
   return (
     <DialogContent
       className={cn(
-        "grid min-h-0 max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 pb-7 pt-8 max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:px-10 sm:py-8",
+        "motion-modal grid min-h-0 max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-7 pb-7 pt-8 max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:px-10 sm:py-8",
         className
       )}
       style={contentStyle}
