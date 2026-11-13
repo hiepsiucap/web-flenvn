@@ -47,15 +47,23 @@ export function DailyGoalCarousel() {
   const activeSlide = slides[activeIndex];
 
   useEffect(() => {
-    if (isPaused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timeout: number | undefined;
+
+    function scheduleAdvance() {
+      window.clearTimeout(timeout);
+      if (isPaused || preference.matches) return;
+      timeout = window.setTimeout(() => {
+        setActiveIndex((currentIndex) => (currentIndex + 1) % slideCount);
+      }, 5000);
     }
 
-    const timeout = window.setTimeout(() => {
-      setActiveIndex((currentIndex) => (currentIndex + 1) % slideCount);
-    }, 5000);
-
-    return () => window.clearTimeout(timeout);
+    scheduleAdvance();
+    preference.addEventListener("change", scheduleAdvance);
+    return () => {
+      window.clearTimeout(timeout);
+      preference.removeEventListener("change", scheduleAdvance);
+    };
   }, [activeIndex, isPaused, slideCount]);
 
   return (

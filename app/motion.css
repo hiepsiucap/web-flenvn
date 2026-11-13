@@ -1,0 +1,159 @@
+/* Shared state feedback. Static content has no entrance animation by default. */
+:is([data-slot="button"], [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="tabs-trigger"], [data-slot="chip"],
+  [data-slot="tag-remove"], [data-slot="badge"]) {
+  transition-property: background-color, color, border-color, box-shadow, opacity, transform, translate, scale;
+  transition-duration: var(--motion-quick);
+  transition-timing-function: var(--ease-motion-out);
+}
+
+:is([data-slot="checkbox"], [data-slot="checkbox-indicator"],
+  [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="select-item"]) {
+  transition-property: background-color, color, border-color, box-shadow, opacity, transform, scale;
+  transition-duration: var(--motion-instant);
+  transition-timing-function: var(--ease-motion-out);
+}
+
+/* Keyboard focus must not wait for decorative transitions. */
+:is([data-slot="button"], [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="tabs-trigger"], [data-slot="checkbox"],
+  [data-slot="chip"], [data-slot="tag-remove"]):focus-visible {
+  transition-duration: 0s;
+}
+
+[data-slot="button"] svg {
+  transition-property: transform, scale;
+  transition-duration: inherit;
+  transition-timing-function: inherit;
+}
+
+[data-slot="tabs-trigger"]::after {
+  transition-duration: var(--motion-instant);
+}
+
+[data-slot="tabs-content"]:not([inert]) {
+  animation: flen-page-enter var(--motion-quick) var(--ease-motion-out);
+}
+
+/* Individual scale/translate leave positional and drag transforms intact. */
+@keyframes flen-dialog-in {
+  from { opacity: 0; scale: 0.98; }
+  to { opacity: 1; scale: 1; }
+}
+
+@keyframes flen-dialog-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.98; }
+}
+
+.motion-dialog[data-open] {
+  animation: flen-dialog-in var(--motion-standard) var(--ease-motion-out) both;
+}
+
+.motion-dialog[data-closed] {
+  animation: flen-dialog-out var(--motion-quick) var(--ease-motion-standard) both;
+}
+
+@keyframes flen-sheet-in {
+  from { opacity: 0; translate: 0 24px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes flen-sheet-out {
+  from { opacity: 1; translate: 0 0; }
+  to { opacity: 0; translate: 0 24px; }
+}
+
+@media (max-width: 639px) {
+  .motion-modal[data-open] { animation-name: flen-sheet-in; }
+  .motion-modal[data-closed] { animation-name: flen-sheet-out; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  :is([data-slot="button"], [data-slot="chip"], [data-slot="card"][data-interactive]):hover:not(:active) {
+    translate: none;
+    scale: 1;
+  }
+  [data-slot="button"]:hover svg { scale: 1; }
+}
+
+/* Keep completion events for overlays/toasts and preserve layout transforms.
+   This also covers pseudo-elements, inline loader styles, and learning effects. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  :is([data-slot="button"], [data-slot="chip"], [data-slot="card"][data-interactive]):hover,
+  :is([data-slot="button"], [data-slot="chip"], [data-slot="card"][data-interactive]):active {
+    translate: none;
+    scale: 1;
+  }
+  [data-slot="button"] svg { scale: 1; }
+  .motion-dialog { scale: 1; }
+}
+
+/* One persistent indicator travels between tabs instead of swapping fills. */
+[data-slot="tabs-indicator"] {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+  width: var(--active-tab-width);
+  height: var(--active-tab-height);
+  translate: var(--active-tab-left) var(--active-tab-top);
+  border-radius: inherit;
+  background: var(--background);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 8%, transparent);
+  transition: translate var(--motion-standard) var(--ease-motion-out),
+    width var(--motion-standard) var(--ease-motion-out),
+    height var(--motion-standard) var(--ease-motion-out);
+}
+
+[data-slot="tabs-trigger"][data-active] {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+[data-slot="tabs-trigger"]::after { content: none; }
+
+[data-slot="tabs-list"][data-variant="line"] [data-slot="tabs-indicator"] {
+  top: auto;
+  bottom: -5px;
+  height: 2px;
+  background: var(--foreground);
+  box-shadow: none;
+  translate: var(--active-tab-left) 0;
+}
+
+[data-slot="tabs-list"][data-variant="line"][data-orientation="vertical"] [data-slot="tabs-indicator"] {
+  top: 0;
+  left: auto;
+  right: -1px;
+  bottom: auto;
+  width: 2px;
+  height: var(--active-tab-height);
+  translate: 0 var(--active-tab-top);
+}
+
+[data-slot="switch"] {
+  transition: background-color var(--motion-quick) var(--ease-motion-out),
+    border-color var(--motion-quick) var(--ease-motion-out);
+}
+
+[data-slot="switch-thumb"] {
+  translate: 0 0;
+  transition: translate var(--motion-standard) var(--ease-motion-out);
+}
+
+[data-slot="switch-thumb"][data-checked] { translate: 20px 0; }
+[dir="rtl"] [data-slot="switch-thumb"][data-checked] { translate: -20px 0; }
