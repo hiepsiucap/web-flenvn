@@ -292,9 +292,7 @@ export function SettingsPage() {
     <div className="mx-auto max-w-7xl space-y-8 pb-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your account</p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Settings</h1>
-          <p className="mt-2 text-sm text-muted-foreground">A few small adjustments. A better learning routine.</p>
         </div>
         {hasUnsavedChanges ? <Badge variant="outline" className="h-7 px-3">Unsaved changes</Badge> : null}
       </header>
