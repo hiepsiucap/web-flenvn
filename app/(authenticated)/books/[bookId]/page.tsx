@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { HttpError } from "@/lib/http";
+import { EmptyState } from "@/components/ui/empty-state";
+
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import { FlashcardBookView } from "@/components/flashcards/flashcard-book-view";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
   CLIENT_DATA_CHANGED_EVENT,
@@ -37,13 +40,13 @@ function BookFlashcardsPageContent() {
     flashcards: Flashcard[];
     labels: LabelCatalogItem[];
   } | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<number | null>(null);
   const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = () => {
-      setLoadError(false);
+      setLoadError(null);
       void Promise.all([
         getBookClient(bookId),
         getBooksClient(),
@@ -51,8 +54,8 @@ function BookFlashcardsPageContent() {
         getLabelsClient(true),
       ]).then(([book, books, flashcards, labels]) => {
         if (active) setData({ book, books, flashcards, labels });
-      }).catch(() => {
-        if (active) setLoadError(true);
+      }).catch((error) => {
+        if (active) setLoadError(error instanceof HttpError ? error.status : 500);
       });
     };
     load();
@@ -65,15 +68,14 @@ function BookFlashcardsPageContent() {
 
   if (loadError && !data) {
     return (
-      <Card className="max-w-3xl rounded-3xl">
-        <CardHeader>
-          <CardTitle>Book unavailable</CardTitle>
-          <CardDescription>Unable to load this book. Check your connection and try again.</CardDescription>
-          <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+      <EmptyState
+        illustration={loadError === 404 ? "not-found" : "connection"}
+        title={loadError === 404 ? "Book not found" : "Book unavailable"}
+        description={loadError === 404 ? "This book may have been deleted or is no longer available." : "Unable to load this book. Check your connection and try again."}
+        action={loadError === 404 ? <Button render={<Link href="/books" />} nativeButton={false}>Open books</Button> : <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
             Try again
-          </Button>
-        </CardHeader>
-      </Card>
+          </Button>}
+      />
     );
   }
 

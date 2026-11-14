@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -70,15 +69,14 @@ function FlashcardPageContent() {
 
   if (loadError && !data) {
     return (
-      <Card className="max-w-3xl rounded-3xl">
-        <CardHeader>
-          <CardTitle>Flashcards unavailable</CardTitle>
-          <CardDescription>Unable to load flashcards. Check your connection and try again.</CardDescription>
-          <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+      <EmptyState
+        illustration="connection"
+        title="Flashcards unavailable"
+        description="Unable to load flashcards. Check your connection and try again."
+        action={<Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
             Try again
-          </Button>
-        </CardHeader>
-      </Card>
+          </Button>}
+      />
     );
   }
 
@@ -101,6 +99,7 @@ function FlashcardPageContent() {
           Books
         </Button>
         <EmptyState
+          illustration="books"
           title="No books yet"
           description="Create a book before adding flashcards."
           action={<CreateBookDialog />}

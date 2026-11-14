@@ -42,10 +42,10 @@ export default function SentencePuzzleDemoPage() {
   return (
     <main className="min-h-screen bg-brand-50/50 px-3 py-5 sm:px-6 sm:py-8">
       <div className="mx-auto grid w-full max-w-5xl gap-4">
-        <section className="grid gap-2 rounded-2xl border border-brand-100 bg-card px-4 py-3 shadow-sm sm:px-5">
+        <section className="grid gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm sm:px-5">
           <div className="flex items-center justify-between gap-4 text-sm font-bold sm:text-base">
             <span className="inline-flex min-w-0 items-center gap-2 text-primary">
-              <Icon icon={Star} className="size-5 shrink-0 text-secondary" weight="fill" />
+              <Icon icon={Star} className="size-5 shrink-0 text-primary" weight="fill" />
               <span className="truncate">Stage 6 of 23</span>
             </span>
             <span className="inline-flex shrink-0 items-center gap-1.5 font-extrabold text-primary">
@@ -60,7 +60,7 @@ export default function SentencePuzzleDemoPage() {
           <PracticeEnergyProgress progress={26} segments={23} />
         </section>
 
-        <Card className="overflow-hidden rounded-2xl border border-brand-100 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border border-border shadow-sm">
           <CardHeader className="h-28 px-5 sm:px-6">
             <div className="flex h-full min-w-0 items-start justify-between gap-3">
               <div className="flex min-w-0 gap-3">

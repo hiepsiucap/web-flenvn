@@ -28,6 +28,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
+import { readHomeChatPrompt } from "@/lib/home-chat-entry";
 import { HttpError, http } from "@/lib/http";
 import type { ApiErrorResponse, LoginResponse } from "@/lib/auth-types";
 import { cn } from "@/lib/utils";
@@ -95,7 +96,7 @@ export function LoginForm() {
       setSuccess(response.message ?? "Signed in successfully");
       toast.success(response.message ?? "Signed in successfully");
 
-      window.location.assign("/dashboard");
+      window.location.assign(readHomeChatPrompt() ? "/vocabulary" : "/dashboard");
     } catch (requestError) {
       const message = getErrorMessage(requestError);
       const nextFieldErrors = getFieldErrors(requestError);

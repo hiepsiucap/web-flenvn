@@ -74,7 +74,7 @@ export function DailyGoalCarousel() {
       <Separator className="mb-4" />
       <Link
         href="/review"
-        className="flex w-full flex-1 flex-col items-center px-5 focus-visible:rounded-2xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex w-full flex-1 flex-col items-center px-5 focus-visible:rounded-2xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
         aria-label={`${activeSlide.label}: ${activeSlide.description} Start reviewing.`}
       >
         <div
@@ -109,7 +109,7 @@ export function DailyGoalCarousel() {
           <button
             key={slide.label}
             type="button"
-            className="grid size-5 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="grid size-5 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
             aria-label={`Show ${slide.label}`}
             aria-pressed={index === activeIndex}
             onClick={() => setActiveIndex(index)}

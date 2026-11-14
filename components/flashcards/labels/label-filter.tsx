@@ -82,7 +82,7 @@ export function LabelFilter({ labels, selectedIds, mode, onChange }: {
                     checked={selectedIds.includes(label.id)}
                     onCheckedChange={(checked) => toggleLabel(label.id, checked)}
                     onClick={(event) => event.preventDefault()}
-                    className="[&_[data-slot=dropdown-menu-checkbox-item-indicator]]:size-4 [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:rounded-full [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:border [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:border-input"
+                    className="[&_[data-slot=dropdown-menu-checkbox-item-indicator]]:size-4 [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:rounded-full [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:border [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:border-border"
                   >
                     <span className="min-w-0 flex-1 truncate">{label.name}</span>
                   </DropdownMenuCheckboxItem>
@@ -101,7 +101,7 @@ export function LabelFilter({ labels, selectedIds, mode, onChange }: {
               selected={mode === value}
               onClick={() => onChange(selectedIds, value)}
               className={cn(
-                "h-7 border-0 px-3 capitalize text-muted-foreground shadow-none",
+                "h-7 px-3 capitalize text-muted-foreground shadow-none",
                 mode === value && "bg-primary text-primary-foreground ring-0"
               )}
             >
@@ -112,7 +112,7 @@ export function LabelFilter({ labels, selectedIds, mode, onChange }: {
       ) : null}
 
       {selectedIds.length ? (
-        <Chip onClick={() => onChange([], "any")} className="border-transparent bg-transparent text-muted-foreground">
+        <Chip onClick={() => onChange([], "any")} className="bg-transparent text-muted-foreground">
           <Icon icon={X} size="sm" /> Clear
         </Chip>
       ) : null}

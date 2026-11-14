@@ -55,6 +55,8 @@ export function BooksGrid({
   view?: "grid" | "list";
 }) {
   const [deletingBookId, setDeletingBookId] = useState("");
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const editingBook = books.find((book) => book.id === editingBookId);
 
   async function handleDelete(book: Book) {
     if (books.some((item) => item.parentBookId === book.id)) {
@@ -94,7 +96,7 @@ export function BooksGrid({
           <Link
             href={`/books/${encodeURIComponent(book.id)}`}
             className={cn(
-              "grid gap-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "grid gap-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2",
               view === "grid"
                 ? "p-0"
                 : "grid-cols-[80px_minmax(0,1fr)] p-3 pb-14 sm:grid-cols-[88px_minmax(0,1fr)] sm:gap-4 sm:p-4 sm:pr-32"
@@ -115,7 +117,7 @@ export function BooksGrid({
                 </div>
               )}
               {view === "grid" ? (
-                <div className="absolute inset-x-0 bottom-0 z-10 w-full border-t border-gray-200 bg-background/75 px-3 py-2.5 backdrop-blur-sm dark:border-gray-600">
+                <div className="absolute inset-x-0 bottom-0 z-10 w-full border-t border-border bg-background/75 px-3 py-2.5 backdrop-blur-sm ">
                   <p className="truncate text-sm font-semibold text-foreground">{book.title}</p>
                   <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Icon icon={Layers3} size="sm" />
@@ -168,16 +170,10 @@ export function BooksGrid({
                   </Button>
                 } />
                 <DropdownMenuContent align="end" className="w-36">
-                  <EditBookDialog
-                    book={book}
-                    books={books}
-                    trigger={
-                      <DropdownMenuItem>
-                        <Icon icon={PencilSimple} />
-                        Edit
-                      </DropdownMenuItem>
-                    }
-                  />
+                  <DropdownMenuItem onClick={() => setEditingBookId(book.id)}>
+                    <Icon icon={PencilSimple} />
+                    Edit
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
                     disabled={deletingBookId === book.id}
@@ -218,11 +214,24 @@ export function BooksGrid({
   }
 
   return (
-    <section className={cn(
-      "grid items-start gap-5",
-      view === "grid" && "grid-cols-2 gap-3 lg:grid-cols-4"
-    )}>
-      {visibleBooks.map((book) => renderBookCard(book))}
-    </section>
+    <>
+      <section className={cn(
+        "grid items-start gap-5",
+        view === "grid" && "grid-cols-2 gap-3 lg:grid-cols-4"
+      )}>
+        {visibleBooks.map((book) => renderBookCard(book))}
+      </section>
+      {editingBook ? (
+        <EditBookDialog
+          book={editingBook}
+          books={books}
+          trigger={null}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingBookId(null);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

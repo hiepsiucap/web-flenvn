@@ -16,6 +16,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
 } from "react";
@@ -39,6 +40,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { StateIllustration } from "@/components/ui/state-illustration";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
 import {
@@ -51,6 +53,7 @@ import {
   toChatMessage,
   upsertConversation,
 } from "@/lib/conversational-chat";
+import { clearHomeChatPrompt, readHomeChatPrompt } from "@/lib/home-chat-entry";
 import { HttpError, http } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +74,6 @@ type MessageResponse = {
   model: string | null;
 };
 
-type ResponseLanguage = "vi" | "en";
 
 const STARTER_PROMPTS = [
   "Explain the present perfect with simple examples.",
@@ -118,8 +120,6 @@ export function VocabularyChat() {
   >(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [responseLanguage, setResponseLanguage] =
-    useState<ResponseLanguage>("en");
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -130,11 +130,14 @@ export function VocabularyChat() {
   const [deleteError, setDeleteError] = useState("");
   const activeConversationRef = useRef<string | null>(null);
   const messageRequestRef = useRef(0);
+  const newConversationRef = useRef<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   const activeConversation = conversations.find(
     (conversation) => conversation.id === activeConversationId,
   );
+
+  const sendHomeMessage = useEffectEvent((text: string) => { void sendMessage(text); });
 
   useEffect(() => {
     let active = true;
@@ -148,7 +151,15 @@ export function VocabularyChat() {
         if (!active) return;
         const items = unwrap(response).conversations;
         setConversations(items);
-        if (items[0]) setResponseLanguage(items[0].targetLanguage === "vi" ? "vi" : "en");
+        const homePrompt = readHomeChatPrompt();
+        if (homePrompt) {
+          clearHomeChatPrompt();
+          activeConversationRef.current = null;
+          setActiveConversationId(null);
+          setMessages([]);
+          sendHomeMessage(homePrompt);
+          return;
+        }
         if (items.length) setLoadingMessages(true);
         setActiveConversationId((current) => {
           const next =
@@ -176,6 +187,11 @@ export function VocabularyChat() {
 
   useEffect(() => {
     if (!activeConversationId) {
+      return;
+    }
+
+    if (newConversationRef.current === activeConversationId) {
+      newConversationRef.current = null;
       return;
     }
 
@@ -208,7 +224,6 @@ export function VocabularyChat() {
     activeConversationRef.current = conversation.id;
     setActiveConversationId(conversation.id);
     setLoadingMessages(true);
-    setResponseLanguage(conversation.targetLanguage === "en" ? "en" : "vi");
     setMessages([]);
     setDraft("");
     setError("");
@@ -220,29 +235,8 @@ export function VocabularyChat() {
     setActiveConversationId(null);
     setMessages([]);
     setLoadingMessages(false);
-    setResponseLanguage("en");
     setDraft("");
     setError("");
-  }
-
-  async function updateResponseLanguage(value: ResponseLanguage) {
-    setResponseLanguage(value);
-    if (!activeConversationId) return;
-
-    try {
-      const response = await http.patch<
-        ApiEnvelope<ChatConversation> | ChatConversation
-      >(`/api/ai/conversations/${activeConversationId}`, {
-        targetLanguage: value,
-      });
-      setConversations((current) =>
-        upsertConversation(current, unwrap(response)),
-      );
-    } catch (cause) {
-      setError(
-        getErrorMessage(cause, "Could not update the response language."),
-      );
-    }
   }
 
   async function sendMessage(
@@ -276,9 +270,10 @@ export function VocabularyChat() {
       if (!conversationId) {
         const response = await http.post<
           ApiEnvelope<ChatConversation> | ChatConversation
-        >("/api/ai/conversations", { targetLanguage: responseLanguage });
+        >("/api/ai/conversations", { targetLanguage: "en" });
         conversation = unwrap(response);
         conversationId = conversation.id;
+        newConversationRef.current = conversationId;
         activeConversationRef.current = conversationId;
         setActiveConversationId(conversationId);
         setConversations((current) =>
@@ -343,8 +338,6 @@ export function VocabularyChat() {
         setActiveConversationId(next?.id ?? null);
         setMessages([]);
         setLoadingMessages(false);
-        if (next)
-          setResponseLanguage(next.targetLanguage === "en" ? "en" : "vi");
       }
       setConversationToDelete(null);
     } catch (cause) {
@@ -485,26 +478,9 @@ export function VocabularyChat() {
           </Button>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <Select
-              value={responseLanguage}
-              onValueChange={(value) => {
-                if (value === "vi" || value === "en")
-                  void updateResponseLanguage(value);
-              }}
-            >
-              <SelectTrigger className="h-9 w-auto min-w-32 border-0 bg-muted/20">
-                {responseLanguage === "vi" ? "Vietnamese" : "English"}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vi">Vietnamese</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-              </SelectContent>
-            </Select>
-
             <CollectVocabularyDialog
               conversationId={activeConversationId}
               conversationRevision={messages.findLast((message) => message.status === "sent")?.id ?? null}
-              language={responseLanguage}
               disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
               triggerClassName="h-9"
             />
@@ -546,28 +522,9 @@ export function VocabularyChat() {
             </Select>
 
             <div className="flex items-center gap-2">
-              <Select
-                value={responseLanguage}
-                onValueChange={(value) => {
-                  if (value === "vi" || value === "en") {
-                    void updateResponseLanguage(value);
-                    setMobileDetailsOpen(false);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 min-w-0 flex-1 border-0 bg-muted/20">
-                  {responseLanguage === "vi" ? "Vietnamese" : "English"}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vi">Vietnamese</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-
               <CollectVocabularyDialog
                 conversationId={activeConversationId}
                 conversationRevision={messages.findLast((message) => message.status === "sent")?.id ?? null}
-                language={responseLanguage}
                 disabled={!activeConversationId || loadingMessages || !messages.some((message) => message.status === "sent")}
                 triggerClassName="h-9 shrink-0"
               />
@@ -617,7 +574,7 @@ export function VocabularyChat() {
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground",
                       message.status === "failed" &&
-                        "border border-destructive/40",
+                        "border border-border",
                     )}
                   >
                     {message.role === "assistant" ? (
@@ -666,12 +623,7 @@ export function VocabularyChat() {
             </div>
           ) : (
             <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center justify-center px-5 py-10 text-center">
-              <span className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground">
-                <Icon
-                  icon={ChatCircleText}
-                  size="lg"
-                />
-              </span>
+              <StateIllustration kind={error ? "connection" : "books"} />
               <h2 className="mt-4 text-2xl font-semibold">
                 How can I help you learn English?
               </h2>
@@ -714,6 +666,7 @@ export function VocabularyChat() {
             onSubmit={handleSubmit}
           >
             <Textarea
+              autoFocus
               aria-label="Message Gemini"
               value={draft}
               maxLength={5000}

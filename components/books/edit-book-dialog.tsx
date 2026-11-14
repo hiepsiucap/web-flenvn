@@ -62,14 +62,20 @@ export function EditBookDialog({
   showLabel = false,
   compactOnMobile = false,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   book: Book;
   books: Book[];
   showLabel?: boolean;
   compactOnMobile?: boolean;
-  trigger?: ReactElement;
+  trigger?: ReactElement | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+
   const [title, setTitle] = useState(book.title);
   const [parentBookId, setParentBookId] = useState(book.parentBookId ?? "");
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -86,6 +92,12 @@ export function EditBookDialog({
       if (coverPreview) URL.revokeObjectURL(coverPreview);
     };
   }, [coverPreview]);
+
+
+  function setOpen(nextOpen: boolean) {
+    setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  }
 
   function clearCoverFile() {
     setCoverFile(null);
@@ -158,7 +170,7 @@ export function EditBookDialog({
 
   return (
     <Modal open={open} onOpenChange={handleOpenChange}>
-      <ModalTrigger render={trigger ??
+      {trigger !== null ? <ModalTrigger render={trigger ??
         <Button
           type="button"
           variant={showLabel ? "outline" : "secondary"}
@@ -171,7 +183,7 @@ export function EditBookDialog({
           <Icon icon={PencilSimple} />
           {showLabel ? <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Edit</span> : null}
         </Button>
-      } />
+      } /> : null}
       <ModalContent className="sm:max-w-md">
         <ModalHeader>
           <ModalTitle>Edit book</ModalTitle>

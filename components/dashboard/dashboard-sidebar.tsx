@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import logo from "@/img/new-logo.png";
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ onFeedbackClick }: { onFeedbackClick: () => void }) {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground lg:flex lg:flex-col">
       <Link href="/dashboard" className="flex items-center gap-3 px-2">
@@ -27,7 +27,12 @@ export function DashboardSidebar() {
 
       <Separator className="my-5" />
       <SidebarNav items={dashboardNavItems} />
-      <DailyGoalCarousel />
+      <div className="mt-auto flex flex-col">
+        <button type="button" onClick={onFeedbackClick} className="mb-3 w-fit px-3 text-left text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          Feedback &amp; reports
+        </button>
+        <DailyGoalCarousel />
+      </div>
     </aside>
   );
 }

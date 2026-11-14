@@ -4,6 +4,7 @@ import type { Flashcard } from "./dashboard-data";
 import {
   calculateGameScore,
   createPracticeGames,
+  selectPracticeCards,
   createSentencePuzzleTokens,
   GAME_TIME_LIMIT_MS,
   mixPracticeSteps,
@@ -95,5 +96,32 @@ describe("sentence puzzle", () => {
         (game) => game.type === "sentence-puzzle"
       )
     ).toBe(false);
+  });
+});
+
+describe("custom practice selection", () => {
+  const cards: Flashcard[] = [
+    { id: "a", word: "apple", definition: "A fruit", status: "mastered", bookId: "parent" },
+    { id: "b", word: "water", definition: "A liquid", status: "new", bookId: "child" },
+  ];
+
+  it("generates practice only for chosen words, including mastered words", () => {
+    const chosen = selectPracticeCards(cards, ["a"]);
+    const games = chosen.flatMap((card) => createPracticeGames(card, cards));
+    expect(chosen.map((card) => card.id)).toEqual(["a"]);
+    expect(games.length).toBeGreaterThan(0);
+    expect(games.every((game) => game.flashcardId === "a")).toBe(true);
+  });
+
+  it("does not start with an empty selection", () => {
+    expect(selectPracticeCards(cards, [])).toEqual([]);
+  });
+
+  it("ignores selections from another book or a deleted card", () => {
+    expect(selectPracticeCards(cards, ["b", "unknown"]).map((card) => card.id)).toEqual(["b"]);
+  });
+
+  it("does not practice duplicate card IDs twice", () => {
+    expect(selectPracticeCards([...cards, cards[0]], ["a", "a"]).map((card) => card.id)).toEqual(["a"]);
   });
 });

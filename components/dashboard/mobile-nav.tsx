@@ -42,7 +42,7 @@ function isCurrent(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 }
 
-export function MobileNav() {
+export function MobileNav({ onFeedbackClick = () => {} }: { onFeedbackClick?: () => void } = {}) {
   const pathname = usePathname();
   const secondary = dashboardNavItems.filter((item) => item.icon in secondaryIcons);
   const currentSecondary = secondary.find((item) => isCurrent(pathname, item.href));
@@ -62,7 +62,7 @@ export function MobileNav() {
               href={href}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-border",
                 current && "text-primary"
               )}
             >
@@ -75,7 +75,7 @@ export function MobileNav() {
           <DropdownMenuTrigger
             aria-label={currentSecondary ? `More destinations, current page ${currentSecondary.label}` : "More destinations"}
             className={cn(
-              "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+              "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-border",
               moreIsCurrent && "text-primary"
             )}
           >
@@ -96,6 +96,9 @@ export function MobileNav() {
                 </DropdownMenuItem>
               );
             })}
+            <DropdownMenuItem onClick={onFeedbackClick} className="min-h-11 px-3 text-sm">
+              Feedback &amp; reports
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -10,11 +10,11 @@ export function LevelUpPanel({
 }) {
   return (
     <div className="grid justify-items-center gap-4 text-center">
-      <div className="relative grid size-24 place-items-center rounded-full border border-brand-200 bg-brand-50 text-primary">
+      <div className="relative grid size-24 place-items-center rounded-full border border-border bg-brand-50 text-primary">
         <Icon icon={ArrowUp} className="size-12" weight="bold" />
         <Icon
           icon={Sparkle}
-          className="absolute -right-1 top-1 size-6 text-secondary"
+          className="absolute -right-1 top-1 size-6 text-primary"
           weight="fill"
         />
       </div>

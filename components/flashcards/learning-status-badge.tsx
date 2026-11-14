@@ -3,13 +3,13 @@ import type { FlashcardStatus } from "@/lib/dashboard-data";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<FlashcardStatus, string> = {
-  new: "border-status-new-foreground/20 bg-status-new text-status-new-foreground",
+  new: "bg-status-new text-status-new-foreground",
   learning:
-    "border-status-learning-foreground/20 bg-status-learning text-status-learning-foreground",
+    "bg-status-learning text-status-learning-foreground",
   reviewing:
-    "border-label-cefr-independent-foreground/20 bg-label-cefr-independent text-label-cefr-independent-foreground",
+    "bg-label-cefr-independent text-label-cefr-independent-foreground",
   mastered:
-    "border-status-mastered-foreground/20 bg-status-mastered text-status-mastered-foreground",
+    "bg-status-mastered text-status-mastered-foreground",
 };
 
 export function LearningStatusBadge({

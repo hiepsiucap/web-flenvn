@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BookOpen,
   GameController,
+  SlidersHorizontal,
   ListBullets,
   MagnifyingGlass,
   SquaresFour,
@@ -52,6 +53,7 @@ export function FlashcardBookView({
 }) {
   const [selectedLabelIds, setSelectedLabelIds] = useState(initialLabelIds);
   const [labelMode, setLabelMode] = useState(initialLabelMode);
+  const [filtersOpen, setFiltersOpen] = useState(initialLabelIds.length > 0);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -129,55 +131,65 @@ export function FlashcardBookView({
   }
 
   return (
-    <div className="grid w-full gap-5 pb-20 sm:gap-6 lg:pb-0">
-      <section className="grid gap-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-          <Button
-            render={<Link href={parentBook ? `/books/${encodeURIComponent(parentBook.id)}` : "/books"} />}
-            nativeButton={false}
-            variant="outline"
-            size="icon-lg"
-            className="shrink-0 rounded-2xl"
-          >
-            <Icon icon={ArrowLeft} />
-            <span className="sr-only">{parentBook ? parentBook.title : "Books"}</span>
-          </Button>
-            <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-2xl bg-secondary text-primary">
-              {book?.coverImage ? (
-                <span
-                  className="size-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${book.coverImage})` }}
-                />
-              ) : (
-                <Icon icon={BookOpen} className="size-6" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              {parentBook ? (
-                <Link
-                  href={`/books/${encodeURIComponent(parentBook.id)}`}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  {parentBook.title} / Sub-book
-                </Link>
-              ) : null}
-              <h1 className="min-w-0 max-w-full overflow-hidden">
-                <Text
-                  as="span"
-                  className="block w-full overflow-hidden text-ellipsis whitespace-nowrap text-xl sm:text-3xl"
-                  weight="semibold"
-                  title={book?.title ?? "Selected book"}
-                >
-                  {book?.title ?? "Selected book"}
-                </Text>
-              </h1>
-              {book?.description ? (
-                <Text className="mt-1 max-w-full truncate" size="sm" tone="muted" title={book.description}>
-                  {book.description}
-                </Text>
-              ) : null}
-            </div>
+    <div className="grid w-full gap-3 pb-20 sm:gap-4 lg:pb-0">
+      <section className="flex min-w-0 items-center gap-2">
+        <Button
+          render={<Link href={parentBook ? `/books/${encodeURIComponent(parentBook.id)}` : "/books"} />}
+          nativeButton={false}
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
+        >
+          <Icon icon={ArrowLeft} />
+          <span className="sr-only">{parentBook ? parentBook.title : "Books"}</span>
+        </Button>
+        {book?.coverImage ? (
+          <span
+            className="hidden size-8 shrink-0 rounded-lg bg-card bg-cover bg-center sm:block"
+            style={{ backgroundImage: `url(${book.coverImage})` }}
+            aria-hidden="true"
+          />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          {parentBook ? (
+            <Link href={`/books/${encodeURIComponent(parentBook.id)}`} className="block truncate text-xs text-muted-foreground hover:text-foreground">
+              {parentBook.title} / Sub-book
+            </Link>
+          ) : null}
+          <h1 className="truncate text-base font-semibold sm:text-xl" title={book?.title ?? "Selected book"}>
+            {book?.title ?? "Selected book"}
+          </h1>
+          {book?.description ? (
+            <p className="hidden truncate text-xs text-muted-foreground sm:block" title={book.description}>{book.description}</p>
+          ) : null}
+        </div>
+        {book && isOwnedBook ? (
+          <CreateFlashcardDialog books={books} defaultBookId={book.id} triggerLabel="Add card" triggerClassName="h-9 shrink-0 rounded-full px-3" />
+        ) : null}
+      </section>
+
+      <section
+        aria-label="Flashcard controls"
+        className="sticky top-0 z-30 -mx-4 grid gap-2 bg-background px-4 pb-2 pt-[calc(env(safe-area-inset-top)+.5rem)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Icon
+              icon={MagnifyingGlass}
+              size="sm"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              placeholder="Search cards…"
+              aria-label="Search flashcards"
+              className="h-10 rounded-full bg-card py-1 pl-10 pr-4 shadow-none dark:bg-card"
+            />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {book ? (
@@ -193,46 +205,26 @@ export function FlashcardBookView({
               </Button>
             ) : null}
             {book && isOwnedBook ? (
-              <EditBookDialog book={book} books={books} showLabel compactOnMobile />
+              <EditBookDialog book={book} books={books} />
             ) : null}
-            {book && isOwnedBook ? (
-              <div className="hidden sm:block">
-                <CreateFlashcardDialog books={books} defaultBookId={book?.id} />
-              </div>
-            ) : null}
+            <Button
+              type="button"
+              variant={selectedLabelIds.length || sortOrder !== "newest" ? "secondary" : "outline"}
+              size="sm"
+              className="h-10 gap-1.5 px-3"
+              aria-label={selectedLabelIds.length ? `Filters (${selectedLabelIds.length} selected)` : "Filters"}
+              aria-expanded={filtersOpen}
+              aria-controls="flashcard-filter-options"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              <Icon icon={SlidersHorizontal} />
+              <span className="hidden sm:inline">Filters</span>
+              {selectedLabelIds.length ? <span>{selectedLabelIds.length}</span> : null}
+            </Button>
           </div>
         </div>
-
-        {book && isOwnedBook ? (
-          <div className="sm:hidden">
-            <CreateFlashcardDialog
-              books={books}
-              defaultBookId={book.id}
-              triggerClassName="w-full rounded-full"
-            />
-          </div>
-        ) : null}
-
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <div className="relative min-w-0 flex-1">
-            <Icon
-              icon={MagnifyingGlass}
-              size="sm"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => {
-                setSearchQuery(event.target.value);
-                setVisibleCount(PAGE_SIZE);
-              }}
-              placeholder="Search flashcards (e.g. API, database, cloud...)"
-              aria-label="Search flashcards"
-              className="h-11 rounded-full bg-card py-1 pl-10 pr-4 shadow-none sm:h-10 dark:bg-card"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        {filtersOpen ? (
+          <div id="flashcard-filter-options" className="flex flex-wrap items-center gap-2">
             <LabelFilter
               labels={labels}
               selectedIds={selectedLabelIds}
@@ -275,10 +267,10 @@ export function FlashcardBookView({
               </Button>
             </div>
           </div>
-        </div>
+        ) : null}
       </section>
 
-      {book && !book.parentBookId && isOwnedBook ? (
+      {book && !book.parentBookId && isOwnedBook ? (subBooks.length ? (
         <section aria-labelledby="sub-books-title" className="grid gap-3">
           <h2 id="sub-books-title">
             <Text as="span" size="lg" weight="semibold">
@@ -290,7 +282,7 @@ export function FlashcardBookView({
               <Link
                 key={child.id}
                 href={`/books/${encodeURIComponent(child.id)}`}
-                className="flex min-w-48 shrink-0 items-center gap-3 rounded-3xl bg-card p-2 pr-4 shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-w-48 shrink-0 items-center gap-3 rounded-3xl bg-card p-2 pr-4 shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
               >
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-primary">
                   {child.coverImage ? (
@@ -316,7 +308,14 @@ export function FlashcardBookView({
             />
           </div>
         </section>
-      ) : null}
+      ) : (
+        <CreateBookDialog
+          books={books}
+          defaultParentBookId={book.id}
+          triggerLabel="Add sub-book"
+          triggerClassName="h-9 w-fit rounded-full border-0 bg-card px-4 hover:bg-muted"
+        />
+      )) : null}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2>
@@ -341,6 +340,7 @@ export function FlashcardBookView({
         />
       ) : (
         <EmptyState
+          illustration={selectedLabelIds.length || searchQuery ? "search" : "books"}
           variant={subBooks.length ? "panel" : "page"}
           title={selectedLabelIds.length || searchQuery ? "No matching flashcards" : "No flashcards in this book"}
           description={selectedLabelIds.length || searchQuery

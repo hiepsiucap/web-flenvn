@@ -27,6 +27,11 @@ describe("VocabularyChat surface", () => {
     expect(html).not.toContain(">Vietnamese</button>");
   });
 
+  it("does not offer a reply-language selector", () => {
+    const html = renderToStaticMarkup(<VocabularyChat />);
+    expect(html).not.toContain('role="combobox"');
+  });
+
   it("adds vertical breathing room around typed text", () => {
     expect(CHAT_COMPOSER_INPUT_CLASS).toContain("pt-3");
   });
@@ -89,9 +94,12 @@ describe("VocabularyChat surface", () => {
   it("uses borderless chat controls", () => {
     const html = renderToStaticMarkup(<VocabularyChat />);
 
-    expect(html).not.toContain("border-border bg-background");
-    expect(html).not.toContain("border-input bg-transparent");
-    expect(html).not.toContain("border-border/30");
+    // Border colors can be inherited from shared controls without adding width.
+    const composerClasses = html.match(/<textarea[^>]*class="([^"]*)"/)?.[1] ?? "";
+    const newChatClasses = html.match(/<button[^>]*class="([^"]*)"[^>]*>[\s\S]*?New chat<\/button>/)?.[1] ?? "";
+
+    expect(composerClasses.split(" ")).toContain("border-0");
+    expect(newChatClasses.split(" ")).toContain("border-0");
   });
 
   it("does not display provider branding in the chat header", () => {

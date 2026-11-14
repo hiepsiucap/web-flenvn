@@ -1,20 +1,21 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { HomeChatInput } from "@/components/home/home-chat-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { FloatingAiChat } from "@/components/support/floating-ai-chat";
+import { FeedbackReportDialog } from "@/components/support/feedback-report-dialog";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
 import { RankProgressDialog } from "@/components/dashboard/rank-progress-dialog";
 import { StreakProvider } from "@/components/streak/streak-provider";
 import { StreakTopbar } from "@/components/streak/streak-topbar";
-import penguinTopbar from "@/img/peguin-topbar.png";
 import {
   CLIENT_DATA_CHANGED_EVENT,
   getDashboardShellDataClient,
@@ -36,10 +37,12 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const isHome = pathname === "/" || pathname === "/dashboard";
+  const hasFlashcardToolbar = pathname === "/flashcards" || pathname.startsWith("/books/");
   const isImmersive = isImmersiveDashboardRoute(pathname);
   const [user, setUser] = useState<ClientDashboardShellData | null>(null);
   const [loadError, setLoadError] = useState("");
   const [loadKey, setLoadKey] = useState(0);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (!window.localStorage.getItem("accessToken")) {
@@ -81,21 +84,15 @@ export function DashboardShell({
         isImmersive ? IMMERSIVE_DASHBOARD_ROOT : "min-h-screen",
       )}
     >
-      <DashboardSidebar />
+      <DashboardSidebar onFeedbackClick={() => setFeedbackOpen(true)} />
 
       <div className="lg:pl-64">
-        <header className={cn("sticky top-0 z-(--z-layout-topbar) bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur", !isImmersive && "pb-2.5", !isHome && "hidden lg:block")}>
-          <div className="relative bg-card shadow-sm shadow-foreground/5 ring-1 ring-foreground/5">
+        <header className={cn("z-(--z-layout-topbar) bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur", hasFlashcardToolbar ? "relative" : "sticky top-0", !isImmersive && "pb-2.5", !isHome && "hidden lg:block")}>
+          <div className="relative bg-card shadow-sm shadow-foreground/5 ring-1 ring-border">
             <div className="relative flex min-h-14 items-center justify-between gap-2 px-3 py-2 sm:min-h-16 sm:gap-4 sm:px-6 sm:py-2.5 lg:min-h-18">
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                <Image
-                  src={penguinTopbar}
-                  alt="FLEN penguin"
-                  className="hidden size-12 shrink-0 object-contain lg:block"
-                  priority
-                />
                 <Text as="div" className="truncate text-base font-extrabold tracking-normal lg:hidden">
-                  Today&apos;s review
+                  FLENVN
                 </Text>
                 {user ? (
                   <div className="hidden min-w-0 lg:block">
@@ -153,6 +150,7 @@ export function DashboardShell({
             isImmersive && `overflow-hidden ${IMMERSIVE_DASHBOARD_PADDING}`,
           )}
         >
+          {isHome ? <HomeChatInput compact /> : null}
           {loadError ? (
             <Alert className="mb-4">
               <AlertTitle>Learning data unavailable</AlertTitle>
@@ -168,8 +166,10 @@ export function DashboardShell({
         </main>
       </div>
       {shouldShowMobileDashboardNavigation(pathname) ? (
-        <MobileNav />
+        <MobileNav onFeedbackClick={() => setFeedbackOpen(true)} />
       ) : null}
+      {pathname !== "/vocabulary" ? <FloatingAiChat /> : null}
+      <FeedbackReportDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
     </StreakProvider>
   );

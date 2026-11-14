@@ -24,13 +24,16 @@ import { toast } from "react-toastify";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tag } from "@/components/ui/tag";
 import { ProgressCelebration } from "@/components/progress/progress-celebration";
+import { ListeningGame } from "@/components/practice/listening-game";
+import { SpeakingGame } from "@/components/practice/speaking-game";
+import { PracticeGamePicker } from "@/components/practice/practice-game-picker";
+import { PracticeWordPicker } from "@/components/practice/practice-word-picker";
 import { PracticeEnergyProgress } from "@/components/practice/practice-energy-progress";
 import { SentencePuzzle } from "@/components/practice/sentence-puzzle";
 import { StreakCompletionDialog } from "@/components/streak/streak-completion-dialog";
@@ -44,21 +47,21 @@ import {
 import { HttpError, http } from "@/lib/http";
 import { playGameSound, preloadGameSounds } from "@/lib/game-audio";
 import type { ApiErrorResponse, ApiEnvelope } from "@/lib/auth-types";
-import type { Flashcard, ReviewDueBook, UserProfile } from "@/lib/dashboard-data";
+import type { Book, Flashcard, ReviewDueBook, UserProfile } from "@/lib/dashboard-data";
 import type { SessionResponse, StreakProgress } from "@/lib/streak-types";
 import {
   createProgressTransition,
   type ProgressTransition,
 } from "@/lib/progress-transition";
 import { cn } from "@/lib/utils";
-import { notifyClientDataChanged } from "@/lib/client-api";
-import penguinPlayGame from "@/img/penguin-playgame.png";
+import { getFlashcardsByBookClient, notifyClientDataChanged } from "@/lib/client-api";
 import practiceCompletePenguin from "@/img/practice-complete-penguin.png";
 import {
   blankWord,
   calculateGameScore,
   calculateQuality,
   createPracticeGames,
+  selectPracticeCards,
   GAME_TIME_LIMIT_MS,
   isCorrectAnswer,
   isCorrectSentence,
@@ -101,10 +104,6 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function getCardList(data: ApiEnvelope<Flashcard[]> | Flashcard[]) {
-  return Array.isArray(data) ? data : data.data;
-}
-
 function getProfileData(data: ApiEnvelope<UserProfile> | UserProfile) {
   return "success" in data ? data.data : data;
 }
@@ -126,16 +125,47 @@ function isTypingTarget(target: EventTarget | null) {
 
 export function PracticeRunner({
   books,
-  flashcardPool,
+  bookHierarchy,
 }: {
   books: ReviewDueBook[];
-  flashcardPool: Flashcard[];
+  bookHierarchy: Book[];
 }) {
   const { applyStreakProgress, refreshStreak } = useStreak();
-  const firstBook = books.find((book) => book.dueForReview > 0) ?? books[0];
+  const getBookScope = (id: string) => {
+    const ids = new Set([id]);
+    let previousSize = 0;
+    while (ids.size !== previousSize) {
+      previousSize = ids.size;
+      for (const book of bookHierarchy) {
+        if (book.parentBookId && ids.has(book.parentBookId)) ids.add(book.id);
+      }
+    }
+    return books.filter((book) => ids.has(getReviewBookId(book)));
+  };
+  const getDueCount = (id: string) => getBookScope(id).reduce((sum, book) => sum + book.dueForReview, 0);
+  const firstBook = books.find((book) => getDueCount(getReviewBookId(book)) > 0) ?? books[0];
   const [bookId, setBookId] = useState(getReviewBookId(firstBook) ?? "");
   const selectedBook = books.find((book) => getReviewBookId(book) === bookId);
-  const [limit, setLimit] = useState(Math.min(selectedBook?.dueForReview ?? 0, 6) || 1);
+  const scopedBooks = getBookScope(bookId);
+  const scopedDue = scopedBooks.reduce((sum, book) => sum + book.dueForReview, 0);
+  const scopedTotal = scopedBooks.reduce((sum, book) => sum + book.totalCards, 0);
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
+  const [listeningCards, setListeningCards] = useState<Flashcard[]>([]);
+  const [speakingCards, setSpeakingCards] = useState<Flashcard[]>([]);
+  const [gameChoices, setGameChoices] = useState<{ cards: Flashcard[]; steps: PracticeStep[] } | null>(null);
+  const gameCounts = useMemo(() => {
+    const counts: Partial<Record<PracticeGame["type"], number>> = {};
+    for (const step of gameChoices?.steps ?? []) counts[step.game.type] = (counts[step.game.type] ?? 0) + 1;
+    return counts;
+  }, [gameChoices]);
+  const [practiceMode, setPracticeMode] = useState<"due" | "custom">(books.some((book) => book.dueForReview > 0) ? "due" : "custom");
+  const [selectedWordIds, setSelectedWordIds] = useState<string[]>([]);
+  const [wordChoices, setWordChoices] = useState<{ scope: string; cards: Flashcard[]; error: string } | null>(null);
+  const [reloadWords, setReloadWords] = useState(0);
+  const wordScope = scopedBooks.map(getReviewBookId).sort().join(",");
+  const currentWordChoices = wordChoices?.scope === wordScope ? wordChoices : null;
+  const chosenCards = selectPracticeCards(currentWordChoices?.cards ?? [], selectedWordIds);
+  const [limit, setLimit] = useState(Math.min(getDueCount(getReviewBookId(firstBook)), 6) || 1);
   const [message, setMessage] = useState("");
   const [steps, setSteps] = useState<PracticeStep[]>([]);
   const [index, setIndex] = useState(0);
@@ -164,9 +194,20 @@ export function PracticeRunner({
   const completedGames = Object.values(results).flat();
   const totalCorrect = completedGames.filter((item) => item.result === "correct").length;
   const liveScore = completedGames.reduce((total, item) => total + item.score, 0);
-  const totalDue = books.reduce((total, book) => total + book.dueForReview, 0);
-  const totalCards = books.reduce((total, book) => total + book.totalCards, 0);
-  const countOptions = getPracticeCountOptions(selectedBook?.dueForReview ?? 0);
+  const countOptions = getPracticeCountOptions(scopedDue);
+
+  useEffect(() => {
+    if (practiceMode !== "custom" || !wordScope) return;
+    let active = true;
+    void Promise.all(wordScope.split(",").map(async (id) => (await getFlashcardsByBookClient(id)).map((card) => ({ ...card, bookId: id }))))
+      .then((groups) => {
+        if (active) setWordChoices({ scope: wordScope, cards: mergeCards([], groups.flat()), error: "" });
+      })
+      .catch((error) => {
+        if (active) setWordChoices({ scope: wordScope, cards: [], error: getErrorMessage(error, "Unable to load practice words") });
+      });
+    return () => { active = false; };
+  }, [practiceMode, wordScope, reloadWords]);
 
   useEffect(() => {
     preloadGameSounds();
@@ -207,55 +248,57 @@ export function PracticeRunner({
   async function startPractice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedBook || selectedBook.dueForReview <= 0) {
+    if (!selectedBook || (practiceMode === "due" && scopedDue <= 0)) {
       setMessage("Choose a book with due cards.");
       toast.error("Choose a book with due cards");
       return;
     }
 
+    if (practiceMode === "custom" && !chosenCards.length) {
+      setMessage("Choose at least one word to practice.");
+      return;
+    }
+
     setMessage("");
+    setGameChoices(null);
+    setGamePickerOpen(true);
     setIsLoading(true);
 
     try {
-      const [response, profileBefore] = await Promise.all([
-        http.get<ApiEnvelope<Flashcard[]> | Flashcard[]>(
-          "/api/flashcards/review/due",
-          {
-            query: {
-              bookId,
-              limit: Math.min(limit, selectedBook.dueForReview),
-            },
-          }
-        ),
+      const [responses, pools, profileBefore] = await Promise.all([
+        practiceMode === "due" ? Promise.all(scopedBooks.filter((book) => book.dueForReview > 0).map(async (book) => {
+          const sourceBookId = getReviewBookId(book);
+          const response = await http.get<ApiEnvelope<Flashcard[]> | Flashcard[]>("/api/flashcards/review/due", {
+            query: { bookId: sourceBookId, limit: Math.min(limit, book.dueForReview) },
+          });
+          const cards = Array.isArray(response) ? response : response.data;
+          return (cards ?? []).map((card) => ({ ...card, bookId: sourceBookId }));
+        })) : Promise.resolve([] as Flashcard[][]),
+        practiceMode === "due"
+          ? Promise.all(scopedBooks.map((book) => getFlashcardsByBookClient(getReviewBookId(book))))
+          : Promise.resolve([currentWordChoices?.cards ?? []]),
         http
           .get<ApiEnvelope<UserProfile> | UserProfile>("/api/users/profile")
           .then(getProfileData)
           .catch(() => null),
       ]);
-      const dueCards = getCardList(response) ?? [];
-      const pool = mergeCards(dueCards, flashcardPool);
+      const practiceCards = practiceMode === "custom" ? chosenCards : Array.from(new Map(responses.flat()
+        .slice(0, limit).map((card) => [card.id, card])).values());
+      const pool = mergeCards(practiceCards, pools.flat());
       const nextSteps = mixPracticeSteps(
-        dueCards.flatMap((card) =>
+        practiceCards.flatMap((card) =>
           createPracticeGames(card, pool).map((game) => ({ card, game }))
         )
       );
 
-      if (!dueCards.length) {
+      if (!practiceCards.length) {
         setMessage("No due flashcards were returned for this book.");
         toast.error("No due flashcards were returned");
         return;
       }
 
-      if (!nextSteps.length) {
-        setMessage("These due cards do not have enough definition, example, image, or audio data yet.");
-        toast.error("No playable games found for these cards");
-        return;
-      }
-
-      preloadMedia(dueCards);
       profileBeforeRef.current = profileBefore;
-      setReviewCards(dueCards);
-      setReviewSteps(nextSteps);
+      setGameChoices({ cards: practiceCards, steps: nextSteps });
       setReviewIndex(0);
       setIsReviewFlipped(false);
       setSteps([]);
@@ -276,6 +319,34 @@ export function PracticeRunner({
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const speakingChoices = (gameChoices?.cards ?? []).filter((card) => card.example?.trim());
+
+  function choosePracticeGame(type: PracticeGame["type"] | "all" | "speaking" | "listening") {
+    if (!gameChoices) return;
+    if (type === "listening") {
+      setListeningCards(gameChoices.cards);
+      setGamePickerOpen(false);
+      setGameChoices(null);
+      return;
+    }
+    if (type === "speaking") {
+      if (!speakingChoices.length) return;
+      setSpeakingCards(speakingChoices);
+      setGamePickerOpen(false);
+      setGameChoices(null);
+      return;
+    }
+    const selectedSteps = gameChoices.steps.filter((step) => type === "all" || step.game.type === type);
+    if (!selectedSteps.length) return;
+    const selectedIds = new Set(selectedSteps.map((step) => step.card.id));
+    const cards = gameChoices.cards.filter((card) => selectedIds.has(card.id));
+    preloadMedia(cards);
+    setReviewCards(cards);
+    setReviewSteps(selectedSteps);
+    setGamePickerOpen(false);
+    setGameChoices(null);
   }
 
   const startGameFromReview = useCallback(function startGameFromReview() {
@@ -334,13 +405,20 @@ export function PracticeRunner({
     const nextSummary = summarizeResults(nextResults);
 
     try {
-      const sessionResponse = await http.post<ApiEnvelope<SessionResponse> | SessionResponse>("/api/sessions/practice", {
-        bookId: selectedBook.bookId,
-        durationMs: Math.round(getNow() - runStartedAt),
-        flashcards,
-      });
-      const sessionData = "data" in sessionResponse ? sessionResponse.data : sessionResponse;
-      if (sessionData.streakProgress) {
+      const byBook = new Map<string, PracticeFlashcardResult[]>();
+      for (const result of flashcards) {
+        const card = reviewCards.find((item) => item.id === result.flashcardId);
+        const cardBookId = card?.bookId ?? selectedBook.bookId;
+        byBook.set(cardBookId, [...(byBook.get(cardBookId) ?? []), result]);
+      }
+      for (const [cardBookId, bookResults] of byBook) {
+        const sessionResponse = await http.post<ApiEnvelope<SessionResponse> | SessionResponse>("/api/sessions/practice", {
+          bookId: cardBookId,
+          durationMs: Math.round(getNow() - runStartedAt),
+          flashcards: bookResults,
+        });
+        const sessionData = "data" in sessionResponse ? sessionResponse.data : sessionResponse;
+        if (!sessionData.streakProgress) continue;
         applyStreakProgress(sessionData.streakProgress);
         if (sessionData.streakProgress.justCompleted) setStreakCompletion(sessionData.streakProgress);
         void refreshStreak();
@@ -545,6 +623,9 @@ export function PracticeRunner({
     reviewIndex,
   ]);
 
+  if (listeningCards.length) return <ListeningGame cards={listeningCards} onClose={() => setListeningCards([])} />;
+  if (speakingCards.length) return <SpeakingGame cards={speakingCards} onClose={() => setSpeakingCards([])} />;
+
   if (summary) {
     return (
       <>
@@ -635,7 +716,7 @@ export function PracticeRunner({
             <span>Preview progress</span>
             <span>{reviewProgress}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div className="h-1.5 overflow-hidden rounded-full bg-card">
             <div className="h-full bg-primary transition-all" style={{ width: `${reviewProgress}%` }} />
           </div>
         </div>
@@ -736,10 +817,10 @@ export function PracticeRunner({
   if (current) {
     return (
       <div className="mx-auto grid w-full max-w-4xl gap-3">
-        <section className="grid gap-2 rounded-3xl bg-card px-4 py-3 shadow-sm shadow-foreground/5 ring-1 ring-foreground/5 sm:px-5">
+        <section className="grid gap-2 rounded-3xl bg-card px-4 py-3 shadow-sm shadow-foreground/5 ring-1 ring-border sm:px-5">
           <div className="flex items-center justify-between gap-4 text-sm font-bold">
             <span className="inline-flex min-w-0 items-center gap-2 text-primary">
-              <Icon icon={Star} className="size-5 shrink-0 text-secondary" weight="fill" />
+              <Icon icon={Star} className="size-5 shrink-0 text-primary" weight="fill" />
               <span className="truncate">Stage {index + 1} of {steps.length}</span>
             </span>
             <span className="inline-flex shrink-0 items-center gap-4 tabular-nums">
@@ -767,7 +848,7 @@ export function PracticeRunner({
         </section>
 
         <Card size="sm" className="overflow-hidden rounded-3xl">
-          <CardHeader className="h-28 px-5 sm:px-6">
+          <CardHeader className="px-5 sm:px-6">
             <div className="flex h-full min-w-0 items-start justify-between gap-3">
               <div className="flex min-w-0 gap-3">
                 <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-100 text-primary">
@@ -779,27 +860,12 @@ export function PracticeRunner({
                 </span>
                 <div className="min-w-0">
                   <CardTitle className="text-xl font-bold">{getGameTitle(current.game)}</CardTitle>
-                  <CardDescription className="mt-0.5 truncate">
-                    {getGameInstruction(current.game)}
-                  </CardDescription>
-                  <Tag size="sm" variant="primary" className="mt-2 capitalize">
-                    {current.card.partOfSpeech || "Flashcard"}
-                  </Tag>
+                  {current.card.partOfSpeech ? (
+                    <span className="mt-1 block text-xs text-muted-foreground">{current.card.partOfSpeech}</span>
+                  ) : null}
                 </div>
               </div>
-              <Tag
-                variant="outline"
-                className="shrink-0 text-primary"
-                leadingIcon={
-                  <Icon
-                    icon={current.game.mechanism === "puzzle" ? PuzzlePiece : Target}
-                    size="sm"
-                    weight="fill"
-                  />
-                }
-              >
-                {current.game.mechanism === "puzzle" ? "Puzzle" : current.game.mechanism}
-              </Tag>
+
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 px-5 pb-5 sm:px-6 sm:pb-6">
@@ -834,10 +900,10 @@ export function PracticeRunner({
                         "h-14 min-w-0 justify-start rounded-2xl px-4 text-left text-sm transition-colors sm:text-base",
                         answerFeedback &&
                           isCorrectAnswer(choice, answerFeedback.correctAnswer) &&
-                          "border-emerald-500 bg-emerald-50 text-emerald-700 disabled:opacity-100 dark:bg-emerald-950/30 dark:text-emerald-300",
+                          "border-border bg-emerald-50 text-emerald-700 focus-visible:border-border disabled:opacity-100 dark:border-border dark:bg-emerald-950/30 dark:text-emerald-300",
                         answerFeedback?.result === "incorrect" &&
                           isCorrectAnswer(choice, answerFeedback.selectedAnswer) &&
-                          "border-destructive bg-destructive/10 text-destructive disabled:opacity-100"
+                          "border-border bg-destructive/10 text-destructive focus-visible:border-border disabled:opacity-100 dark:border-border"
                       )}
                       disabled={isSubmitting}
                       onClick={() => submitAnswer(choice)}
@@ -861,9 +927,9 @@ export function PracticeRunner({
                         "h-14 transition-colors",
                         answerFeedback && "pr-20",
                         answerFeedback?.result === "correct" &&
-                          "!border-emerald-500 !ring-3 !ring-emerald-500/20",
+                          "!border-border !ring-3 !ring-border",
                         answerFeedback?.result === "incorrect" &&
-                          "!border-destructive !text-destructive !ring-3 !ring-destructive/20"
+                          "!border-border !text-destructive !ring-3 !ring-border"
                       )}
                       value={answer}
                       onChange={(event) => {
@@ -968,65 +1034,46 @@ export function PracticeRunner({
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-4">
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_210px] lg:items-end">
-        <div className="grid gap-3">
-          <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-sm shadow-brand-800/5">
-            <Icon icon={Layers3} className="text-primary" />
-            Review mode
-          </div>
-          <div className="grid gap-2">
-            <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-              Play game
-            </h1>
-            <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
-              <span>Words to play</span>
-              <Select
-                value={String(limit)}
-                onValueChange={(value) => {
-                  setLimit(Number(value));
-                  setMessage("");
-                }}
-              >
-                <SelectTrigger className="h-8 min-w-16 rounded-xl bg-card px-2.5 text-sm text-foreground">
-                  <span>{limit}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {countOptions.map((option) => (
-                    <SelectItem key={option} value={String(option)}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+      <PracticeGamePicker open={gamePickerOpen} onOpenChange={setGamePickerOpen} counts={gameCounts} speakingCount={speakingChoices.length} totalWords={gameChoices?.cards.length ?? 0} loading={isLoading} message={message} onChoose={choosePracticeGame} />
+      <section className="grid gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Practice words</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Pick specific words or review the cards due today.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Practice selection mode">
+          {(["due", "custom"] as const).map((mode) => (
+            <Button key={mode} type="button" variant={practiceMode === mode ? "default" : "outline"} aria-pressed={practiceMode === mode} disabled={isLoading} onClick={() => {
+              setPracticeMode(mode);
+              setMessage("");
+            }}>{mode === "due" ? "Due words" : "Choose words"}</Button>
+          ))}
+          {practiceMode === "due" ? (
+            <div className="ml-auto flex items-center gap-2">
+              <Label htmlFor="practice-word-count" className="text-xs text-muted-foreground">Words to play</Label>
+              <Select value={String(limit)} onValueChange={(value) => { setLimit(Number(value)); setMessage(""); }}>
+                <SelectTrigger id="practice-word-count" disabled={isLoading} className="h-9 min-w-16 bg-card"><span>{limit}</span></SelectTrigger>
+                <SelectContent>{countOptions.map((option) => <SelectItem key={option} value={String(option)}>{option}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
-
-        <div className="hidden justify-self-end lg:block">
-          <NextImage
-            src={penguinPlayGame}
-            alt=""
-            className="h-auto w-52 object-contain"
-            priority
-          />
+          ) : null}
         </div>
       </section>
 
       <Card className="rounded-2xl shadow-md shadow-brand-800/10">
         <CardContent className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1.1fr)_1px_minmax(0,0.72fr)_1px_minmax(0,0.72fr)] lg:items-center">
           <div className="grid gap-1.5 sm:grid-cols-[72px_minmax(0,1fr)] sm:items-center">
-            <Label className="text-sm font-semibold text-foreground">Play with</Label>
+            <Label htmlFor="practice-book" className="text-sm font-semibold text-foreground">Book</Label>
             <Select
               value={bookId}
               onValueChange={(value) => {
-                const nextBook = books.find((book) => getReviewBookId(book) === value);
-
                 setBookId(value ?? "");
-                setLimit(Math.min(nextBook?.dueForReview ?? 1, 6) || 1);
+                setSelectedWordIds([]);
+                setWordChoices(null);
+                setLimit(Math.min(getDueCount(value ?? ""), 6) || 1);
                 setMessage("");
               }}
             >
-              <SelectTrigger className="h-10 w-full rounded-xl bg-background px-3">
+              <SelectTrigger id="practice-book" disabled={isLoading} className="h-10 w-full rounded-xl bg-background px-3">
                 <span className="truncate text-left text-sm font-medium">
                   {selectedBook?.title ?? "Choose a book"}
                 </span>
@@ -1045,53 +1092,66 @@ export function PracticeRunner({
 
           <ReviewSetupMetric
             tone="learned"
-            value={String(totalCards)}
-            label="Words learned"
+            value={String(scopedTotal)}
+            label="Words in book"
           />
 
           <div className="hidden h-11 bg-border lg:block" />
 
           <ReviewSetupMetric
             tone="review"
-            value={String(totalDue)}
+            value={String(scopedDue)}
             label="Words to review"
           />
         </CardContent>
       </Card>
 
+      {practiceMode === "custom" ? (
+        !currentWordChoices ? (
+          <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading words…</p>
+        ) : currentWordChoices.error ? (
+          <div role="alert" className="grid justify-items-start gap-2 text-sm">
+            <p>{currentWordChoices.error}</p>
+            <Button type="button" variant="outline" onClick={() => { setWordChoices(null); setReloadWords((value) => value + 1); }}>Retry words</Button>
+          </div>
+        ) : (
+          <PracticeWordPicker key={wordScope} cards={currentWordChoices.cards} selectedIds={chosenCards.map((card) => card.id)} onChange={setSelectedWordIds} disabled={isLoading} />
+        )
+      ) : null}
+
       <section className="mx-auto grid w-full max-w-xl gap-3">
         <div className="rounded-xl bg-accent/60 px-3 py-2 text-center text-xs font-medium text-foreground">
-          Includes question types: multiple choice, fill in the blank, type answer, and match words.
+          Choose your words, then press Play to pick a game.
         </div>
 
         <Form className="mx-auto w-full max-w-xs" onSubmit={startPractice}>
           <Button
             type="submit"
             className="h-11 w-full rounded-xl text-sm shadow-md shadow-brand-800/20"
-            disabled={isLoading || !selectedBook || selectedBook.dueForReview <= 0}
+            disabled={isLoading || !selectedBook || (practiceMode === "custom" ? !chosenCards.length : scopedDue <= 0)}
           >
             {isLoading ? (
               <Icon icon={Loader2} className="animate-spin" />
             ) : (
               <Icon icon={Play} />
             )}
-            Play now
+            Play
             <Icon icon={Sparkles} />
           </Button>
         </Form>
 
         <div className="grid gap-0.5 text-center text-xs text-muted-foreground">
           <p>
-            Target: {limit} word{limit === 1 ? "" : "s"} · Up to 100 XP per game
+            Target: {practiceMode === "custom" ? chosenCards.length : limit} word{(practiceMode === "custom" ? chosenCards.length : limit) === 1 ? "" : "s"} · Up to 100 XP per game
           </p>
-          <p>Every second costs 10 XP, so answer fast.</p>
+          <p>Every second costs 5 XP, so answer fast.</p>
         </div>
 
         {message ? (
           <p className="text-center text-xs text-destructive">{message}</p>
-        ) : selectedBook?.dueForReview === 0 ? (
+        ) : practiceMode === "due" && scopedDue === 0 ? (
           <p className="text-center text-xs text-muted-foreground">
-            This book has no cards due right now.
+            This book has no cards due right now. Use “Choose words” to practice any word.
           </p>
         ) : null}
       </section>
@@ -1157,7 +1217,7 @@ function ReviewFlipCard({
       ) : null}
       <button
         type="button"
-        className="group grid min-h-[420px] w-full max-w-md justify-self-center rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group grid min-h-[420px] w-full max-w-md justify-self-center rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={onFlip}
       >
         <div
@@ -1166,7 +1226,7 @@ function ReviewFlipCard({
             flipped && "[transform:rotateY(180deg)]"
           )}
         >
-          <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden]">
+          <div className="absolute inset-0 grid overflow-hidden rounded-2xl bg-card p-5 shadow-sm shadow-foreground/5 [backface-visibility:hidden]">
             <div className="flex items-start justify-between gap-4">
               <Badge variant="secondary" className="rounded-xl text-xs">
                 Front
@@ -1178,7 +1238,7 @@ function ReviewFlipCard({
               <div className="grid justify-items-center gap-4">
                 {card.imageUrl ? (
                   <div
-                    className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center shadow-sm shadow-brand-800/10"
+                    className="h-40 w-56 max-w-full rounded-2xl border border-border bg-secondary bg-cover bg-center shadow-sm shadow-foreground/5"
                     style={{ backgroundImage: `url(${card.imageUrl})` }}
                     aria-label={`${card.word} image`}
                     role="img"
@@ -1197,7 +1257,7 @@ function ReviewFlipCard({
             </div>
           </div>
 
-          <div className="absolute inset-0 grid overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md shadow-brand-800/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="absolute inset-0 grid overflow-hidden rounded-2xl bg-card p-5 shadow-sm shadow-foreground/5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <div className="flex items-start justify-between gap-4">
               <Badge variant="outline" className="rounded-xl text-xs">
                 Back
@@ -1258,13 +1318,13 @@ function ReviewSetupMetric({
           accent: "text-sky-500",
           main: "text-primary",
           value: "text-primary",
-          warm: "text-secondary",
+          warm: "text-primary",
         }
       : {
           accent: "text-emerald-500",
           main: "text-primary",
           value: "text-emerald-600 dark:text-emerald-200",
-          warm: "text-secondary",
+          warm: "text-primary",
         };
 
   return (
@@ -1459,26 +1519,10 @@ function PromptView({
 }
 
 function getGameTitle(game: PracticeGame) {
-  if (game.type === "definition-input") return "Type the word from the definition";
+  if (game.type === "definition-input") return "Type the word";
   if (game.type === "example-blank-quiz") return "Choose the missing word";
   if (game.type === "sentence-puzzle") return "Build the sentence";
-  return "Type the English word";
-}
-
-function getGameInstruction(game: PracticeGame) {
-  if (game.type === "sentence-puzzle") {
-    return "Choose the words to make a correct sentence.";
-  }
-
-  if (game.type === "example-blank-quiz") {
-    return "Choose the word that completes the example.";
-  }
-
-  if (game.type === "definition-input") {
-    return "Type the English word that matches this definition.";
-  }
-
-  return "Use the image or audio clue to type the word.";
+  return "Name it";
 }
 
 function mergeCards(primary: Flashcard[], secondary: Flashcard[]) {

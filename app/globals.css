@@ -19,8 +19,6 @@
   --landing-blue-surface: #061483;
   --landing-blue-muted: #0d26b8;
   --landing-blue-highlight: rgba(59, 130, 246, 0.42);
-  --brand-yellow: #ffd83d;
-  --brand-yellow-soft: #fff2a8;
   --motion-instant: 120ms;
   --motion-quick: 180ms;
   --motion-standard: 280ms;
@@ -42,7 +40,7 @@
   --popover-foreground: #111322;
   --primary: #2131dc;
   --primary-foreground: #ffffff;
-  --secondary: #ffd83d;
+  --secondary: #ffffff;
   --secondary-foreground: #111322;
   --muted: #d9dafd;
   --muted-foreground: #51587a;
@@ -51,7 +49,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: #eef0f4;
   --input: #e8eaf0;
-  --ring: #737efa;
+  --ring: var(--border);
   --status-new: #eef2ff;
   --status-new-foreground: #475569;
   --status-learning: #ffedd5;
@@ -79,7 +77,7 @@
   --sidebar-accent: #d9dafd;
   --sidebar-accent-foreground: #111322;
   --sidebar-border: #eef0f4;
-  --sidebar-ring: #737efa;
+  --sidebar-ring: var(--border);
 }
 
 @keyframes confetti-fall {
@@ -204,8 +202,6 @@
   --color-landing-blue-surface: var(--landing-blue-surface);
   --color-landing-blue-muted: var(--landing-blue-muted);
   --color-landing-blue-highlight: var(--landing-blue-highlight);
-  --color-brand-yellow: var(--brand-yellow);
-  --color-brand-yellow-soft: var(--brand-yellow-soft);
   --color-brand: var(--brand-800);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
@@ -271,7 +267,7 @@
   :root {
     --surface: #171a2c;
     --surface-muted: #252a52;
-    --border: #34394a;
+    --border: #eef0f4;
   }
 }
 
@@ -284,16 +280,16 @@
   --popover-foreground: #f4f5fd;
   --primary: #737efa;
   --primary-foreground: #ffffff;
-  --secondary: #ffd83d;
+  --secondary: #ffffff;
   --secondary-foreground: #111322;
   --muted: #252a52;
   --muted-foreground: #b9bdf8;
   --accent: #2d3dde;
   --accent-foreground: #ffffff;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: #34394a;
+  --border: #eef0f4;
   --input: #3b4153;
-  --ring: #9da5f5;
+  --ring: var(--border);
   --status-new: #252a52;
   --status-new-foreground: #d9dafd;
   --status-learning: #7c2d12;
@@ -319,14 +315,24 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #252a52;
   --sidebar-accent-foreground: #f4f5fd;
-  --sidebar-border: #34394a;
-  --sidebar-ring: #9da5f5;
+  --sidebar-border: #eef0f4;
+  --sidebar-ring: var(--border);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  :where(button, a[href], input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--border);
+    outline-offset: 3px;
+  }
+
+  :where(button, a[href], summary, [role="tab"], [role="checkbox"]):focus-visible {
+    text-decoration-line: underline;
+    text-underline-offset: 0.2em;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

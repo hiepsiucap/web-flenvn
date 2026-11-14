@@ -253,7 +253,7 @@ export function ShadowingPlayer() {
         <Image src={shadowingMascot} alt="FLEN penguin saying Turn videos into progress" className="absolute -bottom-11 right-0 hidden h-32 w-auto object-contain object-bottom motion-mascot-enter sm:-bottom-12 sm:block lg:h-36" priority />
       </header>
 
-      {!result && !isPreparing ? <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
+      {!result && !isPreparing ? <Card className="rounded-3xl border-border [--card-spacing:--spacing(4)] motion-enter motion-delay-1 sm:[--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
         <CardHeader><CardTitle className="text-xl font-extrabold tracking-normal">Add a YouTube video</CardTitle></CardHeader>
         <CardContent>
           <Form onSubmit={prepareVideo} className="gap-4">
@@ -295,7 +295,7 @@ export function ShadowingPlayer() {
       </Card> : null}
 
       {!result && !isPreparing ? <div className="grid gap-5 motion-enter motion-delay-2 lg:grid-cols-[1.1fr_0.9fr] lg:gap-3">
-        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
+        <Card className="rounded-3xl border-border [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-lg font-extrabold tracking-normal">Recent videos</CardTitle><Text size="xs" className="text-brand-700" weight="bold">Your last 10 videos</Text></CardHeader>
           <CardContent aria-busy={isRecentLoading || Boolean(reopeningVideoId)}>
             {isRecentLoading ? (
@@ -303,28 +303,24 @@ export function ShadowingPlayer() {
                 {[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3"><Skeleton className="h-16 w-28 shrink-0 rounded-xl" /><div className="grid flex-1 gap-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div><Skeleton className="size-10 shrink-0 rounded-full" /></div>)}
               </div>
             ) : recent.length ? <div className="divide-y divide-border">{recent.map((video, index) => (
-              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} style={{ animationDelay: `${Math.min(index, 5) * 35}ms` }} className={cn("group flex w-full items-center gap-3 py-3 text-left outline-none transition-[background-color,transform] [transition-duration:var(--motion-quick)] first:pt-0 last:pb-0 hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:translate-x-0 disabled:opacity-70 motion-reduce:transform-none lg:py-2", recentlyOpenedVideoId === video.videoId ? "motion-highlight" : "motion-enter")}>
+              <button key={video.videoId} type="button" onClick={() => void selectRecent(video)} disabled={reopeningVideoId === video.videoId} aria-label={`Open ${video.title} for shadowing`} aria-busy={reopeningVideoId === video.videoId} style={{ animationDelay: `${Math.min(index, 5) * 35}ms` }} className={cn("group flex w-full items-center gap-3 py-3 text-left outline-none transition-[background-color,transform] [transition-duration:var(--motion-quick)] first:pt-0 last:pb-0 hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2 disabled:cursor-wait disabled:translate-x-0 disabled:opacity-70 motion-reduce:transform-none lg:py-2", recentlyOpenedVideoId === video.videoId ? "motion-highlight" : "motion-enter")}>
                 <span className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl bg-brand-100 bg-cover bg-center lg:h-14 lg:w-24" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)` }} aria-hidden="true"><span className="absolute inset-0 grid place-items-center bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100"><span className="grid size-8 place-items-center rounded-full bg-white text-primary shadow-sm"><Play weight="fill" /></span></span></span>
                 <span className="min-w-0 flex-1"><Text as="span" className="block truncate font-bold">{video.title}</Text><Text as="span" size="xs" tone="muted" className="mt-1 block truncate"><span>{languageName(video.language)}</span><span aria-hidden="true"> · </span><span title={fullLocalDate(video.lastOpenedAt)} aria-hidden="true">{recentDate(video.lastOpenedAt)}</span>{fullLocalDate(video.lastOpenedAt) ? <span className="sr-only">Last opened {fullLocalDate(video.lastOpenedAt)}</span> : null}</Text></span>
-                <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-200 text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-primary">{reopeningVideoId === video.videoId ? <Icon icon={Loader2} className="animate-spin" /> : <Play weight="fill" />}</span>
               </button>
             ))}</div> : (
               recentError ? (
-                <div className="flex min-h-32 flex-col items-center justify-center px-4 text-center">
-                  <Text className="font-bold">Recent videos unavailable</Text>
-                  <Text size="sm" tone="muted" className="mt-1 max-w-sm">We couldn’t load your recent videos.</Text>
-                  <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void loadRecentVideos(true)}><Icon icon={ArrowClockwise} />Retry</Button>
-                </div>
+                <EmptyState illustration="connection" variant="panel" title="Recent videos unavailable" description="We couldn’t load your recent videos." action={<Button variant="outline" size="sm" onClick={() => void loadRecentVideos(true)}><Icon icon={ArrowClockwise} />Retry</Button>} />
               ) : (
-                <EmptyState variant="compact" title="No recent videos yet" description="Videos you prepare will appear here." />
+                <EmptyState illustration="search" variant="panel" title="No recent videos yet" description="Videos you prepare will appear here." />
               )
             )}
             {reopenError ? <div className="mt-4 flex items-start gap-2 text-sm font-semibold text-destructive" role="alert"><WarningCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span>{reopenError}</span></div> : null}
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-brand-200/80 [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
-          <CardHeader className="flex-row items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-brand-yellow-soft"><Lightbulb weight="fill" className="size-5" /></span><CardTitle className="text-lg font-extrabold tracking-normal">Tips for better shadowing</CardTitle></CardHeader>
+        <Card className="rounded-3xl border-border [--card-spacing:--spacing(5)] lg:[--card-spacing:--spacing(3)]">
+          <CardHeader className="flex-row items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground"><Lightbulb weight="fill" className="size-5" /></span><CardTitle className="text-lg font-extrabold tracking-normal">Tips for better shadowing</CardTitle></CardHeader>
           <CardContent><ol className="divide-y divide-border">{tips.map((tip, index) => <li key={tip} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 lg:py-2"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-extrabold text-brand-700">{index + 1}</span><Text size="sm" tone="muted">{tip}</Text></li>)}</ol></CardContent>
         </Card>
       </div> : null}
