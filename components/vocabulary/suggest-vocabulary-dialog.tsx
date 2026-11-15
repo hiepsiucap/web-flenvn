@@ -51,6 +51,7 @@ type TopicVocabularySuggestion = {
   imageUrl?: string;
   exampleAudioUrl?: string;
   partOfSpeech?: string;
+  pronunciation?: string;
   definition?: string;
   translation?: string;
   example?: string;
@@ -196,6 +197,7 @@ export function SuggestVocabularyDialog({
       try {
         await http.post("/api/flashcards", {
           word: item.word,
+          pronunciation: item.pronunciation,
           partOfSpeech: item.partOfSpeech,
           definition: item.definition,
           translation: item.translation,
@@ -294,6 +296,7 @@ export function SuggestVocabularyDialog({
 
       updateItem(item.localId, {
         word: suggestion?.word || item.word,
+        pronunciation: suggestion?.pronunciation || item.pronunciation,
         partOfSpeech:
           suggestion?.partOfSpeech ||
           firstDefinition?.partOfSpeech ||
@@ -446,6 +449,17 @@ export function SuggestVocabularyDialog({
                           updateItem(item.localId, { word: event.target.value })
                         }
                       />
+                      {/\p{Script=Han}/u.test(item.word) || item.pronunciation ? (
+                        <Input
+                          className="h-9 max-w-48"
+                          value={item.pronunciation ?? ""}
+                          placeholder={/\p{Script=Han}/u.test(item.word) ? "Pinyin" : "Pronunciation"}
+                          aria-label={/\p{Script=Han}/u.test(item.word) ? "Pinyin" : "Pronunciation"}
+                          onChange={(event) =>
+                            updateItem(item.localId, { pronunciation: event.target.value })
+                          }
+                        />
+                      ) : null}
                       {item.partOfSpeech ? (
                         <Badge variant="outline" className="rounded-2xl">
                           {item.partOfSpeech}

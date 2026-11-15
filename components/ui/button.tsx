@@ -4,13 +4,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex cursor-pointer shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all [transition-duration:var(--motion-quick)] [transition-timing-function:var(--ease-motion-out)] outline-none select-none hover:-translate-y-0.5 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50 motion-reduce:transform-none focus-visible:border-border focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2 aria-invalid:border-border aria-invalid:ring-3 aria-invalid:ring-border dark:aria-invalid:border-border dark:aria-invalid:ring-border [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:scale-105 motion-reduce:[&_svg]:transform-none [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex cursor-pointer shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,opacity,transform,translate,scale] [transition-duration:var(--motion-quick)] [transition-timing-function:var(--ease-motion-out)] outline-none select-none hover:-translate-y-0.5 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50 motion-reduce:transform-none focus-visible:border-border focus-visible:ring-3 focus-visible:ring-border aria-invalid:border-border aria-invalid:ring-3 aria-invalid:ring-border dark:aria-invalid:border-border dark:aria-invalid:ring-border [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:scale-105 motion-reduce:[&_svg]:transform-none [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-border dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

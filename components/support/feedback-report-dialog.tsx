@@ -18,6 +18,7 @@ import {
   type SubmissionStatus,
   type SubmissionType,
 } from "@/lib/submissions";
+import { HttpError } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
 const statusLabels = {
@@ -53,8 +54,8 @@ export function FeedbackReportDialog({ open, onOpenChange }: { open: boolean; on
     setListError("");
     try {
       setItems(await getMySubmissions());
-    } catch {
-      setListError("Could not load your submissions. Try again.");
+    } catch (error) {
+      setListError(error instanceof HttpError && error.status === 404 ? "Submission history is not available yet. Please check back soon." : "Could not load your submissions. Try again.");
     } finally {
       setLoading(false);
     }

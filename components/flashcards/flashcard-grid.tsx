@@ -574,7 +574,9 @@ export function FlashcardGrid({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField>
-                  <FormLabel htmlFor="detail-pronunciation">Pronunciation</FormLabel>
+                  <FormLabel htmlFor="detail-pronunciation">
+                    {/\p{Script=Han}/u.test(word) ? "Pinyin" : "Pronunciation"}
+                  </FormLabel>
                   <FormInput
                     id="detail-pronunciation"
                     className="h-10"
