@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -11,7 +10,6 @@ import {
   Sparkle,
   Stack as Layers3,
   Star,
-  Target,
 } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,7 +33,6 @@ import {
   type ClientDashboardPageData,
 } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
-import penguinTopbar from "@/img/peguin-topbar.png";
 
 export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<ClientDashboardPageData | null>(null);
@@ -64,22 +61,13 @@ export default function DashboardPage() {
 
   if (loadError) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>Dashboard data unavailable</AlertTitle>
-        <AlertDescription className="grid gap-3">
-          <span>{loadError}</span>
-          <Button type="button" className="w-fit" onClick={() => setLoadKey((key) => key + 1)}>
-            Try again
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <EmptyState illustration="connection" title="Dashboard data unavailable" description={loadError} action={<Button onClick={() => setLoadKey((key) => key + 1)}>Try again</Button>} />
     );
   }
 
   if (!dashboard) {
     return <LoadingState title="Loading dashboard" description="Loading your latest learning progress." />;
   }
-  const remainingPercent = Math.max(0, 100 - dashboard.masteredPercent);
   const remainingCards = Math.max(0, dashboard.totalCards - dashboard.masteredCards);
   const hasDashboardData = dashboard.activeDecks > 0 || dashboard.totalCards > 0;
 
@@ -91,30 +79,6 @@ export default function DashboardPage() {
           <AlertDescription>{dashboard.error}</AlertDescription>
         </Alert>
       ) : null}
-
-      <section className="relative px-2 pt-2 motion-enter">
-        <div className="relative z-(--z-dashboard-content) flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="hidden lg:block">
-            <div className="flex items-center gap-2">
-              <Text
-                as="div"
-                className="text-xl font-extrabold tracking-normal text-foreground sm:text-2xl"
-              >
-                Today&apos;s review
-              </Text>
-              <Icon icon={Sparkle} className="size-5 text-secondary" weight="fill" />
-            </div>
-            <Text className="mt-2 max-w-2xl text-xs text-brand-700" weight="semibold">
-              Keep your spaced repetition queue warm and finish the cards due
-              today.
-            </Text>
-          </div>
-          <div className="flex items-center gap-2 text-sm font-extrabold text-brand-800">
-            <Icon icon={Target} className="size-5 text-primary" weight="duotone" />
-            {remainingPercent}% left to master
-          </div>
-        </div>
-      </section>
 
       {hasDashboardData ? (
         <>
@@ -168,7 +132,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="relative grid grid-cols-2 gap-3 sm:gap-5">
-            <ReviewMascot />
             <DashboardStatCard
               label="Cards due"
               value={String(dashboard.cardsDue)}
@@ -252,6 +215,7 @@ export default function DashboardPage() {
         </>
       ) : (
         <EmptyState
+          variant="panel"
           title="No dashboard data yet"
           description="Create your first book to build flashcards and track review progress."
           action={<CreateBookDialog />}
@@ -275,7 +239,7 @@ function QuickAction({
   cta: string;
 }) {
   return (
-    <article className="flex min-h-20 items-center justify-between gap-3 rounded-3xl bg-card p-3 shadow-sm shadow-foreground/5 ring-1 ring-foreground/5 transition-[transform,box-shadow] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 motion-reduce:transform-none sm:min-h-36 sm:flex-col sm:items-stretch sm:p-4">
+    <article className="flex min-h-20 items-center justify-between gap-3 rounded-3xl bg-card p-3 shadow-sm shadow-foreground/5 ring-1 ring-border transition-[transform,box-shadow] [transition-duration:var(--motion-standard)] [transition-timing-function:var(--ease-motion-out)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 motion-reduce:transform-none sm:min-h-36 sm:flex-col sm:items-stretch sm:p-4">
       <div className="flex min-w-0 items-center gap-3 sm:block">
         <Icon icon={icon} className="size-6 shrink-0 text-primary" weight="duotone" />
         <div className="min-w-0">
@@ -327,10 +291,10 @@ function DashboardStatCard({
 }) {
   const styles = {
     primary:
-      "bg-[linear-gradient(135deg,var(--primary),var(--brand-700))] text-primary-foreground ring-primary/20",
-    cool: "bg-[linear-gradient(135deg,#ffffff,var(--brand-100))] text-foreground ring-brand-200",
-    soft: "bg-[linear-gradient(135deg,var(--brand-50),#ffffff)] text-foreground ring-brand-200",
-    warm: "bg-[linear-gradient(135deg,#fff7f7,#ffdfe3)] text-foreground ring-destructive/15",
+      "bg-[linear-gradient(135deg,var(--primary),var(--brand-700))] text-primary-foreground ring-border",
+    cool: "bg-[linear-gradient(135deg,#ffffff,var(--brand-100))] text-foreground ring-border",
+    soft: "bg-[linear-gradient(135deg,var(--brand-50),#ffffff)] text-foreground ring-border",
+    warm: "bg-[linear-gradient(135deg,#fff7f7,#ffdfe3)] text-foreground ring-border",
   };
   const iconStyles = {
     primary: "text-white",
@@ -397,21 +361,6 @@ function ColoredBookBadge() {
   );
 }
 
-function ReviewMascot() {
-  return (
-    <div className="pointer-events-none absolute left-6 top-0 z-(--z-dashboard-base) hidden size-32 -translate-y-[78%] xl:block">
-      <Image
-        src={penguinTopbar}
-        alt=""
-        className="size-full object-contain"
-        priority
-      />
-      <Icon icon={Star} className="absolute -left-10 top-20 size-4 text-secondary" weight="fill" />
-      <Icon icon={Sparkle} className="absolute -right-8 top-8 size-4 text-brand-400" weight="fill" />
-    </div>
-  );
-}
-
 function DeckIllustration() {
   return (
     <div className="pointer-events-none absolute bottom-28 right-8 hidden h-44 w-80 lg:block">
@@ -420,7 +369,7 @@ function DeckIllustration() {
       <div className="absolute bottom-8 right-10 grid h-28 w-52 rotate-3 place-items-center rounded-3xl bg-white text-primary">
         <span className="text-5xl font-extrabold">Aa</span>
       </div>
-      <Icon icon={Star} className="absolute bottom-8 left-2 size-10 text-secondary" weight="fill" />
+      <Icon icon={Star} className="absolute bottom-8 left-2 size-10 text-primary" weight="fill" />
       <Icon icon={Sparkle} className="absolute right-2 top-2 size-6 text-brand-400" weight="fill" />
     </div>
   );

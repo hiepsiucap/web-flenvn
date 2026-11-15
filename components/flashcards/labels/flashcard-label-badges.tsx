@@ -11,7 +11,7 @@ const labelVariant = {
 
 export function getFlashcardLabelToneClassName(label: FlashcardLabel) {
   if (label.type === "topic") {
-    return "border-label-topic-foreground/20 bg-label-topic text-label-topic-foreground";
+    return "bg-label-topic text-label-topic-foreground";
   }
 
   if (label.type !== "level") return "";
@@ -19,13 +19,13 @@ export function getFlashcardLabelToneClassName(label: FlashcardLabel) {
   switch (label.normalizedName?.toUpperCase() ?? label.name.toUpperCase()) {
     case "A1":
     case "A2":
-      return "border-label-cefr-basic-foreground/20 bg-label-cefr-basic text-label-cefr-basic-foreground";
+      return "bg-label-cefr-basic text-label-cefr-basic-foreground";
     case "B1":
     case "B2":
-      return "border-label-cefr-independent-foreground/20 bg-label-cefr-independent text-label-cefr-independent-foreground";
+      return "bg-label-cefr-independent text-label-cefr-independent-foreground";
     case "C1":
     case "C2":
-      return "border-label-cefr-proficient-foreground/20 bg-label-cefr-proficient text-label-cefr-proficient-foreground";
+      return "bg-label-cefr-proficient text-label-cefr-proficient-foreground";
     default:
       return "";
   }

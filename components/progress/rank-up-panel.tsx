@@ -28,13 +28,13 @@ export function RankUpPanel({
             onError={() => setImageFailed(true)}
           />
         ) : (
-          <div className="grid size-32 place-items-center rounded-full border border-brand-200 bg-brand-50 text-primary">
+          <div className="grid size-32 place-items-center rounded-full border border-border bg-brand-50 text-primary">
             <Icon icon={Medal} className="size-16" weight="duotone" />
           </div>
         )}
         <Icon
           icon={Sparkle}
-          className="absolute right-0 top-3 size-7 text-secondary"
+          className="absolute right-0 top-3 size-7 text-primary"
           weight="fill"
         />
         <Icon

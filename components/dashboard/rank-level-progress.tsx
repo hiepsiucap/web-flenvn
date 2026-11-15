@@ -33,7 +33,7 @@ export function RankLevelProgress({
     )}>
       <div
         className={cn(
-          "absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 rounded-full border-2 border-primary/15 bg-brand-50",
+          "absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 rounded-full border-2 border-border bg-brand-50",
           showStart ? (compact ? "left-3" : "left-4") : "left-0",
           compact ? "h-3.5" : "h-[18px]"
         )}
@@ -43,7 +43,7 @@ export function RankLevelProgress({
         aria-valuemax={100}
         aria-valuenow={safeProgress}
       >
-        <span className="absolute left-[8%] right-[5%] top-1/2 -translate-y-1/2 border-t-2 border-dashed border-primary/20" />
+        <span className="absolute left-[8%] right-[5%] top-1/2 -translate-y-1/2 border-t-2 border-dashed border-border" />
         {[28, 50, 70].map((position) => (
           <span
             key={position}

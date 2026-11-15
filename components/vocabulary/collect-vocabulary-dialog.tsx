@@ -1,10 +1,12 @@
 "use client";
 
-import { Spinner } from "@phosphor-icons/react";
+import { ArrowLeft, CaretRight, Image as ImageIcon, Spinner } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { VocabularySaveResult } from "@/components/vocabulary/vocabulary-save-result";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ApiEnvelope } from "@/lib/auth-types";
 import { getBooksClient, notifyClientDataChanged } from "@/lib/client-api";
 import type { Book } from "@/lib/dashboard-data";
+import { chooseSaveBook, readBookSaveCounts, recordBookSave } from "@/lib/book-save-preference";
 import { HttpError, http } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
@@ -93,15 +96,15 @@ function errorMessage(error: unknown) {
 export function CollectVocabularyDialog({
   conversationId,
   conversationRevision,
-  language,
   disabled,
   triggerClassName = "",
+  triggerLabel = "Collect vocabulary",
 }: {
   conversationId: string | null;
   conversationRevision: string | null;
-  language: string;
   disabled: boolean;
   triggerClassName?: string;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Source>("conversation");
@@ -112,20 +115,20 @@ export function CollectVocabularyDialog({
   const [loadingBooks, setLoadingBooks] = useState(false);
   const [busy, setBusy] = useState<"discover" | "save" | null>(null);
   const [message, setMessage] = useState("");
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState<SaveResult | null>(null);
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const conversationResults = useRef(new Map<string, Item[]>());
   const requestId = useRef(0);
 
   const cacheKey = conversationId && conversationRevision
-    ? `${conversationId}:${conversationRevision}:${language}`
+    ? `${conversationId}:${conversationRevision}:vi`
     : null;
 
   function showConversation(id: string) {
     const cached = cacheKey ? conversationResults.current.get(cacheKey) : undefined;
     setMode("conversation");
     setMessage("");
-    setSummary("");
+    setSummary(null);
     if (cached) {
       requestId.current += 1;
       setBusy(null);
@@ -142,9 +145,7 @@ export function CollectVocabularyDialog({
     try {
       const loaded = await getBooksClient();
       setBooks(loaded);
-      setBookId((current) =>
-        loaded.some((book) => book.id === current) ? current : "",
-      );
+      setBookId(chooseSaveBook(loaded, readBookSaveCounts()));
     } catch (error) {
       setBooks([]);
       setBookId("");
@@ -161,7 +162,7 @@ export function CollectVocabularyDialog({
     setEditingKey(null);
     setItems([]);
     setMessage("");
-    setSummary("");
+    setSummary(null);
     try {
       const path =
         source === "conversation"
@@ -262,7 +263,7 @@ export function CollectVocabularyDialog({
     if (!bookId || !valid.length || busy) return;
     setBusy("save");
     setMessage("");
-    setSummary("");
+    setSummary(null);
     try {
       const response = await http.post<ApiEnvelope<SaveResult> | SaveResult>(
         "/api/ai/conversations/vocabulary/save",
@@ -299,10 +300,11 @@ export function CollectVocabularyDialog({
           conversationResults.current.set(cacheKey, next);
         return next;
       });
-      setSummary(
-        `${result.saved} saved, ${result.duplicates} duplicates, ${result.failed} failed.`,
-      );
-      if (result.saved) notifyClientDataChanged();
+      setSummary(result);
+      if (result.saved) {
+        recordBookSave(bookId);
+        notifyClientDataChanged();
+      }
     } catch (error) {
       setMessage(errorMessage(error));
     } finally {
@@ -322,7 +324,7 @@ export function CollectVocabularyDialog({
           void loadBooks();
         }}
       >
-        Collect vocabulary
+        {triggerLabel}
       </Button>
       <Modal open={open} onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
@@ -331,12 +333,7 @@ export function CollectVocabularyDialog({
           setEditingKey(null);
         }
       }}>
-        <ModalContent
-          className={cn(
-            "h-[calc(100dvh-1rem)] sm:max-w-4xl",
-            editingItem && "pointer-events-none blur-[2px]",
-          )}
-        >
+        <ModalContent className="h-[calc(100dvh-1rem)] sm:max-w-4xl" forceOverlay overlayClassName="bg-background/40 supports-backdrop-filter:backdrop-blur-md">
           <ModalHeader>
             <ModalTitle>Collect vocabulary</ModalTitle>
             <ModalDescription>
@@ -383,7 +380,7 @@ export function CollectVocabularyDialog({
                 <Button
                   type="button"
                   variant={mode === "conversation" ? "default" : "ghost"}
-                  className="border border-gray-100"
+                  className="border border-border"
                   aria-pressed={mode === "conversation"}
                   onClick={() => {
                     if (conversationId) showConversation(conversationId);
@@ -394,7 +391,7 @@ export function CollectVocabularyDialog({
                 <Button
                   type="button"
                   variant={mode === "topic" ? "default" : "ghost"}
-                  className="border border-gray-100"
+                  className="border border-border"
                   aria-pressed={mode === "topic"}
                   onClick={() => {
                     setMode("topic");
@@ -404,7 +401,7 @@ export function CollectVocabularyDialog({
                   From topic
                 </Button>
               </div>
-              {unsavedItems.length ? (
+            {unsavedItems.length ? (
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
                     type="button"
@@ -431,7 +428,7 @@ export function CollectVocabularyDialog({
                     Clear selection
                   </Button>
                 </div>
-              ) : null}
+            ) : null}
             </div>
             {busy === "discover" ? (
               <div role="status" aria-live="polite" className="grid gap-3">
@@ -440,18 +437,13 @@ export function CollectVocabularyDialog({
                   <span>Finding useful vocabulary from {mode === "conversation" ? "your conversation" : "the chat’s topic"}…</span>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
-                  {Array.from({ length: 8 }, (_, index) => (
-                    <div key={index} className="flex min-h-44 flex-col rounded-3xl border border-gray-100 bg-card p-4 shadow-sm shadow-foreground/5">
-                      <div className="flex gap-4">
-                        <Skeleton className="size-6 shrink-0 rounded-full" />
-                        <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-24" />
-                        <div className="flex min-w-0 flex-1 flex-col gap-3 py-1">
-                          <Skeleton className="h-5 w-1/3 rounded-full" />
-                          <Skeleton className="h-4 w-2/3 rounded-full" />
-                          <Skeleton className="h-4 w-full rounded-full" />
-                        </div>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <div key={index} className="flex min-h-36 items-start gap-3 rounded-2xl border border-border bg-card p-3">
+                      <Skeleton className="h-24 w-18 shrink-0 rounded-xl" />
+                      <div className="grid flex-1 gap-2">
+                        <Skeleton className="h-4 w-2/3 rounded-full" />
+                        <Skeleton className="h-3 w-1/3 rounded-full" />
                       </div>
-                      <Skeleton className="mt-auto h-7 w-24 rounded-full" />
                     </div>
                   ))}
                 </div>
@@ -464,104 +456,71 @@ export function CollectVocabularyDialog({
             ) : null}
             {unsavedItems.length ? (
               <>
-                <div className="grid gap-3 md:auto-rows-fr md:grid-cols-2">
+
+                <div className="grid gap-3 md:grid-cols-2">
                   {unsavedItems.map((item) => (
                     <article
                       key={item.key}
                       className={cn(
-                        "flex h-full flex-col rounded-3xl border border-gray-100 bg-card p-4 shadow-sm shadow-foreground/5 transition-[background-color,box-shadow]",
-                        item.selected && "bg-blue-50/50",
-                        !item.alreadyExists && item.status !== "saved" && item.status !== "duplicate" &&
-                          "cursor-pointer hover:shadow-md hover:shadow-foreground/5",
+                        "relative min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm shadow-foreground/5 transition-colors",
+                        item.selected && "bg-primary/5",
                       )}
-                      onClick={(event) => {
-                        if (item.alreadyExists || item.status === "saved" || item.status === "duplicate") return;
-                        if (!(event.target instanceof Element)) return;
-                        if (event.target.closest("button, input, textarea, select, a, details, [role='checkbox'], [role='combobox']")) return;
-                        update(item.key, { selected: !item.selected });
-                      }}
                     >
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
-                          <Checkbox
-                            aria-label={`Save ${item.text}`}
-                            className="size-6 rounded-full [&_[data-slot=checkbox-indicator]>svg]:size-4"
-                            checked={item.selected}
-                            disabled={
-                              item.alreadyExists ||
-                              item.status === "saved" ||
-                              item.status === "duplicate"
-                            }
-                            onCheckedChange={(checked) =>
-                              update(item.key, { selected: checked === true })
-                            }
-                          />
-                          <span className="text-[11px] text-muted-foreground">
-                            {item.alreadyExists || item.status === "saved" || item.status === "duplicate"
-                              ? "Saved"
-                              : "Save"}
-                          </span>
-                        </div>
+                      <Checkbox
+                        aria-label={`Save ${item.text}`}
+                        className="absolute right-3 top-3 z-10 size-5"
+                        checked={item.selected}
+                        onCheckedChange={(checked) =>
+                          update(item.key, { selected: checked === true })
+                        }
+                      />
+                      <button
+                        type="button"
+                        aria-label={`View details for ${item.text}`}
+                        aria-haspopup="dialog"
+                        className="grid min-h-36 w-full min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-3 rounded-2xl p-3 text-left outline-none hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 sm:grid-cols-[5rem_minmax(0,1fr)]"
+                        onClick={() => setEditingKey(item.key)}
+                      >
                         {item.imageUrl ? (
-                          <div
-                            className="size-20 shrink-0 rounded-2xl bg-card bg-cover bg-center sm:size-24"
+                          <span
                             role="img"
                             aria-label={`Picture for ${item.text}`}
+                            className="h-24 w-full rounded-xl bg-muted bg-cover bg-center sm:h-28"
                             style={{ backgroundImage: `url(${item.imageUrl})` }}
                           />
                         ) : (
-                          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-card p-2 text-center text-[11px] text-muted-foreground sm:size-24">
-                            No picture
-                          </div>
+                          <span className="flex h-24 flex-col items-center justify-center gap-1 rounded-xl bg-muted/50 text-muted-foreground sm:h-28">
+                            <ImageIcon aria-hidden="true" className="size-6" />
+                            <span className="text-[10px]">Add a photo</span>
+                          </span>
                         )}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="break-words text-base font-semibold">{item.text}</h3>
-                            <span className="rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                              {item.type.replaceAll("_", " ")}
-                            </span>
-                          </div>
-                          <p className="mt-1 break-words text-sm font-medium">{item.translation}</p>
-                          <p className="mt-1 line-clamp-2 break-words text-sm text-muted-foreground">
-                            {item.definition}
-                          </p>
-                          {item.example ? (
-                            <p className="mt-2 line-clamp-2 break-words text-xs italic text-muted-foreground">
-                              “{item.example}”
-                            </p>
+                        <span className="grid min-w-0 gap-1">
+                          <span className="block truncate pr-7 text-base font-semibold">{item.text}</span>
+                          <span className="block truncate text-sm font-medium text-primary">{item.translation}</span>
+                          <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.definition}</span>
+                          <span className="mt-1 flex min-w-0 items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                            <span className="truncate">{item.type.replaceAll("_", " ")}{item.recommended ? " · Recommended" : ""}</span>
+                            <span className="inline-flex shrink-0 items-center gap-0.5">Details <CaretRight aria-hidden="true" className="size-3" /></span>
+                          </span>
+                          {item.status === "failed" ? (
+                            <span className="block text-xs text-destructive">Failed: {item.error}</span>
                           ) : null}
-                          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                            <span>{item.source === "topic" ? "Related to topic" : "From conversation"}</span>
-                            {item.recommended ? <span>Recommended</span> : null}
-                            {item.alreadyExists || item.status === "duplicate" ? (
-                              <span>Already saved{item.existingBookTitle ? ` in ${item.existingBookTitle}` : ""}</span>
-                            ) : null}
-                            {item.status === "saved" ? <span>Saved</span> : null}
-                            {item.status === "failed" ? (
-                              <span className="text-destructive">Failed: {item.error}</span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="mt-auto self-start"
-                        aria-label={`Edit details for ${item.text}`}
-                        onClick={() => setEditingKey(item.key)}
-                      >
-                        Edit details
-                      </Button>
+                        </span>
+                      </button>
                     </article>
                   ))}
                 </div>
               </>
             ) : null}
-            {items.length > 0 && !unsavedItems.length && !busy ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                All discovered words have already been saved.
-              </p>
+            {items.length > 0 && !unsavedItems.length && !busy && !summary ? (
+              <div role="status" aria-live="polite">
+                <EmptyState
+                  illustration="books"
+                  variant="panel"
+                  title="All vocabulary saved"
+                  description="All discovered words are already in your books. Try another topic or continue chatting to discover more."
+                />
+              </div>
             ) : null}
             {eligible.length > valid.length ? (
               <p role="alert" className="text-sm text-destructive">
@@ -570,9 +529,13 @@ export function CollectVocabularyDialog({
               </p>
             ) : null}
             {summary ? (
-              <p role="status" className="text-sm">
-                {summary}
-              </p>
+              <VocabularySaveResult
+                saved={summary.saved}
+                duplicates={summary.duplicates}
+                failed={summary.failed}
+                bookTitle={books.find((book) => book.id === bookId)?.title}
+                allSaved={!unsavedItems.length}
+              />
             ) : null}
           </ModalBody>
           <ModalFooter>
@@ -581,7 +544,8 @@ export function CollectVocabularyDialog({
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Close
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              Back to chat
             </Button>
             <Button
               type="button"
@@ -602,12 +566,17 @@ export function CollectVocabularyDialog({
                   : `Save ${valid.length} card${valid.length === 1 ? "" : "s"}`}
             </Button>
           </ModalFooter>
-        {editingItem ? (
-          <Modal open={open} onOpenChange={(nextOpen) => {
+        </ModalContent>
+          {editingItem ? (
+          <Modal open onOpenChange={(nextOpen) => {
             if (!nextOpen) setEditingKey(null);
           }}>
-            <ModalContent className="sm:max-w-2xl">
+            <ModalContent className="sm:max-w-2xl" forceOverlay overlayClassName="bg-background/40 supports-backdrop-filter:backdrop-blur-md">
               <ModalHeader>
+                <Button type="button" variant="ghost" size="sm" className="mb-2 w-fit justify-start px-0" onClick={() => setEditingKey(null)}>
+                  <ArrowLeft aria-hidden="true" className="size-4" />
+                  Back to vocabulary
+                </Button>
                 <ModalTitle>Edit card</ModalTitle>
                 <ModalDescription>Update {editingItem.text} before saving.</ModalDescription>
               </ModalHeader>
@@ -659,7 +628,7 @@ export function CollectVocabularyDialog({
                             type="button"
                             aria-label={`Choose picture ${index + 1} for ${editingItem.text}`}
                             aria-pressed={editingItem.imageUrl === url}
-                            className="aspect-square rounded-xl bg-muted bg-cover bg-center ring-2 ring-transparent focus-visible:outline-2 focus-visible:outline-ring aria-pressed:ring-primary"
+                            className="aspect-square rounded-xl bg-muted bg-cover bg-center ring-2 ring-transparent focus-visible:outline-2 focus-visible:outline-border aria-pressed:ring-border"
                             style={{ backgroundImage: `url(${url})` }}
                             onClick={() => update(editingItem.key, { imageUrl: url })}
                           />
@@ -768,7 +737,6 @@ export function CollectVocabularyDialog({
             </ModalContent>
           </Modal>
         ) : null}
-        </ModalContent>
       </Modal>
     </>
   );

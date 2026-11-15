@@ -62,7 +62,7 @@ export function MobileNav({ onFeedbackClick = () => {} }: { onFeedbackClick?: ()
               href={href}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-border",
                 current && "text-primary"
               )}
             >
@@ -75,7 +75,7 @@ export function MobileNav({ onFeedbackClick = () => {} }: { onFeedbackClick?: ()
           <DropdownMenuTrigger
             aria-label={currentSecondary ? `More destinations, current page ${currentSecondary.label}` : "More destinations"}
             className={cn(
-              "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring",
+              "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold text-muted-foreground focus-visible:outline-2 focus-visible:outline-border",
               moreIsCurrent && "text-primary"
             )}
           >

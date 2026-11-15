@@ -38,6 +38,7 @@ import {
   ModalTrigger,
 } from "@/components/ui/modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { readHomeChatPrompt } from "@/lib/home-chat-entry";
 import { HttpError, http } from "@/lib/http";
 import type {
   ApiErrorResponse,
@@ -148,7 +149,7 @@ export function AuthModal({
 
         persistTokens(response);
         toast.success(response.message ?? "Signed in successfully");
-        window.location.assign("/dashboard");
+        window.location.assign(readHomeChatPrompt() ? "/vocabulary" : "/dashboard");
         return;
       }
 
@@ -179,7 +180,7 @@ export function AuthModal({
       <ModalTrigger render={<span className="contents" />}>
         {children}
       </ModalTrigger>
-      <ModalContent className="rounded-[1.75rem] border border-brand-200 bg-white px-5 py-5 text-foreground opacity-100 shadow-2xl shadow-primary/30 sm:max-w-[480px] sm:px-7 sm:py-6 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:text-foreground">
+      <ModalContent className="rounded-[1.75rem] border border-border bg-white px-5 py-5 text-foreground opacity-100 shadow-2xl shadow-primary/30 sm:max-w-[480px] sm:px-7 sm:py-6 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:text-foreground">
         {registrationComplete ? (
           <>
             <div className="relative flex justify-center">
@@ -463,7 +464,7 @@ function AuthField({
         id={id}
         aria-invalid={invalid}
         className={cn(
-          "h-16 rounded-2xl border-brand-200 bg-white pb-2.5 pl-14 pr-14 pt-8 text-sm text-foreground shadow-none placeholder:text-muted-foreground/75 focus-visible:border-primary focus-visible:ring-primary/20",
+          "h-16 rounded-2xl border-border bg-white pb-2.5 pl-14 pr-14 pt-8 text-sm text-foreground shadow-none placeholder:text-muted-foreground/75 focus-visible:border-border focus-visible:ring-border focus-visible:ring-offset-2",
           invalid && "animate-error-shake",
           !trailing && "pr-5",
           className,

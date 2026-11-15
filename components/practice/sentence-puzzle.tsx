@@ -56,9 +56,9 @@ export function SentencePuzzle({
         className={cn(
           "relative mt-7 grid min-h-56 content-end overflow-visible rounded-3xl border border-dashed border-border bg-muted/30 px-4 pb-4 pt-20 transition-colors sm:px-6",
           feedback?.result === "correct" &&
-            "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
+            "border-border bg-emerald-50/60 dark:bg-emerald-950/20",
           feedback?.result === "incorrect" &&
-            "border-destructive bg-destructive/5 ring-3 ring-destructive/15"
+            "border-border bg-destructive/5 ring-3 ring-border"
         )}
         aria-invalid={feedback?.result === "incorrect"}
       >
@@ -78,7 +78,7 @@ export function SentencePuzzle({
                 <button
                   key={token.id}
                   type="button"
-                  className="min-h-11 w-24 rounded-2xl border border-border bg-background px-2 text-sm font-semibold text-foreground shadow-sm shadow-foreground/5 outline-none transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none sm:w-28 sm:text-base"
+                  className="min-h-11 w-24 rounded-2xl border border-border bg-background px-2 text-sm font-semibold text-foreground shadow-sm shadow-foreground/5 outline-none transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2 disabled:pointer-events-none sm:w-28 sm:text-base"
                   disabled={isLocked}
                   onClick={() =>
                     edit(selectedIds.filter((id) => id !== selectedToken.id))
@@ -123,7 +123,7 @@ export function SentencePuzzle({
           <button
             key={token.id}
             type="button"
-            className="min-h-11 rounded-xl border border-amber-300 bg-amber-100 px-4 text-sm font-bold text-amber-950 shadow-[0_3px_0_#f5b82e] outline-none transition-transform hover:-translate-y-0.5 hover:bg-amber-200 focus-visible:ring-3 focus-visible:ring-amber-400/50 active:translate-y-0.5 disabled:pointer-events-none disabled:opacity-45 sm:min-h-12 sm:px-5 sm:text-base"
+            className="min-h-11 rounded-xl border border-border bg-secondary px-4 text-sm font-bold text-secondary-foreground shadow-sm shadow-foreground/5 outline-none transition-transform hover:-translate-y-0.5 hover:bg-muted/40 focus-visible:ring-3 focus-visible:bg-accent focus-visible:ring-border focus-visible:ring-offset-2 active:translate-y-0.5 disabled:pointer-events-none disabled:opacity-45 sm:min-h-12 sm:px-5 sm:text-base"
             disabled={isLocked}
             onClick={() => edit([...selectedIds, token.id])}
           >

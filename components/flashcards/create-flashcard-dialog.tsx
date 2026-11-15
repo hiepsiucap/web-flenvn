@@ -593,8 +593,8 @@ export function CreateFlashcardDialog({
                         key={`${item.url}-${index}`}
                         type="button"
                         className={[
-                          "group relative overflow-hidden rounded-2xl bg-card shadow-sm shadow-foreground/5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]",
-                          isSelected && "ring-2 ring-primary/25 shadow-md shadow-foreground/10",
+                          "group relative overflow-hidden rounded-2xl bg-card shadow-sm shadow-foreground/5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2 active:scale-[0.98]",
+                          isSelected && "ring-2 ring-border shadow-md shadow-foreground/10",
                         ].join(" ")}
                         onClick={() => setImageUrl(item.url ?? "")}
                         aria-label={`Choose suggested image ${index + 1}`}
@@ -660,10 +660,10 @@ export function CreateFlashcardDialog({
                             example === (item.example?.text ?? "")
                           }
                           className={cn(
-                            "rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50",
+                            "rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2",
                             definition === item.definition?.text &&
                               example === (item.example?.text ?? "") &&
-                              "ring-2 ring-primary/25"
+                              "ring-2 ring-border"
                           )}
                           onClick={() => {
                             setDefinition(item.definition?.text ?? "");
@@ -717,7 +717,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                           onClick={() => {
                             setDefinition(item.text ?? "");
                             if (item.partOfSpeech) {
@@ -745,7 +745,7 @@ export function CreateFlashcardDialog({
                         <button
                           key={`${item.text}-${index}`}
                           type="button"
-                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="rounded-2xl bg-card p-3 text-left text-sm shadow-sm shadow-foreground/5 transition-shadow hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                           onClick={() => setExample(item.text ?? "")}
                         >
                           {item.text}

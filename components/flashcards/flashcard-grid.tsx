@@ -312,7 +312,7 @@ export function FlashcardGrid({
             key={card.id}
             type="button"
             className={cn(
-              "group overflow-hidden rounded-3xl bg-card text-left shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50",
+              "group overflow-hidden rounded-3xl bg-card text-left shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10 focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2",
               view === "list" && "flex items-center gap-3 p-3 sm:gap-4"
             )}
             onClick={() => openCard(card)}
@@ -449,7 +449,7 @@ export function FlashcardGrid({
                     {isValidHttpUrl(selectedCard.audioUrl) ? (
                       <button
                         type="button"
-                        className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                         title="Play pronunciation audio"
                         aria-label="Play pronunciation audio"
                         onClick={() => playAudio(selectedCard.audioUrl)}
@@ -516,7 +516,7 @@ export function FlashcardGrid({
                       {isValidHttpUrl(selectedCard.exampleAudioUrl) ? (
                         <button
                           type="button"
-                          className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="inline-flex size-7 items-center justify-center rounded-xl bg-background text-primary transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                           title="Play example audio"
                           aria-label="Play example audio"
                           onClick={() => playAudio(selectedCard.exampleAudioUrl)}
@@ -671,7 +671,7 @@ export function FlashcardGrid({
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Suggested images">
                     {suggestedImages.map((url, index) => (
                       <button key={`${url}-${index}`} type="button" aria-label={`Choose suggested image ${index + 1}`} aria-pressed={imageChoice === "suggested" && imageUrl === url}
-                        className="aspect-square overflow-hidden rounded-lg bg-secondary bg-cover bg-center aria-pressed:ring-2 aria-pressed:ring-primary"
+                        className="aspect-square overflow-hidden rounded-lg bg-secondary bg-cover bg-center aria-pressed:ring-2 aria-pressed:ring-border"
                         style={{ backgroundImage: `url(${url})` }} onClick={() => { setImageChoice("suggested"); setImageUrl(url); setImageFile(null); setImagePreview(""); }} />
                     ))}
                   </div>

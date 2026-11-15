@@ -5,8 +5,11 @@ import emptyFolderImage from "../../img/empty-folder.png";
 import { cn } from "../../lib/utils";
 import { Text } from "./text";
 
+import { StateIllustration, type StateIllustrationKind } from "./state-illustration";
+
 type EmptyStateProps = {
   title: string;
+  illustration?: StateIllustrationKind;
   description?: string;
   action?: ReactNode;
   variant?: "page" | "panel" | "compact";
@@ -15,12 +18,14 @@ type EmptyStateProps = {
 
 export function EmptyState({
   title,
+  illustration,
   description,
   action,
   variant = "page",
   className,
 }: EmptyStateProps) {
   const titleId = useId();
+
 
   return (
     <section
@@ -34,10 +39,12 @@ export function EmptyState({
       )}
     >
       <div className="flex max-w-sm flex-col items-center">
-        {variant === "page" ? (
+        {variant !== "compact" && illustration ? (
+          <StateIllustration kind={illustration} />
+        ) : variant === "page" ? (
           <Image src={emptyFolderImage} alt="" className="h-auto w-40 sm:w-48" />
         ) : null}
-        <h2 id={titleId} className={variant === "page" ? "mt-5" : undefined}>
+        <h2 id={titleId} className={variant === "page" || (illustration && variant !== "compact") ? "mt-5" : undefined}>
           <Text as="span" className={variant === "compact" ? "text-sm" : "text-lg"} weight="semibold">
             {title}
           </Text>

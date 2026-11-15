@@ -22,7 +22,7 @@ export function StreakCard() {
   const circumference = 2 * Math.PI * radius;
 
   return (
-    <Card className="rounded-3xl border-brand-200/80 bg-card [--card-spacing:--spacing(5)]">
+    <Card className="rounded-3xl border-border bg-card [--card-spacing:--spacing(5)]">
       <CardHeader className="flex-row items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="relative grid size-10 place-items-center">

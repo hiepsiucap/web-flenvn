@@ -222,3 +222,8 @@ function shuffle<TItem>(items: TItem[], random: () => number = Math.random) {
     .sort((a, b) => a.sort - b.sort)
     .map(({ item }) => item);
 }
+
+export function selectPracticeCards(cards: Flashcard[], selectedIds: string[]): Flashcard[] {
+  const selected = new Set(selectedIds);
+  return Array.from(new Map(cards.filter((card) => selected.has(card.id)).map((card) => [card.id, card])).values());
+}

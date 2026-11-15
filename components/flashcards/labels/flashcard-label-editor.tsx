@@ -207,7 +207,7 @@ export function FlashcardLabelEditor({
                         <button
                           key={label.id}
                           type="button"
-                          className="flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                           onClick={() => selectLabel(label)}
                         >
                           <Icon icon={Plus} size="sm" className="shrink-0 text-muted-foreground" />

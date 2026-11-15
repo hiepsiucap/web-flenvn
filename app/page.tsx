@@ -23,6 +23,7 @@ import {
   Trophy,
 } from "@phosphor-icons/react/ssr";
 
+import { HomeChatInput } from "@/components/home/home-chat-input";
 import { AuthModal } from "@/components/auth/auth-modal";
 import DashboardPage from "@/app/(authenticated)/dashboard/page";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -256,6 +257,10 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
               master vocabulary through focused review.
             </Text>
 
+            <div className="mt-6">
+              <HomeChatInput inverse />
+            </div>
+
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <AuthModal defaultMode="register">
                 <Button className="h-11 rounded-full bg-white px-6 text-sm font-extrabold text-blue-700 hover:bg-white/90 sm:h-12 sm:px-7">
@@ -304,13 +309,13 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
         className="relative overflow-hidden border-t border-white/10 bg-transparent px-6 py-18 text-white sm:px-10 lg:px-16 xl:px-20"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_28%,var(--landing-blue-highlight),transparent_24%),radial-gradient(circle_at_80%_18%,rgba(115,126,250,0.24),transparent_28%)]" />
-        <div className="absolute -left-24 bottom-10 h-56 w-[560px] rounded-[50%] border border-brand-400/20" />
-        <div className="absolute left-[24%] top-10 hidden h-[520px] w-[520px] rounded-[50%] border border-brand-400/10 lg:block" />
+        <div className="absolute -left-24 bottom-10 h-56 w-[560px] rounded-[50%] border border-border" />
+        <div className="absolute left-[24%] top-10 hidden h-[520px] w-[520px] rounded-[50%] border border-border lg:block" />
 
         <div className="relative mx-auto max-w-page-lg">
           <div className="grid gap-10 xl:grid-cols-[0.74fr_1.26fr] xl:items-center">
             <div className="relative">
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/25 bg-brand-700/65 px-4 py-2 text-xs font-extrabold uppercase text-secondary shadow-lg shadow-blue-950/25">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-brand-700/65 px-4 py-2 text-xs font-extrabold uppercase text-secondary shadow-lg shadow-blue-950/25">
                 <Icon icon={Star} className="size-4" weight="fill" />
                 Features
               </div>
@@ -382,7 +387,7 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
             <span key={index} className="size-2 rounded-full bg-brand-400" />
           ))}
         </div>
-        <div className="absolute -right-20 top-8 hidden h-80 w-[520px] rounded-[50%] border border-brand-400/25 lg:block" />
+        <div className="absolute -right-20 top-8 hidden h-80 w-[520px] rounded-[50%] border border-border lg:block" />
         <Icon
           icon={Sparkle}
           className="absolute left-[10%] top-32 hidden size-8 text-brand-400/70 lg:block"
@@ -396,7 +401,7 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
 
         <div className="relative mx-auto max-w-page-md">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="inline-flex items-center gap-3 rounded-full border border-brand-400/25 bg-brand-700/65 px-5 py-2 text-xs font-extrabold uppercase text-secondary shadow-lg shadow-blue-950/25">
+            <div className="inline-flex items-center gap-3 rounded-full border border-border bg-brand-700/65 px-5 py-2 text-xs font-extrabold uppercase text-secondary shadow-lg shadow-blue-950/25">
               <Icon icon={Sparkle} className="size-4 text-brand-300" weight="fill" />
               How it works
               <Icon icon={Sparkle} className="size-4 text-brand-300" weight="fill" />
@@ -416,7 +421,7 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
           </div>
 
           <div className="relative mt-10 grid gap-6 lg:grid-cols-3 lg:gap-24">
-            <div className="absolute left-[25%] right-[25%] top-1/2 hidden -translate-y-1/2 border-t-4 border-dotted border-brand-400/60 lg:block" />
+            <div className="absolute left-[25%] right-[25%] top-1/2 hidden -translate-y-1/2 border-t-4 border-dotted border-border lg:block" />
             {workflowSteps.map((step, index) => (
               <WorkflowCard key={step.title} step={step} number={index + 1} />
             ))}
@@ -497,7 +502,7 @@ export function MarketingHome({ showLogin = false }: { showLogin?: boolean }) {
                 $0
               </Text>
             </article>
-            <article className="rounded-2xl border border-secondary bg-secondary p-6 text-secondary-foreground">
+            <article className="rounded-2xl border border-border bg-secondary p-6 text-secondary-foreground">
               <Text as="div" className="text-xl" weight="bold">
                 Plus
               </Text>
@@ -553,7 +558,7 @@ function FeatureCard({
   const numberLabel = number.toString().padStart(2, "0");
 
   return (
-    <Card className="min-h-[420px] border border-brand-400/40 bg-white/10 py-0 text-white shadow-2xl shadow-blue-950/20 backdrop-blur">
+    <Card className="min-h-[420px] border border-border bg-white/10 py-0 text-white shadow-2xl shadow-blue-950/20 backdrop-blur">
       <CardContent className="flex h-full flex-col px-7 pb-7 pt-7">
         <div
           className={`grid size-12 place-items-center rounded-full text-base font-extrabold shadow-lg shadow-blue-950/25 ${
@@ -652,7 +657,7 @@ function FeatureIllustration({
   return (
     <div className="relative my-2 h-42">
       <div className="absolute left-9 top-13 h-20 w-6 rotate-35 rounded-full bg-brand-700 shadow-xl shadow-blue-950/25" />
-      <div className="absolute left-16 top-5 grid size-23 place-items-center rounded-full border-[10px] border-primary bg-transparent shadow-xl shadow-blue-950/30">
+      <div className="absolute left-16 top-5 grid size-23 place-items-center rounded-full border-[10px] border-border bg-transparent shadow-xl shadow-blue-950/30">
         <div className="size-11 rounded-full bg-brand-200" />
       </div>
       <div className="absolute right-10 top-12 h-26 w-31 rotate-[-4deg] rounded-lg bg-white p-5 shadow-xl shadow-blue-950/30">
@@ -695,9 +700,9 @@ function WorkflowCard({
   number: number;
 }) {
   return (
-    <Card className="relative z-10 min-h-[300px] border border-brand-400/35 bg-white/10 py-0 text-white shadow-2xl shadow-blue-950/20 backdrop-blur">
+    <Card className="relative z-10 min-h-[300px] border border-border bg-white/10 py-0 text-white shadow-2xl shadow-blue-950/20 backdrop-blur">
       <CardContent className="flex h-full flex-col items-center px-5 pb-7 pt-6 text-center sm:px-7">
-        <div className="absolute left-6 top-6 grid size-12 place-items-center rounded-full border border-brand-300/60 bg-primary text-xl font-extrabold text-white shadow-lg shadow-brand-800/45">
+        <div className="absolute left-6 top-6 grid size-12 place-items-center rounded-full border border-border bg-primary text-xl font-extrabold text-white shadow-lg shadow-brand-800/45">
           {number}
         </div>
 
@@ -791,14 +796,14 @@ function HeroScene() {
         sizes="560px"
       />
 
-      <div className="absolute left-8 top-14 h-[420px] w-[232px] rotate-[-10deg] rounded-[2rem] border-[8px] border-blue-500 bg-blue-700 shadow-2xl shadow-blue-950/50">
+      <div className="absolute left-8 top-14 h-[420px] w-[232px] rotate-[-10deg] rounded-[2rem] border-[8px] border-border bg-blue-700 shadow-2xl shadow-blue-950/50">
         <div className="absolute left-1/2 top-3 h-7 w-24 -translate-x-1/2 rounded-b-2xl bg-blue-950" />
         <div className="m-3 mt-10 rounded-[1.5rem] bg-white p-3 text-blue-950">
-          <div className="flex h-11 items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-3 text-xs text-blue-900/70">
+          <div className="flex h-11 items-center justify-between rounded-2xl border border-border bg-blue-50 px-3 text-xs text-blue-900/70">
             Search any word...
             <Icon icon={MagnifyingGlass} className="size-7 text-blue-700" />
           </div>
-          <div className="mt-3 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+          <div className="mt-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <Text as="div" className="text-xl font-extrabold text-blue-950">
                 brilliant
@@ -814,7 +819,7 @@ function HeroScene() {
             <Text className="mt-3 text-blue-950" size="sm" weight="semibold">
               Exceptionally clever or talented.
             </Text>
-            <div className="mt-5 border-t border-blue-100 pt-4">
+            <div className="mt-5 border-t border-border pt-4">
               <Text className="text-blue-700" size="sm" weight="bold">
                 Example
               </Text>
@@ -863,7 +868,7 @@ function HeroScene() {
 
       <div className="absolute bottom-8 right-0 grid gap-3 text-center">
         <Icon icon={Star} className="mx-auto size-20 text-secondary" weight="fill" />
-        <div className="rounded-2xl border border-blue-400 bg-blue-800 px-7 py-3 text-2xl font-extrabold text-secondary shadow-xl shadow-blue-950/30">
+        <div className="rounded-2xl border border-border bg-blue-800 px-7 py-3 text-2xl font-extrabold text-secondary shadow-xl shadow-blue-950/30">
           +120 XP
         </div>
       </div>

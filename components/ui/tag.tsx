@@ -6,19 +6,19 @@ import { Icon } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
 const tagVariants = cva(
-  "inline-flex w-fit max-w-full items-center border font-medium whitespace-nowrap",
+  "inline-flex w-fit max-w-full items-center border border-border font-medium whitespace-nowrap ",
   {
     variants: {
       variant: {
-        neutral: "border-border bg-muted text-foreground",
-        primary: "border-primary/20 bg-primary/10 text-primary",
+        neutral: "bg-muted text-foreground",
+        primary: "bg-primary/10 text-primary",
         success:
-          "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+          "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
         warning:
-          "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+          "bg-secondary text-secondary-foreground",
         destructive:
-          "border-destructive/30 bg-destructive/10 text-destructive",
-        outline: "border-border bg-background text-foreground",
+          "bg-destructive/10 text-destructive",
+        outline: "bg-background text-foreground",
       },
       size: {
         sm: "h-6 gap-1 rounded-full px-2 text-xs",
@@ -69,7 +69,7 @@ function Tag({
         <button
           type="button"
           className={cn(
-            "grid shrink-0 place-items-center rounded-full text-current opacity-70 outline-none transition-colors hover:bg-foreground/10 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/60",
+            "grid shrink-0 place-items-center rounded-full text-current opacity-70 outline-none transition-colors hover:bg-foreground/10 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2",
             size === "sm" ? "size-4" : "size-5"
           )}
           onClick={onRemove}

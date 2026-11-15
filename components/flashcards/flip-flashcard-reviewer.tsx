@@ -7,7 +7,6 @@ import {
   ArrowCounterClockwise,
   CaretLeft,
   CaretRight,
-  Cards,
   SpeakerHigh,
 } from "@phosphor-icons/react";
 
@@ -55,9 +54,6 @@ export function FlipFlashcardReviewer({
   const [flipped, setFlipped] = useState(false);
 
   const currentCard = flashcards[index];
-  const progress = flashcards.length
-    ? Math.round(((index + 1) / flashcards.length) * 100)
-    : 0;
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -77,7 +73,13 @@ export function FlipFlashcardReviewer({
         return;
       }
 
-      if (event.key === " " || event.key === "Enter") {
+      if (event.key === " " && flashcards.length) {
+        event.preventDefault();
+        if (!event.repeat) setFlipped((value) => !value);
+        return;
+      }
+
+      if (event.key === "Enter") {
         const target = event.target;
         const isAnotherControl =
           target instanceof HTMLElement &&
@@ -123,6 +125,7 @@ export function FlipFlashcardReviewer({
   if (!books.length) {
     return (
       <EmptyState
+        illustration="books"
         title="No books yet"
         description="Create a book and add flashcards before using flip-card study."
         action={<CreateBookDialog />}
@@ -164,6 +167,7 @@ export function FlipFlashcardReviewer({
       {!currentCard ? (
         <EmptyState
           variant="panel"
+          illustration="books"
           title={`No flashcards in ${selectedBook?.title}`}
           description="Add flashcards to this book, then return here to study them."
           action={selectedBook ? (
@@ -174,27 +178,19 @@ export function FlipFlashcardReviewer({
         />
       ) : (
         <>
-          <section className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <Badge variant="secondary" className="rounded-xl">
-                  <Icon icon={Cards} />
-                  {index + 1} / {flashcards.length}
-                </Badge>
-                <Text className="truncate" size="sm" weight="semibold">
-                  {selectedBook?.title}
-                </Text>
-              </div>
-              <Text size="xs" tone="muted">
-                {progress}%
-              </Text>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+          <section className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
+            <Text className="truncate" size="sm" tone="muted">
+              {selectedBook?.title}
+            </Text>
+            <Text
+              className="shrink-0 tabular-nums"
+              size="sm"
+              weight="medium"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              Card {index + 1} of {flashcards.length}
+            </Text>
           </section>
 
           <div className="grid items-center gap-4 sm:grid-cols-[auto_minmax(0,32rem)_auto] sm:justify-center">
@@ -220,24 +216,48 @@ export function FlipFlashcardReviewer({
                     autoPlay
                     preload="auto"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="absolute right-4 top-4 z-20 rounded-full bg-background/90 shadow-sm"
-                    aria-label={`Play pronunciation for ${currentCard.word}`}
-                    title="Play pronunciation"
-                    onClick={playAudio}
-                  >
-                    <Icon icon={SpeakerHigh} />
-                  </Button>
+                  <div className="pointer-events-none absolute inset-0 z-20 [perspective:1200px]">
+                    <div
+                      className={cn(
+                        "relative size-full transition-transform duration-500 [transform-style:preserve-3d]",
+                        flipped && "[transform:rotateY(180deg)]"
+                      )}
+                    >
+                      {[false, true].map((back) => (
+                        <div
+                          key={String(back)}
+                          className={cn(
+                            "absolute inset-0 [backface-visibility:hidden]",
+                            back && "[transform:rotateY(180deg)]"
+                          )}
+                          aria-hidden={flipped !== back}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className={cn(
+                              "absolute right-4 top-4 rounded-full bg-background/90 shadow-sm",
+                              flipped === back && "pointer-events-auto"
+                            )}
+                            tabIndex={flipped === back ? 0 : -1}
+                            aria-label={`Play pronunciation for ${currentCard.word}`}
+                            title="Play pronunciation"
+                            onClick={playAudio}
+                          >
+                            <Icon icon={SpeakerHigh} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </>
               ) : null}
 
               <button
                 type="button"
                 data-slot="flip-card"
-                className="group grid min-h-[440px] w-full rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="group grid min-h-[440px] w-full rounded-2xl text-left outline-none [perspective:1200px] focus-visible:ring-3 focus-visible:ring-border focus-visible:ring-offset-2"
                 aria-label={`Flip flashcard to show ${flipped ? "front" : "back"}`}
                 aria-pressed={flipped}
                 onClick={() => setFlipped((value) => !value)}

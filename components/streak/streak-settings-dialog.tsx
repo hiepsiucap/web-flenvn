@@ -55,7 +55,7 @@ export function StreakSettingsDialog({ trigger }: { trigger: ReactElement }) {
             {targetPresets.map((value) => <Button key={value} type="button" variant={target === value ? "default" : "outline"} onClick={() => setTarget(value)}>{value.toLocaleString()}</Button>)}
           </div>
           <div className="grid gap-1.5"><Label htmlFor="daily-target-setting">Custom target</Label><Input id="daily-target-setting" type="number" min={1000} max={20000} value={target} onChange={(event) => setTarget(Number(event.target.value))} /></div>
-          <div className="grid gap-1.5"><Label>Timezone</Label><p className="rounded-lg border border-input px-2.5 py-2 text-sm text-muted-foreground">{status?.timezone ?? "Not available"}</p></div>
+          <div className="grid gap-1.5"><Label>Timezone</Label><p className="rounded-lg border border-border px-2.5 py-2 text-sm text-muted-foreground">{status?.timezone ?? "Not available"}</p></div>
           {status?.nextDailyTarget && <p className="text-xs font-semibold text-primary">{status.nextDailyTarget.toLocaleString()} points per day starting {status.targetEffectiveDate}.</p>}
           {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
         </ModalBody>

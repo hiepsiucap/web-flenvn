@@ -7,6 +7,7 @@ describe("EmptyState", () => {
   it("keeps an empty state actionable and accessible", () => {
     const html = renderToStaticMarkup(
       <EmptyState
+        illustration="books"
         title="No books yet"
         description="Create a book to get started."
         action={<button type="button">Create book</button>}
@@ -27,4 +28,17 @@ describe("EmptyState", () => {
     expect(html).toContain("No recent videos");
     expect(html).not.toContain("<img");
   });
+  it.each([
+    ["books", "empty-books"],
+    ["search", "search-empty"],
+    ["connection", "connection-error"],
+    ["not-found", "not-found"],
+  ] as const)("uses the appropriate %s illustration", (illustration, filename) => {
+    const html = renderToStaticMarkup(
+      <EmptyState title="Example state" illustration={illustration} />,
+    );
+    expect(html).toContain(`${filename}.webp`);
+    expect(html).toContain('alt=""');
+  });
+
 });

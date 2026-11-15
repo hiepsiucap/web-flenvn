@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FlipFlashcardReviewer } from "@/components/flashcards/flip-flashcard-reviewer";
 import { LoadingState } from "@/components/ui/loading-state";
 import { CLIENT_DATA_CHANGED_EVENT, getBooksClient, getFlashcardsByBookClient } from "@/lib/client-api";
@@ -24,15 +26,21 @@ function FlipFlashcardsPageContent() {
     flashcards: Flashcard[];
   } | null>(null);
 
+  const [loadError, setLoadError] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
+
   useEffect(() => {
     let active = true;
     const load = () => {
+      setLoadError(false);
       void getBooksClient().then(async (books) => {
         const selectedBook = books.find((book) => book.id === bookId) ?? books[0] ?? null;
         const flashcards = selectedBook
           ? await getFlashcardsByBookClient(selectedBook.id)
           : [];
         if (active) setData({ books, selectedBook, flashcards });
+      }).catch(() => {
+        if (active) setLoadError(true);
       });
     };
     load();
@@ -41,7 +49,11 @@ function FlipFlashcardsPageContent() {
       active = false;
       window.removeEventListener(CLIENT_DATA_CHANGED_EVENT, load);
     };
-  }, [bookId]);
+  }, [bookId, loadKey]);
+
+  if (loadError) {
+    return <EmptyState illustration="connection" title="Study cards unavailable" description="We couldn’t load your cards. Please try again." action={<Button onClick={() => setLoadKey((key) => key + 1)}>Try again</Button>} />;
+  }
 
   if (!data) {
     return <LoadingState title="Loading study cards" description="Preparing your flashcards." />;

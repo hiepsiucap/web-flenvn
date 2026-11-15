@@ -34,7 +34,7 @@ function RankCard({ rank }: { rank: RankCatalogItem }) {
 
   return (
     <article className={cn(
-      "relative flex h-52 min-w-0 flex-col items-center justify-between gap-1 rounded-2xl border border-gray-200 bg-card px-2.5 py-2.5 text-center shadow-sm shadow-foreground/10 dark:border-gray-600",
+      "relative flex h-52 min-w-0 flex-col items-center justify-between gap-1 rounded-2xl border border-border bg-card px-2.5 py-2.5 text-center shadow-sm shadow-foreground/10 ",
       current && "shadow-md shadow-primary/20",
       rank.status === "locked" && "opacity-75"
     )}>
@@ -174,7 +174,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
                 {shownRank?.imageUrl ? (
                   <Image src={shownRank.imageUrl} alt={`${shownRank.displayName} rank badge`} width={112} height={112} className="relative z-10 size-24 object-contain" />
                 ) : <Icon icon={Medal} className="relative z-10 size-20 text-primary" weight="duotone" />}
-                <div className="relative -mt-2 h-4 w-20 rounded-[50%] border border-secondary/45 bg-secondary/25 shadow-[0_0_16px_var(--secondary)]">
+                <div className="relative -mt-2 h-4 w-20 rounded-[50%] border border-border bg-secondary/25 shadow-[0_0_16px_var(--secondary)]">
                   <div className="absolute inset-x-2 top-0 h-1.5 rounded-[50%] bg-secondary/60 blur-[1px]" />
                 </div>
               </div>
@@ -183,7 +183,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
                 <p className="mt-2 text-xl font-extrabold text-primary">{shownRank?.displayName ?? "Not ranked yet"}</p>
                 <p className="mt-1 text-sm font-semibold text-muted-foreground">Level {shownLevel} · {shownExp.toLocaleString()} total XP</p>
                 <div className="mt-3 inline-flex items-center gap-2 text-xs font-semibold">
-                  <Icon icon={Star} className="size-4 text-secondary" weight="fill" />
+                  <Icon icon={Star} className="size-4 text-primary" weight="fill" />
                   {user?.nextMilestoneText ?? "Keep earning XP to reach your next rank."}
                 </div>
                 <div className="mt-3 grid w-full gap-1">
@@ -227,7 +227,7 @@ export function RankProgressDialog({ exp, level, progress, rank }: Props) {
         </ModalBody>
 
         <ModalFooter className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 [@media(max-height:700px)]:hidden">
-          <div className="relative flex min-h-16 items-center rounded-2xl border border-gray-200 px-4 pr-32 dark:border-gray-600">
+          <div className="relative flex min-h-16 items-center rounded-2xl border border-border px-4 pr-32 ">
             <Icon icon={Sparkle} className="mr-3 size-6 shrink-0 text-primary" weight="duotone" />
             <div>
               <p className="text-sm font-extrabold text-primary">Keep learning, keep growing!</p>

@@ -11,7 +11,6 @@ import { Text } from "@/components/ui/text";
 import { BooksGrid } from "@/components/books/books-grid";
 import { CreateBookDialog } from "@/components/books/create-book-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { CLIENT_DATA_CHANGED_EVENT, getBooksClient } from "@/lib/client-api";
@@ -67,15 +66,14 @@ export default function BooksPage() {
 
   if (loadError && !books) {
     return (
-      <Card className="max-w-3xl rounded-3xl">
-        <CardHeader>
-          <CardTitle>Books unavailable</CardTitle>
-          <CardDescription>Unable to load your books. Check your connection and try again.</CardDescription>
-          <Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
+      <EmptyState
+        illustration="connection"
+        title="Books unavailable"
+        description="Unable to load your books. Check your connection and try again."
+        action={<Button type="button" className="mt-3 w-fit" onClick={() => setLoadKey((key) => key + 1)}>
             Try again
-          </Button>
-        </CardHeader>
-      </Card>
+          </Button>}
+      />
     );
   }
 
@@ -116,7 +114,7 @@ export default function BooksPage() {
                   className="h-11 rounded-full bg-card pl-10 pr-4 shadow-none"
                 />
               </div>
-              <div className="inline-flex shrink-0 rounded-2xl border border-gray-200 bg-card p-0.5 dark:border-gray-600" aria-label="Book view">
+              <div className="inline-flex shrink-0 rounded-2xl border border-border bg-card p-0.5 " aria-label="Book view">
                 <Button
                   type="button"
                   variant={viewMode === "grid" ? "default" : "ghost"}
@@ -163,6 +161,7 @@ export default function BooksPage() {
             <BooksGrid books={books} visibleBooks={visibleBooks} view={viewMode} />
           ) : (
             <EmptyState
+              illustration="search"
               title="No matching books"
               description="Try a different search term."
               action={<Button type="button" variant="outline" onClick={() => setSearchQuery("")}>Clear search</Button>}
@@ -171,6 +170,7 @@ export default function BooksPage() {
         </>
       ) : (
         <EmptyState
+          illustration="books"
           title="No books yet"
           description="Create a book to start building flashcards."
           action={<CreateBookDialog books={books} />}
